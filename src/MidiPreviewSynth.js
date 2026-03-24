@@ -107,7 +107,9 @@ export class MidiPreviewSynth {
             this._playing = false;
             if (this._onEnd) this._onEnd();
             // Suspend after a grace period so the context doesn't stay running idle
+            // — but NOT if SamplerEngine is actively playing (shared context)
             this._idleSuspendTimer = setTimeout(() => {
+                if (window.__samplerRef?._audioActive) return;
                 if (!this._playing && this.audioContext && this.audioContext.state === 'running') {
                     this.audioContext.suspend().catch(() => {});
                 }

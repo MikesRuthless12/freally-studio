@@ -519,7 +519,8 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
 
     useEffect(() => { samplerRef2.current = sampler; }, [sampler]);
     useEffect(() => { loadedInstrumentRef.current = loadedInstrument; }, [loadedInstrument]);
-    useEffect(() => { patternRef.current = pattern; }, [pattern]);
+    const patternVersionRef = useRef(0);
+    useEffect(() => { patternRef.current = pattern; patternVersionRef.current++; }, [pattern]);
     useEffect(() => { globalTempoRef.current = globalTempo; }, [globalTempo]);
     useEffect(() => { globalBarsRef.current = globalBars; }, [globalBars]);
     useEffect(() => { poweredRef.current = powered; }, [powered]);
@@ -534,15 +535,19 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
         if (!globalCurrentStepRef || !globalIsPlayingRef) return;
 
         let lastCtx = samplerRef2.current?.audioContext || null;
+        let lastPatternVersion = patternVersionRef.current;
 
         const poll = () => {
-            if (clipPlaybackActiveRef.current) return;
             if (!globalIsPlayingRef.current || !samplerRef2.current || !loadedInstrumentRef.current) {
                 if (lastProcessedStepRef.current !== -1) {
                     lastProcessedStepRef.current = -1;
                 }
                 return;
             }
+
+            // Don't schedule notes while AudioContext is still resuming
+            const ctx2 = samplerRef2.current.audioContext;
+            if (!ctx2 || ctx2.state !== 'running') return;
 
             const currentStep = globalCurrentStepRef.current;
             if (currentStep < 0) return;
@@ -568,6 +573,35 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                     });
                 }
             }
+
+            // Detect mid-playback pattern change — runs even during clip playback
+            // so regeneration stops old notes and starts new ones instantly.
+            if (patternVersionRef.current !== lastPatternVersion) {
+                lastPatternVersion = patternVersionRef.current;
+                // Kill old pattern's sustaining notes immediately
+                if (loadedInstrumentRef.current && samplerRef2.current.stopInstrument) {
+                    samplerRef2.current.stopInstrument(loadedInstrumentRef.current);
+                }
+                if (shouldPlay) {
+                    const triggerStep = currentStep % totalSteps;
+                    const sustainingNotes = patternRef.current.filter(n => {
+                        const noteStart = Math.round(n.time);
+                        const noteEnd = noteStart + (n.duration || 1);
+                        return noteStart <= triggerStep && noteEnd > triggerStep;
+                    });
+                    sustainingNotes.forEach(n => {
+                        const remainingSteps = (Math.round(n.time) + (n.duration || 1)) - triggerStep;
+                        const remainingDuration = Math.max(0.05, (remainingSteps / 8) * (60 / globalTempoRef.current));
+                        samplerRef2.current.playNote(loadedInstrumentRef.current, n.note, n.velocity, remainingDuration, null, type);
+                    });
+                    lastProcessedStepRef.current = currentStep;
+                }
+            }
+
+            // Skip normal step processing when clip playback is active —
+            // clip system handles ongoing scheduling; poll only handles
+            // instant transitions (pattern changes, hot-swaps) above.
+            if (clipPlaybackActiveRef.current) return;
 
             if (lastProcessedStepRef.current === -1 || currentStep < lastProcessedStepRef.current) {
                 lastProcessedStepRef.current = currentStep - 1;
@@ -743,7 +777,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
             </div>
 
             <div style={{ background: isDark ? '#1a1a1f' : '#f0f0f0', padding: '15px', borderRadius: '8px', marginBottom: '20px', opacity: locked ? 0.6 : 1, pointerEvents: locked ? 'none' : 'auto', transition: '0.3s' }}>
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', rowGap: '8px' }}>
                     <div style={{ display: 'flex', gap: '5px' }}>
                         {['simple', 'complex'].map(level => (
                             <button key={level} onClick={() => setComplexity(level)} title={t(`common.${level}Tooltip`)} style={{ padding: '8px 16px', background: complexity === level ? ac : (isDark ? '#2a2a3e' : '#fff'), border: `1px solid ${isDark ? '#444' : '#ccc'}`, borderRadius: '4px', color: complexity === level ? '#fff' : (isDark ? '#fff' : '#333'), fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}>{t(`melodyBass.${level}`)}</button>

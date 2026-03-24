@@ -500,7 +500,9 @@ class DrumSynthEngine {
         if (this.ctx.state === 'suspended') this.ctx.resume();
         this.synthesize(type, this.ctx.destination, this.ctx.currentTime, params);
         // Suspend context after preview to prevent idle static on Realtek drivers
+        // — but NOT if SamplerEngine is actively playing (shared context)
         this._idleSuspendTimer = setTimeout(() => {
+            if (window.__samplerRef?._audioActive) return;
             if (this.ctx && this.ctx.state === 'running') {
                 this.ctx.suspend().catch(() => {});
             }

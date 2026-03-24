@@ -6,9 +6,39 @@ const { TransportClock } = require('./transportClock');
 const { VST3Scanner } = require('./vst3Scanner');
 const { loadNativeAddon, getAddon, registerIPC: registerVST3HostIPC } = require('./vst3HostBridge');
 
+// Single instance lock — prevent multiple copies of the app from running.
+// If a second instance launches, focus the existing window instead.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
+    });
+}
+
 // Enable SharedArrayBuffer without requiring strict COOP (same-origin).
 // This lets us use same-origin-allow-popups for COOP so Google auth popups work.
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
+
+// Bypass Chromium's internal audio resampler — sends audio straight to the OS
+// at the native sample rate (48 kHz on most Realtek hardware). Eliminates the
+// resampling loop that causes Realtek drivers to degrade into static after
+// sustained Web Audio playback.
+app.commandLine.appendSwitch('disable-audio-output-resampler');
+
+// Use the legacy Windows WAVE audio API instead of WASAPI. WAVE is simpler
+// and more tolerant of Realtek driver quirks that cause static/degradation
+// with WASAPI's shared-mode audio session.
+app.commandLine.appendSwitch('force-wave-audio');
+
+// Keep the audio service in the renderer process instead of a separate
+// sandboxed process. Removes IPC round-trips between Web Audio and the
+// OS audio output — less jitter on Realtek drivers.
+app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess');
 
 // Allow self-signed certs from Vite's dev HTTPS server in dev mode
 if (!app.isPackaged) {

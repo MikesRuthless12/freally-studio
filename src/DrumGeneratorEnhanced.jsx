@@ -1044,6 +1044,10 @@ const DrumGeneratorEnhanced = React.forwardRef(({
             return;
         }
         if (globalIsPlaying && sampler && globalCurrentStep >= 0) {
+            // Don't schedule notes while AudioContext is still resuming
+            const drumCtx = sampler.audioContext;
+            if (!drumCtx || drumCtx.state !== 'running') return;
+
             const currentStep = globalCurrentStep;
 
             // Detect AudioContext hot-swap — re-trigger sustaining drum notes (e.g. long 808s)

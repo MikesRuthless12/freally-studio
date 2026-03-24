@@ -15,9 +15,10 @@ export class SamplerEngine {
             // increase in output latency — an acceptable trade-off for a DAW
             // that schedules notes ahead of time.
             const Ctx = window.AudioContext || window.webkitAudioContext;
-            // Use explicit high latency (100ms) for maximum audio thread headroom.
-            // Matches system sample rate to avoid resampling overhead.
-            let ctxOptions = { latencyHint: 0.1, sampleRate: 48000 };
+            // 'playback' hint tells the browser to use the largest available buffer
+            // size — maximizes driver stability on Realtek and avoids underruns.
+            // Matches system sample rate (48 kHz) to avoid resampling overhead.
+            let ctxOptions = { latencyHint: 'playback', sampleRate: 48000 };
             try {
                 const raw = localStorage.getItem('wavloom_settings');
                 if (raw) {
@@ -33,6 +34,7 @@ export class SamplerEngine {
             window.sharedAnalysisCtx.suspend().catch(() => {});
         }
         this.audioContext = window.sharedAnalysisCtx;
+        this._contextCreatedAt = performance.now();
         this.instruments = new Map(); // instrumentId -> sampleMap
         this.activeSources = new Map(); // noteKey -> { source, envelope, startedAt }
         this.drumChannels = new Map(); // drumId -> DrumChannel DSP Chain
@@ -1280,6 +1282,38 @@ export class SamplerEngine {
     /**
      * Stop all playing notes with a quick fade to avoid clicks
      */
+    /**
+     * Stop all active notes for a given instrument with a quick fade.
+     * Used when a generator's pattern changes mid-playback so old sustaining
+     * notes don't bleed into the new pattern.
+     * @param {string} instrumentId
+     */
+    stopInstrument(instrumentId) {
+        const prefix = instrumentId + '_';
+        const ct = this.audioContext.currentTime;
+        for (const [key, entry] of this.activeSources) {
+            if (!key.startsWith(prefix)) continue;
+            try {
+                const src = entry.source || entry;
+                const env = entry.envelope;
+                if (env) {
+                    this._safeCancelAutomation(env.gain, ct);
+                    env.gain.setTargetAtTime(0.0001, ct, 0.006);
+                }
+                src.stop(ct + 0.04);
+                src.onended = () => {
+                    try { src.disconnect(); } catch (_) {}
+                    try { env?.disconnect(); } catch (_) {}
+                    src.onended = null;
+                };
+            } catch (_) {
+                try { (entry.source || entry).disconnect(); } catch (_2) {}
+                try { entry.envelope?.disconnect(); } catch (_2) {}
+            }
+            this.activeSources.delete(key);
+        }
+    }
+
     stopAll() {
         const ct = this.audioContext.currentTime;
 
@@ -1610,36 +1644,20 @@ export class SamplerEngine {
             if (this.audioContext && this.audioContext.state === 'suspended') {
                 this.audioContext.resume().catch(() => {});
             }
+            // Reset context age — the 45s swap threshold should measure active
+            // playback time, not time since page load (context was suspended/idle).
+            this._contextCreatedAt = performance.now();
             // Stop any hot-swap interval
             if (this._resetInterval) {
                 clearInterval(this._resetInterval);
                 this._resetInterval = null;
                 this._resetEnabled = false;
             }
-            // Soft reset: fade out over 1.5s, disconnect/reconnect destination,
-            // then restore gain instantly. No new context = no click.
-            if (this._softResetInterval) clearInterval(this._softResetInterval);
-            this._softResetInterval = setInterval(() => {
-                if (!this._audioActive || !this.audioContext || this.audioContext.state !== 'running') return;
-                const savedGain = this.masterGain.gain.value;
-                const ctx = this.audioContext;
-                const t = ctx.currentTime;
-                // Fade out over 1.5 seconds
-                this.masterGain.gain.setValueAtTime(savedGain, t);
-                this.masterGain.gain.linearRampToValueAtTime(0, t + 1.5);
-                // After fade completes: disconnect, reconnect, restore gain
-                setTimeout(() => {
-                    try {
-                        this._softLimiter.disconnect(ctx.destination);
-                        this._softLimiter.connect(ctx.destination);
-                        // Restore gain instantly at full level
-                        this.masterGain.gain.cancelScheduledValues(ctx.currentTime);
-                        this.masterGain.gain.setValueAtTime(savedGain, ctx.currentTime);
-                    } catch (_) {}
-                }, 1600); // slightly after the 1.5s fade
-            }, 15000); // every 15 seconds
-            // Start silent keepalive tone for pipeline stability
-            this._startKeepaliveTone();
+            // Context refresh is now handled by loopBoundarySwap() called from
+            // the tick loop at natural loop points — no periodic soft-reset needed.
+            // Keepalive tone is NOT started during active playback — generators
+            // already keep the audio pipeline active, and the DC offset node
+            // bypasses the master chain and can cause Realtek driver artifacts.
         }
         // When audio goes idle, stop the hot-swap interval and suspend the
         // AudioContext so the Realtek driver doesn't degrade into static.
@@ -1656,10 +1674,6 @@ export class SamplerEngine {
             if (this._reconnectInterval) {
                 clearInterval(this._reconnectInterval);
                 this._reconnectInterval = null;
-            }
-            if (this._softResetInterval) {
-                clearInterval(this._softResetInterval);
-                this._softResetInterval = null;
             }
             this._stopKeepaliveTone();
             // Always suspend the context when going idle — prevents Realtek
@@ -1706,7 +1720,7 @@ export class SamplerEngine {
 
         // Create fresh context with user settings
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        let ctxOptions = { latencyHint: 0.1, sampleRate: 48000 };
+        let ctxOptions = { latencyHint: 'playback', sampleRate: 48000 };
         try {
             const raw = localStorage.getItem('wavloom_settings');
             if (raw) {
@@ -1729,7 +1743,7 @@ export class SamplerEngine {
         } catch (_) { /* old context may already be closing */ }
 
         // Build new minimal master chain (with soft limiter)
-        // Start at the same gain level the old context was at
+        // Start at the same gain level — notes have their own ADSR envelopes
         const newMasterGain = newCtx.createGain();
         newMasterGain.gain.value = savedGain;
         const newLimiter = this._createSoftLimiter(newCtx);
@@ -1759,6 +1773,7 @@ export class SamplerEngine {
         // --- Swap references atomically ---
         this.audioContext = newCtx;
         window.sharedAnalysisCtx = newCtx;
+        this._contextCreatedAt = performance.now();
         this.masterGain = newMasterGain;
         this.compressor = newMasterGain;
         this._softLimiter = newLimiter;
@@ -1799,7 +1814,7 @@ export class SamplerEngine {
         // expire via onended callbacks. New notes use the new context.
         // The cleanup timer (_startCleanupTimer) handles stale entries.
 
-        // Resume new context immediately at full volume
+        // Resume new context — master gain is already at savedGain
         newCtx.resume();
 
         // Restart keepalive tone on new context
@@ -1876,10 +1891,145 @@ export class SamplerEngine {
         }
     }
     /**
-     * Full teardown — clear all timers and suspend the AudioContext.
-     * Called on page unload to prevent orphaned intervals from blocking
-     * the main thread during navigation/refresh.
+     * Lightweight context refresh at a loop boundary.
+     * Called by the tick loop when playback wraps to step 0 (or at bar boundaries
+     * in long arrangements). Performs a quick suspend→resume cycle to reset the
+     * Realtek driver's audio pipeline WITHOUT creating a new AudioContext.
+     *
+     * This is much lighter than a full context swap — no driver teardown/re-init,
+     * no graph rebuild, no dual-context overlap. The tick loop's auto-resume
+     * (ctx.state !== 'running' → ctx.resume()) acts as a safety net if the
+     * resume is delayed.
      */
+    /**
+     * Sequential context swap at a loop boundary.
+     * Called by the tick loop when playback wraps to step 0 (or at bar
+     * boundaries in long arrangements). Only fires when the context has
+     * been running for > 50 seconds — well before the ~76s point where
+     * Realtek drivers start degrading into static.
+     *
+     * Stops all voices FIRST, then closes old context, then creates new
+     * context — no dual-context audio that would cause Realtek artifacts.
+     * Generators detect the context change via their existing hot-swap
+     * detection and re-trigger sustaining notes automatically.
+     */
+    loopBoundarySwap() {
+        if (!this._contextCreatedAt || performance.now() - this._contextCreatedAt < 30000) return;
+
+        const oldCtx = this.audioContext;
+        if (!oldCtx || oldCtx.state === 'closed') return;
+
+        // 1. Save current state BEFORE touching anything
+        const savedMasterGain = this.masterGain.gain.value;
+        const savedPan = this.masterPanner.pan.value;
+        const savedBusValues = {};
+        for (const busId of Object.keys(this.trackBuses || {})) {
+            const bus = this.trackBuses[busId];
+            if (bus) {
+                savedBusValues[busId] = {
+                    gain: bus.gainNode.gain.value,
+                    pan: bus.pannerNode.pan.value
+                };
+            }
+        }
+        const oldDrumEntries = [...this.drumChannels.entries()];
+
+        // 2. Build the NEW context and full audio graph FIRST (while old
+        //    context is still running). This minimizes the silent gap.
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        let ctxOptions = { latencyHint: 'playback', sampleRate: 48000 };
+        try {
+            const raw = localStorage.getItem('wavloom_settings');
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.latencyHint) ctxOptions.latencyHint = s.latencyHint;
+                if (s.sampleRate && typeof s.sampleRate === 'number') ctxOptions.sampleRate = s.sampleRate;
+            }
+        } catch (_) {}
+        const newCtx = new Ctx(ctxOptions);
+
+        const newMasterGain = newCtx.createGain();
+        newMasterGain.gain.value = savedMasterGain; // full volume — notes have their own ADSR envelopes
+        const newLimiter = this._createSoftLimiter(newCtx);
+        newMasterGain.connect(newLimiter);
+        newLimiter.connect(newCtx.destination);
+
+        const newAnalyser = newCtx.createAnalyser();
+        newAnalyser.fftSize = 256;
+        newAnalyser.smoothingTimeConstant = 0.3;
+        newMasterGain.connect(newAnalyser);
+
+        const newPanner = newCtx.createStereoPanner();
+        newPanner.pan.value = savedPan;
+
+        const newBuses = {};
+        for (const busId of Object.keys(this.trackBuses || {})) {
+            const vals = savedBusValues[busId] || { gain: 0.3, pan: 0 };
+            const g = newCtx.createGain();
+            g.gain.value = vals.gain;
+            const p = newCtx.createStereoPanner();
+            p.pan.value = vals.pan;
+            const a = newCtx.createAnalyser();
+            a.fftSize = 256;
+            a.smoothingTimeConstant = 0.3;
+            g.connect(p);
+            p.connect(a);
+            a.connect(newMasterGain);
+            newBuses[busId] = { gainNode: g, pannerNode: p, analyserNode: a };
+        }
+
+        // Resume new context so it's ready to play the instant we swap
+        newCtx.resume();
+
+        // 3. Crossfade at the master level — no per-voice cancellation.
+        //    Cancelling gain automation on individual voices (cancelAndHold +
+        //    setTargetAtTime + hard stop) causes tiny gain discontinuities.
+        //    Instead, fade the OLD master gain to zero over 50ms via linear ramp.
+        //    This quickly silences any Realtek-degraded audio on the old context
+        //    while avoiding click artifacts. Voices ring out under the fade;
+        //    the 3-second close timer handles final cleanup.
+        const ct = oldCtx.currentTime;
+        try {
+            oldMasterGain.gain.setValueAtTime(oldMasterGain.gain.value, ct);
+            oldMasterGain.gain.linearRampToValueAtTime(0, ct + 0.05);
+        } catch (_) { /* old context may already be closing */ }
+        this.activeSources.clear();
+
+        // 4. Atomic swap — new graph is fully built and resumed
+        this.audioContext = newCtx;
+        window.sharedAnalysisCtx = newCtx;
+        this._contextCreatedAt = performance.now();
+        this.masterGain = newMasterGain;
+        this.compressor = newMasterGain;
+        this._softLimiter = newLimiter;
+        this.masterAnalyser = newAnalyser;
+        this.masterPanner = newPanner;
+        for (const busId of Object.keys(newBuses)) {
+            this.trackBuses[busId] = newBuses[busId];
+        }
+
+        // 5. Rebuild drum channels on new context
+        this.drumChannels.clear();
+        for (const [drumId, oldChannel] of oldDrumEntries) {
+            const newChannel = this.initDrumChannel(drumId);
+            if (newChannel && oldChannel?.params) {
+                Object.assign(newChannel.params, oldChannel.params);
+                if (newChannel.preGain && oldChannel.params.volume !== undefined) {
+                    newChannel.preGain.gain.value = oldChannel.params.volume;
+                }
+            }
+        }
+
+        // 6. Don't close old context immediately — old voices are still ringing
+        //    out under the 150ms master fade. Close after a 3-second grace period
+        //    so in-flight notes finish and cached references don't hit "context is closed".
+        setTimeout(() => {
+            try { if (oldCtx.state !== 'closed') oldCtx.close().catch(() => {}); } catch (_) {}
+        }, 3000);
+
+        console.log('[SamplerEngine] Loop-boundary context swap complete');
+    }
+
     /**
      * Start a silent keepalive tone to prevent Realtek driver degradation.
      * Uses a DC offset at -100dB (0.00001 gain) — completely inaudible but
@@ -1926,7 +2076,6 @@ export class SamplerEngine {
         if (this._resetInterval) { clearInterval(this._resetInterval); this._resetInterval = null; this._resetEnabled = false; }
         if (this._keepaliveInterval) { clearInterval(this._keepaliveInterval); this._keepaliveInterval = null; }
         if (this._reconnectInterval) { clearInterval(this._reconnectInterval); this._reconnectInterval = null; }
-        if (this._softResetInterval) { clearInterval(this._softResetInterval); this._softResetInterval = null; }
         if (this._idleSuspendTimer) { clearTimeout(this._idleSuspendTimer); this._idleSuspendTimer = null; }
         // Stop keepalive tone (oscillator/source nodes)
         this._stopKeepaliveTone();

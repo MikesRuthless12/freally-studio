@@ -59,7 +59,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
     // Sync from external pattern (e.g. folder analysis)
     useEffect(() => {
         if (externalPattern && externalPattern.length > 0 && !locked) {
-            setChordPattern(externalPattern);
+                setChordPattern(externalPattern);
         }
     }, [externalPattern, locked]);
 
@@ -426,7 +426,8 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
 
     useEffect(() => { samplerRef2.current = sampler; }, [sampler]);
     useEffect(() => { loadedInstrumentRef.current = loadedInstrument; }, [loadedInstrument]);
-    useEffect(() => { chordPatternRef.current = chordPattern; }, [chordPattern]);
+    const chordPatternVersionRef = useRef(0);
+    useEffect(() => { chordPatternRef.current = chordPattern; chordPatternVersionRef.current++; }, [chordPattern]);
     useEffect(() => { globalTempoRef.current = globalTempo; }, [globalTempo]);
     useEffect(() => { globalBarsRef.current = globalBars; }, [globalBars]);
     useEffect(() => { poweredRef.current = powered; }, [powered]);
@@ -441,15 +442,22 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
         if (!globalCurrentStepRef || !globalIsPlayingRef) return;
 
         let lastCtx = samplerRef2.current?.audioContext || null;
+        let lastPatternVersion = chordPatternVersionRef.current;
 
         const poll = () => {
-            if (clipPlaybackActiveRef.current) return;
             if (!globalIsPlayingRef.current || !samplerRef2.current || !loadedInstrumentRef.current) {
                 if (lastProcessedStepRef.current !== -1) {
                     lastProcessedStepRef.current = -1;
                 }
                 return;
             }
+
+            // Don't schedule notes while AudioContext is still resuming — notes
+            // fired on a suspended context have all ADSR events land in the past
+            // when it finally runs, causing the first chord to be inaudible.
+            // Leaving lastProcessedStepRef at -1 ensures step 0 is caught once running.
+            const ctx2 = samplerRef2.current.audioContext;
+            if (!ctx2 || ctx2.state !== 'running') return;
 
             const currentStep = globalCurrentStepRef.current;
             if (currentStep < 0) return;
@@ -463,7 +471,6 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                 lastCtx = currentCtx;
                 if (shouldPlay) {
                     const triggerStep = currentStep % totalSteps;
-                    // Find notes that should be currently sounding (started before now, haven't ended yet)
                     const sustainingNotes = chordPatternRef.current.filter(n => {
                         const noteStart = Math.round(n.time);
                         const noteEnd = noteStart + (n.duration || 1);
@@ -476,6 +483,35 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                     });
                 }
             }
+
+            // Detect mid-playback pattern change — stop old notes, re-trigger from new pattern.
+            // Runs even when clipPlaybackActive so regeneration takes effect instantly.
+            if (chordPatternVersionRef.current !== lastPatternVersion) {
+                lastPatternVersion = chordPatternVersionRef.current;
+                // Kill old pattern's sustaining notes immediately
+                if (loadedInstrumentRef.current && samplerRef2.current.stopInstrument) {
+                    samplerRef2.current.stopInstrument(loadedInstrumentRef.current);
+                }
+                if (shouldPlay) {
+                    const triggerStep = currentStep % totalSteps;
+                    const sustainingNotes = chordPatternRef.current.filter(n => {
+                        const noteStart = Math.round(n.time);
+                        const noteEnd = noteStart + (n.duration || 1);
+                        return noteStart <= triggerStep && noteEnd > triggerStep;
+                    });
+                    sustainingNotes.forEach(n => {
+                        const remainingSteps = (Math.round(n.time) + (n.duration || 1)) - triggerStep;
+                        const remainingDuration = Math.max(0.05, (remainingSteps / 8) * (60 / globalTempoRef.current));
+                        samplerRef2.current.playNote(loadedInstrumentRef.current, n.note, n.velocity, remainingDuration, null, 'chords');
+                    });
+                    lastProcessedStepRef.current = currentStep;
+                }
+            }
+
+            // Skip normal step-by-step processing when clip playback is active —
+            // the clip system handles ongoing note scheduling, the poll only
+            // handles instant transitions (pattern changes, hot-swaps) above.
+            if (clipPlaybackActiveRef.current) return;
 
             if (lastProcessedStepRef.current === -1 || currentStep < lastProcessedStepRef.current) {
                 lastProcessedStepRef.current = currentStep - 1;

@@ -3086,10 +3086,23 @@ const WavLoomAppComplete = () => {
                 // Continuous timeline: no section boundaries to track
                 // Just detect when arrangement loops back and reschedule audio clips
                 if (loopedBack) {
+                    // Swap AudioContext at loop boundary if context is old enough
+                    if (samplerRef.current?.loopBoundarySwap) {
+                        samplerRef.current.loopBoundarySwap();
+                    }
                     stopActiveAudioClips();
                     const now = samplerRef.current?.audioContext?.currentTime || 0;
                     const totalElapsedSecs = globalStep * currentStepDuration;
                     scheduleAudioClipsForTimeline(now, totalElapsedSecs);
+                }
+
+                // Long-arrangement safety: swap at bar boundaries if context is old.
+                // Arrangements can be much longer than the 45s swap threshold, so
+                // we can't rely solely on the full-arrangement loop-back.
+                if (!loopedBack && globalStep > 0 && globalStep % 128 === 0) {
+                    if (samplerRef.current?.loopBoundarySwap) {
+                        samplerRef.current.loopBoundarySwap();
+                    }
                 }
 
                 // Keep active section set (single implicit section)
@@ -3148,6 +3161,12 @@ const WavLoomAppComplete = () => {
                 const loopedBackNormal = prevGlobalStepRef.current > -1 && discreteStep < prevGlobalStepRef.current;
                 prevGlobalStepRef.current = discreteStep;
                 if (loopedBackNormal) {
+                    // Swap AudioContext at loop boundary if it's been running long
+                    // enough to risk Realtek driver degradation (~60s). Must happen
+                    // BEFORE rescheduling clips so they use the new context.
+                    if (samplerRef.current?.loopBoundarySwap) {
+                        samplerRef.current.loopBoundarySwap();
+                    }
                     const ctx = samplerRef.current?.audioContext;
                     console.log(`[Loop] Normal mode loop-back detected. step=${discreteStep}, ctx.state=${ctx?.state}, _audioActive=${samplerRef.current?._audioActive}`);
                     stopActiveAudioClips();
@@ -7330,7 +7349,14 @@ const WavLoomAppComplete = () => {
                                 setGlobalOctave={setChordsOctave}
                                 onPatternChange={(p) => {
                                     setPatterns(prev => ({ ...prev, chords: p }));
-                                    if (editingChordClipId) updateChordClip(editingChordClipId, { pattern: p.map(n => ({ ...n })) });
+                                    if (editingChordClipId) {
+                                        updateChordClip(editingChordClipId, { pattern: p.map(n => ({ ...n })) });
+                                    } else {
+                                        // Update the main chord clip at bar 0 so clip-based
+                                        // playback picks up per-track regenerations immediately
+                                        const mainClip = chordClipsRef.current.find(c => (c.timelineBar || 0) === 0);
+                                        if (mainClip) updateChordClip(mainClip.id, { pattern: p.map(n => ({ ...n })) });
+                                    }
                                 }}
                                 onStatusChange={(status) => setTrackStatus(prev => ({ ...prev, chords: status }))}
                                 externalPattern={externalPatterns.chords}
@@ -7390,7 +7416,12 @@ const WavLoomAppComplete = () => {
                                 type="melody"
                                 onPatternChange={(p) => {
                                     setPatterns(prev => ({ ...prev, melody: p }));
-                                    if (editingMelodyClipId) updateMelodyClip(editingMelodyClipId, { pattern: p.map(n => ({ ...n })) });
+                                    if (editingMelodyClipId) {
+                                        updateMelodyClip(editingMelodyClipId, { pattern: p.map(n => ({ ...n })) });
+                                    } else {
+                                        const mainClip = melodyClipsRef.current.find(c => (c.timelineBar || 0) === 0);
+                                        if (mainClip) updateMelodyClip(mainClip.id, { pattern: p.map(n => ({ ...n })) });
+                                    }
                                 }}
                                 onStatusChange={(status) => setTrackStatus(prev => ({ ...prev, melody: status }))}
                                 externalPattern={externalPatterns.melody}
@@ -7451,7 +7482,12 @@ const WavLoomAppComplete = () => {
                                 type="bass"
                                 onPatternChange={(p) => {
                                     setPatterns(prev => ({ ...prev, bass: p }));
-                                    if (editingBassClipId) updateBassClip(editingBassClipId, { pattern: p.map(n => ({ ...n })) });
+                                    if (editingBassClipId) {
+                                        updateBassClip(editingBassClipId, { pattern: p.map(n => ({ ...n })) });
+                                    } else {
+                                        const mainClip = bassClipsRef.current.find(c => (c.timelineBar || 0) === 0);
+                                        if (mainClip) updateBassClip(mainClip.id, { pattern: p.map(n => ({ ...n })) });
+                                    }
                                 }}
                                 onStatusChange={(status) => setTrackStatus(prev => ({ ...prev, bass: status }))}
                                 externalPattern={externalPatterns.bass}

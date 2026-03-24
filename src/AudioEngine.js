@@ -75,7 +75,9 @@ class AudioEngine {
     _scheduleIdleSuspend() {
         if (this._idleSuspendTimer) clearTimeout(this._idleSuspendTimer);
         this._idleSuspendTimer = setTimeout(() => {
-            // Only suspend if nothing is actively playing
+            // Don't suspend if SamplerEngine is actively playing (generators/arrangement)
+            // — they share the same AudioContext via window.sharedAnalysisCtx.
+            if (window.__samplerRef?._audioActive) return;
             if (this.audioContext.state === 'running' && !this.currentSource) {
                 this.audioContext.suspend().catch(() => {});
             }

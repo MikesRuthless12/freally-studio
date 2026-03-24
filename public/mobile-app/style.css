@@ -1,0 +1,486 @@
+/* WavLoom Mobile — Dark Theme */
+
+:root {
+    --bg: #0a0a0f;
+    --surface: #1a1a1f;
+    --surface2: #222228;
+    --border: #333;
+    --text: #e0e0e0;
+    --muted: #888;
+    --accent: #8b5cf6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+
+    /* Track colors */
+    --drums: #ef4444;
+    --chords: #3b82f6;
+    --melody: #22c55e;
+    --bass: #f97316;
+    --master: #8b5cf6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ─── Layout ─── */
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+/* ─── Status Bar ─── */
+
+#status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    min-height: 44px;
+    flex-shrink: 0;
+}
+
+#status-bar .logo {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--accent);
+}
+
+#status-bar .status {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#status-bar .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    transition: background 0.3s;
+}
+
+#status-bar .status-dot.connected {
+    background: var(--green);
+}
+
+/* ─── Splash / Connect Screen ─── */
+
+#splash {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 40px;
+}
+
+#splash .logo-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+}
+
+#splash h1 {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+#splash p {
+    color: var(--muted);
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.5;
+}
+
+#connect-btn {
+    padding: 14px 40px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 48px;
+    min-width: 200px;
+    transition: opacity 0.2s;
+}
+
+#connect-btn:active {
+    opacity: 0.8;
+}
+
+#connect-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─── Main Content (hidden until connected) ─── */
+
+#main {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+#main.visible {
+    display: flex;
+}
+
+/* ─── Waveform ─── */
+
+#waveform-section {
+    padding: 12px 16px;
+    flex-shrink: 0;
+}
+
+#waveform {
+    width: 100%;
+    height: 80px;
+    border-radius: 8px;
+    background: var(--surface);
+    display: block;
+}
+
+/* ─── VU Meters ─── */
+
+#meters {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+    flex-shrink: 0;
+}
+
+.meter {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.meter-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.meter-bar-container {
+    width: 100%;
+    height: 100px;
+    background: var(--surface);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.meter-bar-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    border-radius: 4px;
+    transition: height 40ms linear;
+}
+
+.meter-bar-peak {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    bottom: 0;
+    transition: bottom 40ms linear;
+}
+
+.meter-value {
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+}
+
+.meter-mute {
+    width: 28px;
+    height: 22px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    margin-top: 2px;
+}
+
+.meter-mute.active {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+}
+
+/* ─── Channel Strip ─── */
+
+#channel-strip {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.channel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border-radius: 8px;
+    min-height: 48px;
+}
+
+.channel-name {
+    font-size: 13px;
+    font-weight: 600;
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.channel-btns {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.ch-btn {
+    width: 44px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ch-btn.solo.active {
+    background: var(--yellow);
+    color: #000;
+    border-color: var(--yellow);
+}
+
+.ch-btn.mute.active {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+}
+
+/* ─── Master Section ─── */
+
+#master-section {
+    padding: 12px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+#master-section .master-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+#master-section .master-label span:first-child {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+}
+
+#master-section .master-label span:last-child {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+}
+
+#master-volume {
+    width: 100%;
+    height: 36px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+#master-volume::-webkit-slider-runnable-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+}
+
+#master-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    margin-top: -9px;
+}
+
+#master-volume::-moz-range-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    border: none;
+}
+
+#master-volume::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+}
+
+/* ─── Transport ─── */
+
+#transport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 16px 12px;
+    flex-shrink: 0;
+}
+
+#transport .tempo {
+    font-size: 13px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+#transport .play-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+}
+
+#transport .play-indicator.playing {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+/* ─── Error ─── */
+
+#error-banner {
+    display: none;
+    padding: 10px 16px;
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red);
+    font-size: 13px;
+    text-align: center;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+#error-banner.visible {
+    display: block;
+}
+
+/* ─── Mute Desktop Button ─── */
+
+#mute-desktop-btn {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 12px auto 0;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#mute-desktop-btn:active {
+    background: rgba(139, 92, 246, 0.15);
+}
+
+#mute-desktop-btn.active {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+}
+
+#mute-desktop-btn.active:active {
+    opacity: 0.85;
+}
+
+/* ─── Disconnect Button ─── */
+
+#disconnect-btn {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 16px auto;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#disconnect-btn:active {
+    background: rgba(239, 68, 68, 0.15);
+}

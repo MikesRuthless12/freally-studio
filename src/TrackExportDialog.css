@@ -1,0 +1,417 @@
+.track-export-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.track-export-dialog {
+    background: #e8e8e8;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.track-export-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #d0d0d0;
+    border-bottom: 1px solid #b0b0b0;
+}
+
+.track-export-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: #c0c0c0;
+    color: #333;
+}
+
+.track-export-content {
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Track List */
+.track-list {
+    background: #e8e8e8;
+}
+
+.track-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background: #e0e0e0;
+    border-bottom: 1px solid #d0d0d0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.track-item:hover {
+    background: #d8d8d8;
+}
+
+.track-item.selected {
+    background: #c8c8c8;
+}
+
+.track-item:first-child {
+    font-weight: 700;
+}
+
+.track-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.add-track-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.track-item.selected .add-track-btn {
+    color: #666;
+}
+
+.add-track-btn:hover {
+    color: #333;
+}
+
+/* MIDI Drop Zone */
+.midi-drop-zone {
+    background: #f5f5f5;
+    border: 2px dashed #999;
+    margin: 20px;
+    padding: 30px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 8px;
+}
+
+.midi-drop-zone:hover {
+    background: #fffacd;
+    border-color: #666;
+}
+
+.midi-drop-zone.dragging {
+    background: #ffff99;
+    border-color: #333;
+    border-style: solid;
+}
+
+.drop-icon {
+    font-size: 24px;
+    color: #999;
+    margin-bottom: 8px;
+}
+
+.drop-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.drop-hint {
+    font-size: 11px;
+    color: #999;
+}
+
+/* Export Settings */
+.export-settings {
+    padding: 20px;
+    background: #f0f0f0;
+    border-top: 1px solid #d0d0d0;
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.settings-row:last-child {
+    margin-bottom: 0;
+}
+
+.settings-row label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.format-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.format-buttons button {
+    padding: 6px 16px;
+    background: #e0e0e0;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.format-buttons button:hover {
+    background: #d0d0d0;
+}
+
+.format-buttons button.active {
+    background: #666;
+    border-color: #666;
+    color: #fff;
+}
+
+.settings-row select,
+.settings-row input[type="text"] {
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    color: #333;
+    font-size: 12px;
+    font-family: inherit;
+    min-width: 120px;
+}
+
+.settings-row select:focus,
+.settings-row input[type="text"]:focus {
+    outline: none;
+    border-color: #666;
+}
+
+/* Footer */
+.track-export-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    background: #d0d0d0;
+    border-top: 1px solid #b0b0b0;
+}
+
+.cancel-btn,
+.export-audio-btn {
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cancel-btn {
+    background: #e8e8e8;
+    border: 1px solid #b0b0b0;
+    color: #666;
+}
+
+.cancel-btn:hover {
+    background: #d8d8d8;
+}
+
+.export-audio-btn {
+    background: #666;
+    color: #fff;
+}
+
+.export-audio-btn:hover:not(:disabled) {
+    background: #555;
+}
+
+.export-audio-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Dark theme support */
+[data-theme="dark"] .track-export-dialog {
+    background: #2a2a2a;
+}
+
+[data-theme="dark"] .track-export-header {
+    background: #1a1a1a;
+    border-bottom-color: #333;
+}
+
+[data-theme="dark"] .track-export-header h2 {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .close-btn {
+    color: #999;
+}
+
+[data-theme="dark"] .close-btn:hover {
+    background: #333;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .track-list {
+    background: #2a2a2a;
+}
+
+[data-theme="dark"] .track-item {
+    background: #252525;
+    border-bottom-color: #333;
+}
+
+[data-theme="dark"] .track-item:hover {
+    background: #2a2a2a;
+}
+
+[data-theme="dark"] .track-item.selected {
+    background: #333;
+}
+
+[data-theme="dark"] .track-name {
+    color: #999;
+}
+
+[data-theme="dark"] .add-track-btn {
+    color: #666;
+}
+
+[data-theme="dark"] .track-item.selected .add-track-btn {
+    color: #999;
+}
+
+[data-theme="dark"] .midi-drop-zone {
+    background: #1a1a1a;
+    border-color: #555;
+}
+
+[data-theme="dark"] .midi-drop-zone:hover {
+    background: #3a3a1a;
+}
+
+[data-theme="dark"] .midi-drop-zone.dragging {
+    background: #4a4a1a;
+    border-color: #999;
+}
+
+[data-theme="dark"] .drop-icon,
+[data-theme="dark"] .drop-text {
+    color: #999;
+}
+
+[data-theme="dark"] .export-settings {
+    background: #1a1a1a;
+    border-top-color: #333;
+}
+
+[data-theme="dark"] .settings-row label {
+    color: #999;
+}
+
+[data-theme="dark"] .format-buttons button {
+    background: #252525;
+    border-color: #333;
+    color: #999;
+}
+
+[data-theme="dark"] .format-buttons button:hover {
+    background: #2a2a2a;
+}
+
+[data-theme="dark"] .format-buttons button.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+}
+
+[data-theme="dark"] .settings-row select,
+[data-theme="dark"] .settings-row input[type="text"] {
+    background: #252525;
+    border-color: #333;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .track-export-footer {
+    background: #1a1a1a;
+    border-top-color: #333;
+}
+
+[data-theme="dark"] .cancel-btn {
+    background: #252525;
+    border-color: #333;
+    color: #999;
+}
+
+[data-theme="dark"] .cancel-btn:hover {
+    background: #2a2a2a;
+}
+
+[data-theme="dark"] .export-audio-btn {
+    background: #6366f1;
+}
+
+[data-theme="dark"] .export-audio-btn:hover:not(:disabled) {
+    background: #7c3aed;
+}

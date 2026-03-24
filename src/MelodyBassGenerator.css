@@ -1,0 +1,146 @@
+.melody-bass-generator {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary);
+}
+
+.melody-bass-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.melody-bass-tabs button {
+    flex: 1;
+    padding: 14px 24px;
+    background: var(--bg-secondary);
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.melody-bass-tabs button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.melody-bass-tabs button.active {
+    background: var(--bg-primary);
+    border-bottom-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.melody-bass-controls {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+}
+
+.generate-btn,
+.clear-btn,
+.delete-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.generate-btn {
+    background: var(--accent-color);
+    color: white;
+}
+
+.generate-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.clear-btn,
+.delete-btn {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.clear-btn:hover:not(:disabled),
+.delete-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.clear-btn:disabled,
+.delete-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pattern-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.note-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.piano-roll-container {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    background: var(--bg-primary);
+}
+
+.piano-roll-canvas {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: crosshair;
+    display: block;
+}
+
+/* Dark theme */
+[data-theme="dark"] .melody-bass-generator {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252525;
+    --bg-hover: #2a2a2a;
+    --border-color: #333;
+    --text-primary: #e0e0e0;
+    --text-secondary: #999;
+    --accent-color: #6366f1;
+    --accent-hover: #7c3aed;
+}
+
+/* Light theme */
+[data-theme="light"] .melody-bass-generator {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-hover: #e8e8e8;
+    --border-color: #ddd;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --accent-color: #6366f1;
+    --accent-hover: #7c3aed;
+}

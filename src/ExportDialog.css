@@ -1,0 +1,246 @@
+.export-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.export-dialog {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.export-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.export-dialog-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.export-dialog-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.export-section {
+    margin-bottom: 24px;
+}
+
+.export-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.button-group {
+    display: flex;
+    gap: 8px;
+}
+
+.button-group button {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.button-group button:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+    color: var(--text-primary);
+}
+
+.button-group button.active {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.stem-checkboxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox-label:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.checkbox-label span {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.export-select,
+.export-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.export-select:hover,
+.export-input:hover {
+    border-color: var(--accent-color);
+}
+
+.export-select:focus,
+.export-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.export-dialog-footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.cancel-btn,
+.export-btn {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancel-btn {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.cancel-btn:hover {
+    background: var(--bg-hover);
+}
+
+.export-btn {
+    background: var(--accent-color);
+    color: white;
+}
+
+.export-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.export-btn:active {
+    transform: translateY(0);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .export-dialog {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252525;
+    --bg-hover: #2a2a2a;
+    --border-color: #333;
+    --text-primary: #e0e0e0;
+    --text-secondary: #999;
+    --accent-color: #6366f1;
+    --accent-hover: #7c3aed;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .export-dialog {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-hover: #e8e8e8;
+    --border-color: #ddd;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --accent-color: #6366f1;
+    --accent-hover: #7c3aed;
+}

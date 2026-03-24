@@ -1,0 +1,220 @@
+  The Realtek workaround dilemma: The hot-swap resets the driver but causes audible clicks. Every variation we tried
+  (crossfade, suspend/resume, reconnect) either doesn't fix degradation or introduces its own artifacts.
+
+  For the next session, some things worth trying:
+  1. Different AudioContext options (latencyHint: 'playback', sampleRate: 44100)
+  2. Check Realtek driver settings (disable audio enhancements, spatial sound)
+  3. A smarter hot-swap that only triggers at loop boundaries (natural transition point)
+  4. Chrome flags like --disable-audio-output-resampler
+
+
+ Run this for the following language single language:
+
+  LANG=it npx vitest run src/lyrics/engine/single-lang-audit.test.js
+
+  Change LANG= to any of these codes:
+
+ ┌──────┬─────────────┬────────┬──────────┬─────────┬──────────┬─────────┬──────────┬──────────┐
+  │ Code │  Language   │ Genres │  Total   │ Verses  │ Choruses │ Themes  │ Bridges  │ File KB  │
+  │      │             │        │ Phrases  │         │          │         │          │          │
+  ├──────┼─────────────┼────────┼──────────┼─────────┼──────────┼─────────┼──────────┼──────────┤
+  │ en   │ English  *  │   35   │  40,253  │  4,126  │  1,892   │ 1,108   │  1,248   │  1,213   │
+  │ es   │ Spanish     │   13   │  29,472  │  3,884  │  1,496   │   761   │  1,019   │    898   │
+  │ fr   │ French      │   13   │  51,467  │ 24,442  │  5,196   │   824   │  2,275   │  2,812   │
+  │ de   │ German      │   13   │  29,557  │  9,375  │  1,558   │   845   │    966   │  1,530   │
+  │ it   │ Italian     │   13   │  34,945  │  6,437  │  4,559   │ 3,931   │  3,483   │  1,565   │
+  │ pt   │ Portuguese  │   13   │  31,377  │  5,740  │  3,560   │   752   │  1,820   │  1,376   │
+  │ ru   │ Russian     │   13   │  30,400  │  2,904  │  1,272   │   784   │  1,015   │  1,553   │
+  │ ja   │ Japanese    │   13   │  29,445  │  4,212  │  1,885   │   723   │  1,218   │  1,286   │
+  │ ko   │ Korean      │   13   │  29,998  │  9,168  │  1,579   │   865   │  1,945   │  1,397   │
+  │ zh   │ Chinese     │   13   │  31,820  │  5,954  │  1,235   │   921   │    834   │  1,061   │
+  │ ar   │ Arabic      │   13   │  40,570  │ 13,631  │  5,174   │ 2,164   │  3,799   │  2,336   │
+  │ hi   │ Hindi       │    3   │  43,481  │ 13,890  │ 13,190   │ 5,300   │  2,538   │  3,777   │
+  │ tr   │ Turkish     │    7   │  46,929  │ 12,610  │  6,945   │10,855   │  2,390   │  1,180   │
+  │ th   │ Thai        │    5   │  40,825  │  5,220  │  2,820   │ 3,660   │  2,120   │  1,776   │
+  │ fi   │ Finnish     │    5   │  28,985  │  5,530  │  3,655   │ 3,955   │  3,380   │    923   │
+  │ hu   │ Hungarian   │    5   │  45,200  │  6,780  │  3,800   │ 3,360   │  2,100   │  1,414   │
+  │ et   │ Estonian    │    5   │  33,224  │  5,725  │  3,891   │ 5,010   │  2,885   │  1,341   │
+  │ az   │ Azerbaijani │    5   │  35,658  │  6,838  │  4,175   │ 5,120   │  2,525   │  1,688   │
+  ├──────┼─────────────┼────────┼──────────┼─────────┼──────────┼─────────┼──────────┼──────────┤
+  │      │ TOTALS      │  200   │ 653,606  │146,466  │ 67,882   │50,938   │ 37,560   │ 29,126   │
+  └──────┴─────────────┴────────┴──────────┴─────────┴──────────┴─────────┴──────────┴──────────┘
+
+
+Can you expand any of the Total Phrases that are less than 40,000 to be at least that many?  Can you expand any Verses that are less than 10,000 to be at least that many, can you expand any choruses that are less than 3,000 to be at least that many, can you expand any themes that are less than 3,000 to be at least that many, can you expand any bridges that are less than 3,000 to be at least that many and do this for all genres and ensure nothing is repeating and that everything is sensical and the caesura check is done for all languages and ensure all rhyming words and ensure that the celebrities and other references for English and vocab, etc., is all expanded for every language?  Can you ensure that you make a checklist for exactly which language you are expanding, which part you are expanding for that language (Total Phrases, Verses, Choruses, etc.), and ensure you give me a dynamic character count of all added characters to each file as you are going along, please and ensure you update the list above right after it?
+
+    * English is built into JS source files, not a JSON locale.
+      Also includes: 3,108 hooks, 5,830 vocab words, 15,419 rhymes, 5,914 punchlines.
+
+  Genre Coverage:
+
+    35 genres │ en  (pop, hiphop, rock, country, rnb, edm, indie, folk, metal, jazz,
+              │      kpop, latin, gospel, trap, drill, lofi, phonk, house, reggaeton,
+              │      dancehall, afrobeat, blues, soul, funk, reggae, punk, grunge, emo,
+              │      synthwave, vaporwave, neosoul, ambient, anime, alternative, progressive_rock)
+    13 genres │ es, fr, de, it, pt, ru, ja, ko, zh, ar
+              │ (pop, hiphop, rock, country, rnb, edm, indie, folk, metal, jazz, kpop, latin, gospel)
+     7 genres │ tr  (pop, hiphop, rock, rnb, edm, indie, folk)
+     5 genres │ th, fi, hu, et, az  (pop, hiphop, rock, rnb, edm)
+     3 genres │ hi  (pop, hiphop, rock)
+
+  And for English (already verified 0 issues):
+
+  npx vitest run src/lyrics/engine/all-genres-audit.test.js
+
+
+
+
+English (en) | 1,630 KB (12 JS source files) | ~41,781 phrases
+GenreBank.js: 6,333 · GenreBankExpansion.js: 1,483 · GenreBankExpansion2.js: 8,126 · RhymeEngine.js: 5,347 · RhymeEngineExpansion.js: 2,796 · RhymeEngineExpansion2.js: 4,751 · HookGenerator.js: 630 · HookGeneratorExpansion.js: 390 · HookGeneratorExpansion2.js: 2,091 · PunchlineBank.js: 4,994 · PunchlineBankExpansion.js: 537 · PunchlineBankExpansion2.js: 4,303
+
+Arabic (ar) | 2,331 KB | 40,396 phrases
+pop: 4,499 · hiphop: 3,502 · rock: 3,086 · country: 3,121 · rnb: 2,845 · edm: 2,856 · indie: 2,200 · folk: 2,202 · metal: 2,212 · jazz: 2,310 · kpop: 2,312 · latin: 2,310 · gospel: 2,544 + rhymeFamilies: 543, hookTemplates: 548, punchlines: 966, variationPatterns: 400, moodModifiers: 1,101, chorusNounTemplates: 119, chorusAdjTemplates: 107, chorusVerbTemplates: 106, genreHookTemplates: 507
+Azerbaijani (az) | 1,641 KB | 35,618 phrases
+pop: 6,309 · hiphop: 6,117 · rock: 6,229 · rnb: 6,309 · edm: 6,159 + rhymeFamilies: 2,800, hookTemplates: 600, punchlines: 840, variationPatterns: 50, moodModifiers: 205
+German (de) | 1,512 KB | 29,296 phrases
+pop: 4,187 · hiphop: 1,759 · rock: 1,616 · country: 1,410 · rnb: 1,248 · edm: 1,221 · indie: 1,219 · folk: 1,933 · metal: 1,290 · jazz: 1,245 · kpop: 1,088 · latin: 1,063 · gospel: 1,140 + rhymeFamilies: 1,890, hookTemplates: 1,647, punchlines: 1,046, variationPatterns: 588, moodModifiers: 2,056, chorusNounTemplates: 447, chorusAdjTemplates: 212, chorusVerbTemplates: 211, genreHookTemplates: 780
+Spanish (es) | 1,117 KB | 29,018 phrases
+pop: 2,333 · hiphop: 1,919 · rock: 1,720 · country: 1,677 · rnb: 1,665 · edm: 1,656 · indie: 1,689 · folk: 1,691 · metal: 1,672 · jazz: 1,685 · kpop: 1,676 · latin: 1,631 · gospel: 1,675 + rhymeFamilies: 2,090, hookTemplates: 819, punchlines: 840, variationPatterns: 333, moodModifiers: 1,203, chorusNounTemplates: 140, chorusAdjTemplates: 128, chorusVerbTemplates: 126, genreHookTemplates: 650
+Estonian (et) | 1,339 KB | 33,204 phrases
+pop: 6,787 · hiphop: 5,835 · rock: 5,754 · rnb: 5,711 · edm: 5,633 + rhymeFamilies: 2,160, hookTemplates: 600, punchlines: 480, variationPatterns: 48, moodModifiers: 196
+Finnish (fi) | 1,133 KB | 28,935 phrases
+pop: 4,869 · hiphop: 4,844 · rock: 4,844 · rnb: 4,841 · edm: 4,842 + rhymeFamilies: 685, hookTemplates: 687, punchlines: 1,436, variationPatterns: 720, moodModifiers: 1,167
+French (fr) | 2,822 KB | 51,097 phrases
+pop: 3,342 · hiphop: 3,200 · rock: 3,030 · country: 3,045 · rnb: 3,274 · edm: 3,403 · indie: 3,464 · folk: 3,002 · metal: 3,027 · jazz: 3,042 · kpop: 3,196 · latin: 3,171 · gospel: 3,274 + rhymeFamilies: 1,196, hookTemplates: 379, punchlines: 3,788, variationPatterns: 364, moodModifiers: 2,506, chorusNounTemplates: 153, chorusAdjTemplates: 135, chorusVerbTemplates: 131, genreHookTemplates: 975
+Hindi (hi) | 3,783 KB | 43,226 phrases
+pop: 15,357 · hiphop: 13,790 · rock: 13,398 + rhymeFamilies: 332, hookTemplates: 75, punchlines: 60, variationPatterns: 18, moodModifiers: 196
+Hungarian (hu) | 1,538 KB | 45,180 phrases (newly doubled)
+pop: 8,680 · hiphop: 7,060 · rock: 6,580 · rnb: 6,320 · edm: 6,160 + rhymeFamilies: 3,380, hookTemplates: 1,200, punchlines: 960, variationPatterns: 920, moodModifiers: 3,920
+Italian (it) | 1,563 KB | 34,740 phrases
+pop: 3,019 · hiphop: 2,666 · rock: 2,493 · country: 2,160 · rnb: 2,160 · edm: 2,119 · indie: 2,134 · folk: 2,081 · metal: 2,029 · jazz: 2,045 · kpop: 1,962 · latin: 1,983 · gospel: 2,068 + rhymeFamilies: 1,200, hookTemplates: 316, punchlines: 1,101, variationPatterns: 295, moodModifiers: 1,412, chorusNounTemplates: 174, chorusAdjTemplates: 155, chorusVerbTemplates: 154, genreHookTemplates: 1,014
+Japanese (ja) | 1,243 KB | 29,270 phrases
+pop: 2,470 · hiphop: 1,574 · rock: 1,370 · country: 1,292 · rnb: 1,180 · edm: 1,221 · indie: 1,189 · folk: 1,107 · metal: 1,070 · jazz: 1,084 · kpop: 1,063 · latin: 1,017 · gospel: 1,058 + rhymeFamilies: 1,057, hookTemplates: 4,480, punchlines: 3,653, variationPatterns: 419, moodModifiers: 1,553, chorusNounTemplates: 192, chorusAdjTemplates: 168, chorusVerbTemplates: 172, genreHookTemplates: 881
+Korean (ko) | 1,381 KB | 29,823 phrases
+pop: 3,231 · hiphop: 1,905 · rock: 1,634 · country: 1,588 · rnb: 1,597 · edm: 1,531 · indie: 1,503 · folk: 1,478 · metal: 1,471 · jazz: 1,399 · kpop: 1,602 · latin: 1,352 · gospel: 1,406 + rhymeFamilies: 1,066, hookTemplates: 2,433, punchlines: 600, variationPatterns: 624, moodModifiers: 2,042, chorusNounTemplates: 320, chorusAdjTemplates: 216, chorusVerbTemplates: 213, genreHookTemplates: 612
+Portuguese (pt) | 1,581 KB | 31,203 phrases (newly doubled)
+pop: 2,280 · hiphop: 1,887 · rock: 1,846 · country: 1,844 · rnb: 1,802 · edm: 1,703 · indie: 1,732 · folk: 1,677 · metal: 1,545 · jazz: 1,531 · kpop: 1,511 · latin: 1,530 · gospel: 1,673 + rhymeFamilies: 878, hookTemplates: 988, punchlines: 1,400, variationPatterns: 620, moodModifiers: 2,600, chorusNounTemplates: 320, chorusAdjTemplates: 272, chorusVerbTemplates: 264, genreHookTemplates: 1,300
+Russian (ru) | 1,526 KB | 30,226 phrases
+pop: 2,568 · hiphop: 2,102 · rock: 1,922 · country: 1,734 · rnb: 1,528 · edm: 1,709 · indie: 1,845 · folk: 1,632 · metal: 1,549 · jazz: 1,503 · kpop: 1,658 · latin: 1,440 · gospel: 1,449 + rhymeFamilies: 903, hookTemplates: 590, punchlines: 780, variationPatterns: 408, moodModifiers: 3,101, chorusNounTemplates: 210, chorusAdjTemplates: 177, chorusVerbTemplates: 176, genreHookTemplates: 1,242
+Thai (th) | 2,062 KB | 40,776 phrases (newly doubled)
+pop: 6,860 · hiphop: 5,640 · rock: 5,680 · rnb: 5,680 · edm: 5,580 + rhymeFamilies: 4,560, hookTemplates: 840, punchlines: 2,096, variationPatterns: 840, moodModifiers: 3,000
+Turkish (tr) | 1,500 KB | 46,857 phrases
+pop: 10,888 · hiphop: 5,511 · rock: 4,560 · rnb: 5,549 · edm: 3,035 · indie: 4,566 · folk: 4,570 + rhymeFamilies: 1,855, hookTemplates: 355, punchlines: 5,510, variationPatterns: 74, moodModifiers: 384
+Chinese Simplified (zh) | 1,277 KB | 31,577 phrases
+pop: 3,651 · hiphop: 1,292 · rock: 1,059 · country: 1,090 · rnb: 1,065 · edm: 1,092 · indie: 941 · folk: 961 · metal: 886 · jazz: 847 · kpop: 643 · latin: 598 · gospel: 760 + rhymeFamilies: 1,627, hookTemplates: 3,250, punchlines: 2,022, variationPatterns: 2,756, moodModifiers: 2,904, chorusNounTemplates: 844, chorusAdjTemplates: 750, chorusVerbTemplates: 746, genreHookTemplates: 1,793
+
+_____________________________________________________________________________________________________________________________________________________
+
+GRAND TOTAL ACROSS ALL 18 LANGUAGES: 652,223 phrases
+
+
+
+👂 Listener Reaction Overlay — Share a WIP link. Listeners drop timestamped emoji/tag reactions on the waveform. Those reactions appear as markers on your arrangement timeline, and clusters of "😴 boring" reactions feed directly into the SuggestionPanel as production notes. Closes the loop between making music and understanding how it lands.
+
+
+
+Timestamped micro-prompts
+
+Feedback loops
+
+At specific points in the timeline, ask listeners a targeted question — 'Does this drop hit hard enough?' or 'Is this melody memorable?' Reactions tied to your exact prompt, not open-ended.
+
+Precision feedback instead of guesswork.
+
+
+
+Listener drop-off tracking
+
+Analytics
+
+See the exact second listeners stop listening — not just where they reacted. A reaction at bar 16 means nothing if 80% of listeners left at bar 8.
+
+The silence tells you more than the emoji.
+
+
+
+First impression timer
+
+Analytics
+
+Record the exact second a new listener first pauses, skips back, or drops their first reaction. That moment reveals your hook's true reach — or lack of it.
+
+The first reaction is the most honest one.
+
+
+
+Reaction velocity tracking
+
+Analytics
+
+Not just total reactions, but how fast they came in. A track that gets 20 reactions in the first 2 hours vs. the same 20 over 3 days has very different word-of-mouth trajectories.
+
+Velocity is the leading indicator of virality.
+
+
+
+Trusted listener panel
+
+Community
+
+Build a named panel of up to 20 recurring listeners — A&R contacts, producer friends, fans — who receive every WIP link automatically. Their feedback history builds over time.
+
+Your personal focus group, built into the DAW.
+
+
+
+Social clip generator
+
+Monetization
+
+The moment that generated the highest reaction density automatically gets rendered as a 15-second shareable clip — waveform animation included — ready for Instagram, TikTok, and X.
+
+Your audience already told you which moment to post.
+
+
+
+Skip probability score
+
+Monetization
+
+Based on drop-off and low-engagement patterns across listeners, predict where a streaming algorithm would likely detect a skip risk. Flags sections to address before release.
+
+Fix the problems before the algorithm finds them.
+
+
+
+Feedback prompt templates
+
+Performance
+
+Pre-built question sets for specific goals: 'Is this radio-ready?', 'Does this work in a club?', 'Is this placement-ready for drama TV?' Each template sends structured questions to listeners at pre-set timestamps.
+
+Ask the right questions, not just any questions.
+
+
+
+Pre-release campaign scheduler
+
+Performance
+
+Schedule when a feedback link goes live, set a deadline, and configure drip delivery to your listener panel. Collects reactions in a batch and sends you a summary report on the deadline.
+
+Run structured listening sessions, not informal shares.
+
+
+
+
+
+
+__________________________________________________________________________________________________________________________________________________
+
+
+
+
+Live session broadcast
+
+Performance
+
+Stream your production session live to an audience via a share link. Viewers see the arrangement, hear playback in real time, and drop reactions and comments in a live feed alongside.
+
+Production as performance.

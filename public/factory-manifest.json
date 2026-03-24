@@ -1,0 +1,102 @@
+{
+    "name": "Factory Library",
+    "folders": [
+        {
+            "name": "Trap Drums",
+            "path": "Factory Library/Trap Drums",
+            "children": [
+                {
+                    "name": "808s",
+                    "path": "Factory Library/Trap Drums/808s",
+                    "files": [
+                        "808Sub_01.wav",
+                        "808Sub_01 (1).wav",
+                        "808Sub_01 (2).wav",
+                        "808Sub_01 (3).wav",
+                        "808Sub_01 (4).wav",
+                        "808Sub_01 (5).wav",
+                        "808Sub_01 (6).wav",
+                        "808Sub_01 (7).wav",
+                        "808Sub_01 (8).wav",
+                        "808Sub_01 (9).wav"
+                    ]
+                },
+                {
+                    "name": "Claps",
+                    "path": "Factory Library/Trap Drums/Claps",
+                    "files": [
+                        "Clap_01.wav",
+                        "Clap_01 (1).wav",
+                        "Clap_01 (2).wav"
+                    ]
+                },
+                {
+                    "name": "Closed Hats",
+                    "path": "Factory Library/Trap Drums/Closed Hats",
+                    "files": [
+                        "ClosedHat_01.wav",
+                        "Trap_CH_01.wav",
+                        "Trap_CH_01 (1).wav"
+                    ]
+                },
+                {
+                    "name": "Ghost Snares",
+                    "path": "Factory Library/Trap Drums/Ghost Snares",
+                    "files": [
+                        "Trap_Ghost_01.wav",
+                        "Trap_Ghost_01 (1).wav",
+                        "Trap_Ghost_01 (2).wav",
+                        "Trap_Ghost_01 (3).wav"
+                    ]
+                },
+                {
+                    "name": "Kicks",
+                    "path": "Factory Library/Trap Drums/Kicks",
+                    "files": [
+                        "Trap_Kick_01.wav",
+                        "Trap_Kick_01 (1).wav",
+                        "Trap_Kick_01 (2).wav"
+                    ]
+                },
+                {
+                    "name": "Open Hats",
+                    "path": "Factory Library/Trap Drums/Open Hats",
+                    "files": [
+                        "Trap_OH_01.wav",
+                        "Trap_OH_01 (1).wav",
+                        "Trap_OH_01 (2).wav",
+                        "Trap_OH_01 (3).wav"
+                    ]
+                },
+                {
+                    "name": "Percs",
+                    "path": "Factory Library/Trap Drums/Percs",
+                    "files": [
+                        "Percussion_01.wav",
+                        "Percussion_01 (1).wav",
+                        "Percussion_01 (2).wav",
+                        "Percussion_01 (3).wav",
+                        "Percussion_01 (4).wav",
+                        "Percussion_01 (5).wav"
+                    ]
+                },
+                {
+                    "name": "Rim Shots",
+                    "path": "Factory Library/Trap Drums/Rim Shots",
+                    "files": [
+                        "Trap_Rim_01 (1).wav"
+                    ]
+                },
+                {
+                    "name": "Snares",
+                    "path": "Factory Library/Trap Drums/Snares",
+                    "files": [
+                        "Snare_01.wav",
+                        "Snare_01 (1).wav",
+                        "Snare_01 (2).wav"
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WavLoom">
+    <meta name="theme-color" content="#0a0a0f">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="../favicon.png">
+    <link rel="apple-touch-icon" href="../icon-192.png">
+    <title>WavLoom Mobile</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <span class="logo">WavLoom</span>
+            <div class="status">
+                <span id="status-text">Disconnected</span>
+                <div class="status-dot" id="status-dot"></div>
+            </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="error-banner"></div>
+
+        <!-- Splash / Connect Screen -->
+        <div id="splash">
+            <img class="logo-large" src="../icon-192.png" alt="WavLoom">
+            <h1>WavLoom Mobile</h1>
+            <p>Tap below to connect to your desktop session and start monitoring.</p>
+            <button id="connect-btn">Tap to Connect</button>
+        </div>
+
+        <!-- Main Content (shown after connection) -->
+        <div id="main">
+
+            <!-- Waveform -->
+            <div id="waveform-section">
+                <canvas id="waveform"></canvas>
+            </div>
+
+            <!-- VU Meters -->
+            <div id="meters">
+                <div class="meter" data-track="drums">
+                    <div class="meter-bar-container">
+                        <div class="meter-bar-fill" style="background: var(--drums)"></div>
+                        <div class="meter-bar-peak" style="background: var(--drums)"></div>
+                    </div>
+                    <span class="meter-label">Drums</span>
+                    <button class="meter-mute" data-track="drums">M</button>
+                </div>
+                <div class="meter" data-track="chords">
+                    <div class="meter-bar-container">
+                        <div class="meter-bar-fill" style="background: var(--chords)"></div>
+                        <div class="meter-bar-peak" style="background: var(--chords)"></div>
+                    </div>
+                    <span class="meter-label">Chords</span>
+                    <button class="meter-mute" data-track="chords">M</button>
+                </div>
+                <div class="meter" data-track="melody">
+                    <div class="meter-bar-container">
+                        <div class="meter-bar-fill" style="background: var(--melody)"></div>
+                        <div class="meter-bar-peak" style="background: var(--melody)"></div>
+                    </div>
+                    <span class="meter-label">Melody</span>
+                    <button class="meter-mute" data-track="melody">M</button>
+                </div>
+                <div class="meter" data-track="bass">
+                    <div class="meter-bar-container">
+                        <div class="meter-bar-fill" style="background: var(--bass)"></div>
+                        <div class="meter-bar-peak" style="background: var(--bass)"></div>
+                    </div>
+                    <span class="meter-label">Bass</span>
+                    <button class="meter-mute" data-track="bass">M</button>
+                </div>
+                <div class="meter" data-track="master">
+                    <div class="meter-bar-container">
+                        <div class="meter-bar-fill" style="background: var(--master)"></div>
+                        <div class="meter-bar-peak" style="background: var(--master)"></div>
+                    </div>
+                    <span class="meter-label">Master</span>
+                </div>
+            </div>
+
+            <!-- Channel Strip -->
+            <div id="channel-strip">
+                <div class="channel" data-track="drums">
+                    <span class="channel-name" style="color: var(--drums)">Drums</span>
+                    <div class="channel-btns">
+                        <button class="ch-btn solo" data-action="solo">S</button>
+                        <button class="ch-btn mute" data-action="mute">M</button>
+                    </div>
+                </div>
+                <div class="channel" data-track="chords">
+                    <span class="channel-name" style="color: var(--chords)">Chords</span>
+                    <div class="channel-btns">
+                        <button class="ch-btn solo" data-action="solo">S</button>
+                        <button class="ch-btn mute" data-action="mute">M</button>
+                    </div>
+                </div>
+                <div class="channel" data-track="melody">
+                    <span class="channel-name" style="color: var(--melody)">Melody</span>
+                    <div class="channel-btns">
+                        <button class="ch-btn solo" data-action="solo">S</button>
+                        <button class="ch-btn mute" data-action="mute">M</button>
+                    </div>
+                </div>
+                <div class="channel" data-track="bass">
+                    <span class="channel-name" style="color: var(--bass)">Bass</span>
+                    <div class="channel-btns">
+                        <button class="ch-btn solo" data-action="solo">S</button>
+                        <button class="ch-btn mute" data-action="mute">M</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Master Volume -->
+            <div id="master-section">
+                <div class="master-label">
+                    <span>Master Volume</span>
+                    <span id="volume-display">70%</span>
+                </div>
+                <input type="range" id="master-volume" min="0" max="100" value="70">
+            </div>
+
+            <!-- Transport -->
+            <div id="transport">
+                <div class="play-indicator" id="play-indicator"></div>
+                <span class="tempo" id="tempo-display">120 BPM</span>
+            </div>
+
+            <!-- Mute Desktop -->
+            <button id="mute-desktop-btn">Mute Desktop</button>
+
+            <!-- Disconnect -->
+            <button id="disconnect-btn">Disconnect</button>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

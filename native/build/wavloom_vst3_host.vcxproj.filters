@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\src\napi_bindings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\src\napi_plugin_wrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\src\vst3_host.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\src\plugin_instance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\src\audio_buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\third_party\vst3sdk\public.sdk\source\vst\hosting\module_win32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\node_modules\cmake-js\lib\cpp\win_delay_load_hook.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\miken\Desktop\Havoc Software\WavLoom-Complete-All-Files\native\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{47E233AD-77BB-3D0F-AD78-E32AFE512332}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

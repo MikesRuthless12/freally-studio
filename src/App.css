@@ -1,0 +1,262 @@
+/* WavLoom App Styles */
+
+.wavloom-app {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+}
+
+/* Dark Theme */
+.wavloom-app.dark {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252525;
+    --bg-tertiary: #2a2a2a;
+    --bg-hover: #333;
+    --border-color: #333;
+    --text-primary: #e0e0e0;
+    --text-secondary: #999;
+    --text-tertiary: #666;
+    --accent-color: var(--accent, #ff6b6b);
+    --accent-hover: var(--accent-secondary, #ff9f43);
+    --theme-gradient: var(--accent-gradient, linear-gradient(135deg, #ff6b6b 0%, #ff9f43 100%));
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Light Theme */
+.wavloom-app.light {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e8e8e8;
+    --bg-hover: #ddd;
+    --border-color: #ddd;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --text-tertiary: #999;
+    --accent-color: var(--accent, #ff6b6b);
+    --accent-hover: var(--accent-secondary, #ff9f43);
+    --theme-gradient: var(--accent-gradient, linear-gradient(135deg, #ff6b6b 0%, #ff9f43 100%));
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Header */
+.wavloom-header {
+    height: 60px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+}
+
+.wavloom-logo {
+    font-size: 20px;
+    font-weight: 700;
+    background: var(--theme-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.wavloom-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.global-settings {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.global-settings select,
+.global-settings input {
+    padding: 8px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.global-settings select:focus,
+.global-settings input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.global-settings span {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.theme-toggle {
+    padding: 8px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    background: var(--bg-hover);
+    transform: scale(1.05);
+}
+
+/* Main Content */
+.wavloom-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Generator Area */
+.generator-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+}
+
+.generator-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.generator-tabs button {
+    padding: 10px 20px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.generator-tabs button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.generator-tabs button.active {
+    background: var(--accent-glow, rgba(255, 107, 107, 0.15));
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    box-shadow: 0 0 15px var(--accent-glow, rgba(255, 107, 107, 0.1));
+}
+
+/* Global Button Unification */
+button {
+    font-family: inherit;
+}
+
+/* Override rainbow buttons if needed, or just let them be if they are drum slots */
+/* The user asked to ensure buttons match the theme and not multicolored */
+/* However, Drum slots usually have colors to distinguish them. */
+/* I will ensure the main UI buttons are unified. */
+
+.generator-content {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+}
+
+/* Footer */
+.wavloom-footer {
+    height: 40px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+}
+
+.footer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.footer-hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* Scrollbar Styles */
+.generator-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.generator-content::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+.generator-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.generator-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .wavloom-main {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 768px) {
+    .wavloom-header {
+        flex-direction: column;
+        height: auto;
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .generator-tabs {
+        flex-wrap: wrap;
+    }
+
+    .footer-info {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .footer-hint {
+        display: none;
+    }
+}
+
+/* Twemoji inline emoji images in chat */
+.twemoji-text img.emoji {
+    height: 1.1em;
+    width: 1.1em;
+    margin: 0 0.05em 0 0.1em;
+    vertical-align: -0.15em;
+    display: inline;
+}

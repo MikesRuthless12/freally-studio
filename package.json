@@ -1,0 +1,47 @@
+{
+  "name": "wavloom-studio",
+  "private": true,
+  "version": "0.0.1",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "native:install": "cd native && npm install",
+    "native:build": "cd native && npm run build",
+    "native:rebuild": "cd native && npm run rebuild",
+    "native:clean": "cd native && npm run clean",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on --httpTimeout 10000 https-get://localhost:5173 && electron .\"",
+    "electron:build": "npm run native:build && npm run build:electron && electron-builder --dir",
+    "build:electron": "vite build --mode electron",
+    "dist:win": "npm run native:build && npm run build:electron && electron-builder --win",
+    "dist:mac": "npm run native:build && npm run build:electron && electron-builder --mac",
+    "dist:linux": "npm run native:build && npm run build:electron && electron-builder --linux"
+  },
+  "dependencies": {
+    "@twemoji/api": "^17.0.2",
+    "emoji-picker-react": "^4.18.0",
+    "jszip": "^3.10.1",
+    "lamejs": "^1.2.1",
+    "peerjs": "^1.5.5",
+    "qrcode": "^1.5.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-basic-ssl": "^2.1.4",
+    "@vitejs/plugin-react": "^4.2.1",
+    "assemblyscript": "^0.28.9",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "sharp": "^0.34.5",
+    "vite": "^7.3.1",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.0.18",
+    "wait-on": "^8.0.2"
+  }
+}

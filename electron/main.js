@@ -6,6 +6,28 @@ const { TransportClock } = require('./transportClock');
 const { VST3Scanner } = require('./vst3Scanner');
 const { loadNativeAddon, getAddon, registerIPC: registerVST3HostIPC } = require('./vst3HostBridge');
 
+// Suppress EPIPE errors on stdout/stderr (harmless — occurs when pipe closes during shutdown)
+process.stdout?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });
+process.stderr?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });
+
+// --- Window bounds & folder persistence ---
+function getSettingsPath() {
+    return path.join(app.getPath('userData'), 'wavloom-settings.json');
+}
+function loadSettings() {
+    try {
+        const raw = fs.readFileSync(getSettingsPath(), 'utf-8');
+        return JSON.parse(raw);
+    } catch (_) { return {}; }
+}
+function saveSettings(data) {
+    try {
+        const existing = loadSettings();
+        const merged = { ...existing, ...data };
+        fs.writeFileSync(getSettingsPath(), JSON.stringify(merged, null, 2), 'utf-8');
+    } catch (_) {}
+}
+
 // Single instance lock — prevent multiple copies of the app from running.
 // If a second instance launches, focus the existing window instead.
 const gotLock = app.requestSingleInstanceLock();
@@ -52,9 +74,14 @@ let vst3Scanner = null; // Initialized after app.getPath('userData') is availabl
 let vst3HostLoaded = false;
 
 function createWindow() {
+    const settings = loadSettings();
+    const bounds = settings.windowBounds || {};
+
     mainWindow = new BrowserWindow({
-        width: 1400,
-        height: 900,
+        width: bounds.width || 1400,
+        height: bounds.height || 900,
+        x: bounds.x,
+        y: bounds.y,
         minWidth: 1024,
         minHeight: 700,
         frame: false,
@@ -68,6 +95,28 @@ function createWindow() {
             sandbox: false,
             webSecurity: true,
         },
+    });
+
+    // Restore maximized state if it was saved
+    if (settings.wasMaximized) {
+        mainWindow.maximize();
+    }
+
+    // Save window bounds on resize/move (debounced)
+    let boundsTimer = null;
+    const saveBounds = () => {
+        if (mainWindow.isMaximized() || mainWindow.isMinimized()) return;
+        clearTimeout(boundsTimer);
+        boundsTimer = setTimeout(() => {
+            saveSettings({ windowBounds: mainWindow.getBounds() });
+        }, 500);
+    };
+    mainWindow.on('resize', saveBounds);
+    mainWindow.on('move', saveBounds);
+    mainWindow.on('maximize', () => saveSettings({ wasMaximized: true }));
+    mainWindow.on('unmaximize', () => saveSettings({ wasMaximized: false }));
+    mainWindow.on('close', () => {
+        saveSettings({ wasMaximized: mainWindow.isMaximized() });
     });
 
     // SharedArrayBuffer is enabled via command-line flag (line 10).
@@ -91,7 +140,7 @@ function createWindow() {
         // level: 0=verbose, 1=info, 2=warn, 3=error
         if (message.includes('[VST3') || message.includes('[DIAG') || level >= 2) {
             const prefix = level >= 3 ? '[Renderer ERR]' : level >= 2 ? '[Renderer WARN]' : '[Renderer]';
-            console.log(`${prefix} ${message}`);
+            try { console.log(`${prefix} ${message}`); } catch (_) { /* pipe closed */ }
         }
     });
 
@@ -218,6 +267,68 @@ ipcMain.handle('fs:mkdir', async (_event, dirPath, options) => {
         return { error: null };
     } catch (err) {
         return { error: err.message };
+    }
+});
+
+// Scanned folders persistence — save/load/validate folder paths
+ipcMain.handle('folders:save', async (_event, folderPaths) => {
+    try {
+        saveSettings({ scannedFolders: folderPaths });
+        return { error: null };
+    } catch (err) {
+        return { error: err.message };
+    }
+});
+
+ipcMain.handle('folders:load', async () => {
+    try {
+        const settings = loadSettings();
+        const saved = settings.scannedFolders || [];
+        // Filter out folders that no longer exist on disk
+        const valid = [];
+        for (const folderPath of saved) {
+            try {
+                await fs.promises.access(folderPath);
+                const stat = await fs.promises.stat(folderPath);
+                if (stat.isDirectory()) valid.push(folderPath);
+            } catch (_) { /* folder no longer exists — skip */ }
+        }
+        // Update saved list if any were removed
+        if (valid.length !== saved.length) {
+            saveSettings({ scannedFolders: valid });
+        }
+        return { folders: valid, error: null };
+    } catch (err) {
+        return { folders: [], error: err.message };
+    }
+});
+
+ipcMain.handle('folders:scan', async (_event, dirPath) => {
+    try {
+        // Block root drives
+        const normalized = dirPath.replace(/\\/g, '/').replace(/\/+$/, '');
+        if (/^[A-Za-z]:$/.test(normalized) || normalized === '' || normalized === '/') {
+            return { files: [], error: 'Cannot scan root drives' };
+        }
+        const results = [];
+        const scanDir = async (dir, prefix) => {
+            const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+                if (entry.isDirectory()) {
+                    await scanDir(fullPath, relPath);
+                } else if (/\.(wav|mp3|ogg|flac|aiff|aif)$/i.test(entry.name)) {
+                    results.push({ name: entry.name, path: fullPath, relPath, type: 'audio' });
+                } else if (/\.(mid|midi)$/i.test(entry.name)) {
+                    results.push({ name: entry.name, path: fullPath, relPath, type: 'midi' });
+                }
+            }
+        };
+        await scanDir(dirPath, '');
+        return { files: results, error: null };
+    } catch (err) {
+        return { files: [], error: err.message };
     }
 });
 

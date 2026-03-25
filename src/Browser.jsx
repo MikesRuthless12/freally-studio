@@ -9,6 +9,7 @@ import SavePresetDialog from './SavePresetDialog';
 import { EFFECT_CATEGORIES } from './effects/effectRegistry.js';
 import { CATEGORY_ICONS } from './effects/effectParamDefs.js';
 import { useTranslation } from './i18n/I18nContext.jsx';
+import { getFileFromItem } from './getFileFromItem.js';
 
 const MidiPreviewCanvas = ({ midiData, height, color, theme }) => {
     const canvasRef = useRef(null);
@@ -62,9 +63,12 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     const [folders, setFolders] = useState([]);
     const [expandedFolders, setExpandedFolders] = useState({});
     const [folderFiles, setFolderFiles] = useState({}); // Map folderName -> files[]
+    // Expose folderFiles globally so arrangement bounce can search for matching MIDI
+    useEffect(() => { window.__wavloomFolderFiles = folderFiles; }, [folderFiles]);
     const [searchQuery, setSearchQuery] = useState('');
     const [contextMenu, setContextMenu] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [extractProgress, setExtractProgress] = useState(0);
     const [navActiveKey, setNavActiveKey] = useState(null); // Keyboard nav active item
 
     // Rapid-navigation: debounce timer + generation counter to cancel stale async chains
@@ -206,8 +210,18 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         return metadata;
     };
 
-    const filterExactPattern = (pattern, type) => {
-        const totalSteps = (bars || 4) * 32;
+    // Calculate the smallest valid bar count that fits a duration at a given tempo
+    const calcRequiredBars = (durationSeconds, bpm) => {
+        const barDuration = 240 / bpm; // 4 beats per bar
+        const rawBars = Math.ceil(durationSeconds / barDuration);
+        for (const b of [4, 8, 16, 32, 64]) {
+            if (b >= rawBars) return b;
+        }
+        return 64;
+    };
+
+    const filterExactPattern = (pattern, type, _unused, overrideTotalSteps) => {
+        const totalSteps = overrideTotalSteps || (bars || 4) * 32;
 
         if (type === 'melody' || type === 'bass') {
             // "Top-Line" (Highest Priority) or "Bottom-Line" (Lowest Priority) Monophony
@@ -221,8 +235,6 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                 const vel = n.velocity !== undefined ? n.velocity : 0.8;
 
                 if (vel < 0.1) return;
-                if (type === 'melody' && n.note < 48) return;
-                if (type === 'bass' && n.note >= 55) return;
 
                 for (let st = startTime; st < endTime; st++) {
                     if (st < 0 || st >= totalSteps) continue;
@@ -327,13 +339,14 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         setIsMidiPlaying(false);
 
         setIsAnalyzing(true);
+        setExtractProgress(0);
 
         try {
             const filenameMetadata = extractMetadataFromFilename(item.name);
 
             if (item.type === 'midi') {
                 // For MIDI: Parse pattern data directly from file
-                const file = await item.handle.getFile();
+                const file = await getFileFromItem(item);
                 const arrayBuffer = await file.arrayBuffer();
 
                 const { MIDIParser } = await import('./MIDIParser');
@@ -347,47 +360,64 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     allNotes.push(...notes);
                 });
 
-                const analysis = parser.analyzePattern(allNotes, filenameMetadata.tempo || 120);
+                const midiTempo = filenameMetadata.tempo || 120;
+                const analysis = parser.analyzePattern(allNotes, midiTempo);
                 const finalMetadata = { ...analysis, ...filenameMetadata };
 
                 // Convert ticks to step format (time in 32nd steps, velocity 0-1)
                 const stepNotes = parser.convertToStepFormat(allNotes);
 
+                // Calculate required bars from MIDI duration
+                const tpb = midiData.ticksPerBeat || 480;
+                const maxTick = allNotes.length > 0 ? Math.max(...allNotes.map(n => n.startTick + n.duration)) : 0;
+                const midiDurationSec = maxTick * (60 / midiTempo) / tpb;
+                const midiRequiredBars = calcRequiredBars(midiDurationSec, midiTempo);
+                const midiTotalSteps = midiRequiredBars * 32;
+                finalMetadata.requiredBars = midiRequiredBars;
+
                 if (targetStr === 'all') {
-                    // Smart split using simultaneity detection
                     const extractedPatterns = parser.splitByRole(stepNotes);
                     onExtractMIDI({
                         patterns: {
-                            melody: filterExactPattern(extractedPatterns.melody, 'melody'),
-                            bass: filterExactPattern(extractedPatterns.bass, 'bass'),
-                            chords: filterExactPattern(extractedPatterns.chords, 'chords')
+                            melody: filterExactPattern(extractedPatterns.melody, 'melody', false, midiTotalSteps),
+                            bass: filterExactPattern(extractedPatterns.bass, 'bass', false, midiTotalSteps),
+                            chords: filterExactPattern(extractedPatterns.chords, 'chords', false, midiTotalSteps)
                         },
                         metadata: finalMetadata
                     }, 'all');
                 } else {
-                    const filtered = filterExactPattern(stepNotes, targetStr);
+                    const filtered = filterExactPattern(stepNotes, targetStr, false, midiTotalSteps);
                     onExtractMIDI({ patterns: filtered, metadata: finalMetadata }, targetStr);
                 }
             } else if (item.type === 'audio') {
                 // For Audio: Analyze directly and pass resulting pattern
-                const file = await item.handle.getFile();
+                const file = await getFileFromItem(item);
 
-                // --- EXACT MIDI MATCHING OVERRIDE (SAME FOLDER ONLY) ---
+                // --- EXACT MIDI MATCHING OVERRIDE ---
                 const baseName = file.name.replace(/\.[^/.]+$/, "");
                 let exactMidiItem = null;
 
-                // Only search the parent folder for a matching MIDI file
-                const parentPath = item.parent;
-                const parentFiles = folderFiles[parentPath] || [];
-                exactMidiItem = parentFiles.find(f => {
-                    if (f.type !== 'midi') return false;
-                    const fBase = f.name.replace(/\.[^/.]+$/, "");
-                    return fBase === baseName;
-                });
+                // Recursively search folder tree for a matching MIDI file
+                const findMidiInTree = (items) => {
+                    for (const f of (items || [])) {
+                        if (f.kind === 'directory') {
+                            const found = findMidiInTree(f.children);
+                            if (found) return found;
+                        } else if (f.type === 'midi') {
+                            const fBase = f.name.replace(/\.[^/.]+$/, "");
+                            if (fBase === baseName) return f;
+                        }
+                    }
+                    return null;
+                };
+                for (const files of Object.values(folderFiles)) {
+                    exactMidiItem = findMidiInTree(files);
+                    if (exactMidiItem) break;
+                }
 
                 if (exactMidiItem) {
                     console.log(`[Extract] Found local matching MIDI (${exactMidiItem.name}) for audio (${file.name}). Bypassing audio analysis.`);
-                    const midiFile = await exactMidiItem.handle.getFile();
+                    const midiFile = await getFileFromItem(exactMidiItem);
                     const arrayBuffer = await midiFile.arrayBuffer();
 
                     const { MIDIParser } = await import('./MIDIParser');
@@ -404,23 +434,34 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     const analysis = parser.analyzePattern(allNotes, analysisTempo);
                     const finalMetadata = { ...analysis, ...filenameMetadata };
 
+                    // Calculate required bars from MIDI duration
+                    const matchTpb = midiData.ticksPerBeat || 480;
+                    const matchMaxTick = allNotes.length > 0 ? Math.max(...allNotes.map(n => n.startTick + n.duration)) : 0;
+                    const matchDurSec = matchMaxTick * (60 / analysisTempo) / matchTpb;
+                    const matchBars = calcRequiredBars(matchDurSec, analysisTempo);
+                    const matchTotalSteps = matchBars * 32;
+                    finalMetadata.requiredBars = matchBars;
+
                     const stepNotes = parser.convertToStepFormat(allNotes).filter(n => n.channel !== 9);
 
-                    // Re-use smart splitting using simultaneity detection but strictly override for chords/bass exactness!
-
                     if (targetStr === 'all') {
-                        // Extract roles separately using smart track detection
-                        const melodyTrack = parser.getBestTrackForRole(midiData, 'melody');
-                        const bassTrack = parser.getBestTrackForRole(midiData, 'bass');
-                        const chordTrack = parser.getBestTrackForRole(midiData, 'chords');
+                        const roles = parser.splitByRole(stepNotes);
 
-                        const roles = parser.splitByRole(stepNotes); // Global fallback
+                        // For multi-track MIDI, try track-based role detection
+                        if (midiData.numTracks > 1) {
+                            const melodyTrack = parser.getBestTrackForRole(midiData, 'melody');
+                            const bassTrack = parser.getBestTrackForRole(midiData, 'bass');
+                            const chordTrack = parser.getBestTrackForRole(midiData, 'chords');
+                            if (melodyTrack) roles.melody = melodyTrack;
+                            if (bassTrack) roles.bass = bassTrack;
+                            if (chordTrack) roles.chords = chordTrack;
+                        }
 
                         onExtractMIDI({
                             patterns: {
-                                bass: filterExactPattern(bassTrack || roles.bass, 'bass', true),
-                                chords: filterExactPattern(chordTrack || roles.chords, 'chords', true),
-                                melody: filterExactPattern(melodyTrack || roles.melody, 'melody', true)
+                                bass: filterExactPattern(roles.bass, 'bass', false, matchTotalSteps),
+                                chords: filterExactPattern(roles.chords, 'chords', false, matchTotalSteps),
+                                melody: filterExactPattern(roles.melody, 'melody', false, matchTotalSteps)
                             },
                             metadata: finalMetadata
                         }, 'all');
@@ -434,7 +475,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                             targetPattern = roles[targetStr] || [];
                         }
 
-                        targetPattern = filterExactPattern(targetPattern, targetStr, true);
+                        targetPattern = filterExactPattern(targetPattern, targetStr, false, matchTotalSteps);
                         onExtractMIDI({ patterns: targetPattern, metadata: finalMetadata }, targetStr);
                     }
                     return; // Skip audio processing completely
@@ -460,24 +501,33 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     };
 
                     const analysisTempo = metadata.tempo || tempo || 120;
+                    const requiredBars = calcRequiredBars(audioBuffer.duration, analysisTempo);
+                    const totalExtractSteps = requiredBars * 32;
+                    metadata.requiredBars = requiredBars;
 
-                    console.log(`[Extract] V3 SUCCESS. Calculated ${analysisTempo} BPM.`);
+                    console.log(`[Extract] V3 SUCCESS. ${analysisTempo} BPM, ${audioBuffer.duration.toFixed(1)}s → ${requiredBars} bars (${totalExtractSteps} steps).`);
 
-                    // Fallback to DSP Audio Analysis
+                    // DSP Audio Analysis with full-length extraction + progress
                     if (targetStr === 'all') {
+                        const melodyRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'melody', (p) => setExtractProgress(Math.round(p * 0.25)));
+                        const bassRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'bass', (p) => setExtractProgress(25 + Math.round(p * 0.25)));
+                        const chordsRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'chords', (p) => setExtractProgress(50 + Math.round(p * 0.25)));
+                        const drumsRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'drums', (p) => setExtractProgress(75 + Math.round(p * 0.25)));
+                        setExtractProgress(100);
                         const extractedPatterns = {
-                            melody: filterExactPattern(analyzer.extractMIDI(audioBuffer, analysisTempo, 'melody'), 'melody'),
-                            bass: filterExactPattern(analyzer.extractMIDI(audioBuffer, analysisTempo, 'bass'), 'bass'),
-                            chords: filterExactPattern(analyzer.extractMIDI(audioBuffer, analysisTempo, 'chords'), 'chords'),
-                            drums: analyzer.extractMIDI(audioBuffer, analysisTempo, 'drums')
+                            melody: filterExactPattern(melodyRaw, 'melody', false, totalExtractSteps),
+                            bass: filterExactPattern(bassRaw, 'bass', false, totalExtractSteps),
+                            chords: filterExactPattern(chordsRaw, 'chords', false, totalExtractSteps),
+                            drums: drumsRaw
                         };
+
+                        console.log(`[PIPELINE] AFTER filterExactPattern:`);
                         onExtractMIDI({ patterns: extractedPatterns, metadata }, 'all');
                     } else {
-                        let extractedPattern = analyzer.extractMIDI(audioBuffer, analysisTempo, targetStr);
+                        let extractedPattern = await analyzer.extractMIDI(audioBuffer, analysisTempo, targetStr, (p) => setExtractProgress(p));
                         if (extractedPattern && (targetStr === 'drums' ? Object.keys(extractedPattern).length > 0 : extractedPattern.length > 0)) {
-                            // Apply filters to single target too
                             if (targetStr !== 'drums') {
-                                extractedPattern = filterExactPattern(extractedPattern, targetStr);
+                                extractedPattern = filterExactPattern(extractedPattern, targetStr, false, totalExtractSteps);
                             }
                             onExtractMIDI({ patterns: extractedPattern, metadata }, targetStr);
                         } else {
@@ -833,6 +883,63 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         }
 
         try {
+            // Electron native path — use IPC fs scan instead of handle
+            if (folder.nativePath && window.electronAPI?.folders?.scan) {
+                const scanResult = await window.electronAPI.folders.scan(folder.nativePath);
+                if (scanResult.error) {
+                    console.warn(`[Browser] Native scan failed for "${folder.name}":`, scanResult.error);
+                    setFolders(prev => prev.filter(f => f.name !== folder.name));
+                    return;
+                }
+                // Build tree structure matching libraryManager format
+                const buildNativeTree = (items, parentPath) => {
+                    const dirs = {};
+                    const result = [];
+                    for (const f of items) {
+                        const parts = f.relPath.split('/');
+                        if (parts.length === 1) {
+                            result.push({ kind: 'file', name: f.name, path: f.path, nativePath: f.path, type: f.type });
+                        } else {
+                            const dirName = parts[0];
+                            if (!dirs[dirName]) dirs[dirName] = [];
+                            dirs[dirName].push({ ...f, relPath: parts.slice(1).join('/') });
+                        }
+                    }
+                    for (const [dirName, dirFiles] of Object.entries(dirs).sort(([a], [b]) => a.localeCompare(b))) {
+                        result.push({
+                            kind: 'directory',
+                            name: dirName,
+                            path: parentPath + '/' + dirName,
+                            nativePath: parentPath + '/' + dirName,
+                            children: buildNativeTree(dirFiles, parentPath + '/' + dirName),
+                        });
+                    }
+                    return result;
+                };
+                const files = buildNativeTree(scanResult.files, folder.nativePath);
+                // Use same downstream logic as handle-based scan
+                const flatten = (items, flat = []) => {
+                    items.forEach(item => {
+                        if (item.kind === 'file') flat.push(item);
+                        if (item.children) flatten(item.children, flat);
+                    });
+                    return flat;
+                };
+                const allFiles = flatten(files);
+                if (allFiles.length === 0) {
+                    setFolders(prev => prev.filter(f => f.name !== folder.name));
+                } else {
+                    setFolderFiles(prev => ({ ...prev, [folder.name]: files }));
+                    if (autoExpand) {
+                        setExpandedFolders(prev => ({ ...prev, [folder.name]: true }));
+                    }
+                    if (onFolderSelect) {
+                        onFolderSelect({ name: folder.name, files, samples: allFiles.filter(f => f.type === 'audio') });
+                    }
+                }
+                return; // Skip handle-based scan
+            }
+
             // Validate handle is still usable (IndexedDB may deserialize stale handles)
             if (!folder.handle || typeof folder.handle.values !== 'function') {
                 console.warn(`[Browser] Stale handle for "${folder.name}" — removing from library`);
@@ -918,6 +1025,29 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
 
     const scannedFolders = useRef(new Set());
     const loadFolders = async () => {
+        // In Electron, load persisted native folder paths first
+        if (window.electronAPI?.isElectron && window.electronAPI?.folders?.load) {
+            try {
+                const result = await window.electronAPI.folders.load();
+                if (result.folders && result.folders.length > 0) {
+                    const nativeFolders = result.folders.map(fp => ({
+                        name: fp.split(/[\\/]/).pop(),
+                        nativePath: fp,
+                    }));
+                    setFolders(nativeFolders);
+                    nativeFolders.forEach(folder => {
+                        if (!scannedFolders.current.has(folder.name)) {
+                            scannedFolders.current.add(folder.name);
+                            performScan(folder, { silent: true, autoExpand: true });
+                        }
+                    });
+                    return; // Skip IndexedDB if we have native folders
+                }
+            } catch (e) {
+                console.warn("Failed to load native folders, falling back to IndexedDB", e);
+            }
+        }
+        // Fallback: IndexedDB via libraryManager
         if (window.libraryManager) {
             try {
                 const f = await window.libraryManager.getFolders();
@@ -976,6 +1106,42 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     };
 
     const handleAddFolder = async () => {
+        // In Electron, use native dialog + native fs for reliable persistence
+        if (window.electronAPI?.isElectron && window.electronAPI?.folders?.scan) {
+            try {
+                const result = await window.electronAPI.fs.showOpenDialog({
+                    properties: ['openDirectory'],
+                    title: 'Select Sample Folder',
+                });
+                if (result.canceled || !result.filePaths?.length) return;
+                const folderPath = result.filePaths[0];
+                // Block root drives (e.g. "C:\", "D:\", "/") — scanning an entire drive is dangerous
+                const normalized = folderPath.replace(/\\/g, '/').replace(/\/+$/, '');
+                if (/^[A-Za-z]:$/.test(normalized) || normalized === '' || normalized === '/') {
+                    alert(t('browser.cannotAddRootDrive'));
+                    return;
+                }
+                const folderName = folderPath.split(/[\\/]/).pop();
+                // Save path for persistence
+                const loadResult = await window.electronAPI.folders.load();
+                const existing = loadResult.folders || [];
+                if (!existing.includes(folderPath)) {
+                    await window.electronAPI.folders.save([...existing, folderPath]);
+                }
+                // Build a virtual handle-like object that performScan can work with
+                const virtualFolder = { name: folderName, nativePath: folderPath };
+                setFolders(prev => {
+                    if (prev.some(f => f.nativePath === folderPath)) return prev;
+                    return [...prev, virtualFolder];
+                });
+                scanAbortRef.current = new AbortController();
+                performScan(virtualFolder);
+                setExpandedFolders(prev => ({ ...prev, [folderName]: true }));
+            } catch (e) {
+                if (e.name !== 'AbortError') console.error("Error adding folder:", e);
+            }
+            return;
+        }
         // Prefer native File System Access API (requires secure context: https or localhost)
         if (typeof window.showDirectoryPicker === 'function') {
             try {
@@ -1082,7 +1248,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
 
         if (item.type === 'midi') {
             try {
-                const file = await item.handle.getFile();
+                const file = await getFileFromItem(item);
                 if (playGenRef.current !== gen) return; // Stale — user navigated away
                 const parser = new MIDIParser();
                 const midiData = await parser.loadMIDIFile(file);
@@ -1147,7 +1313,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         setIsPlaying(true);
 
         try {
-            const file = await item.handle.getFile();
+            const file = await getFileFromItem(item);
             if (playGenRef.current !== gen) return; // Stale — user navigated away
             const buffer = await window.audioEngine.loadAudio(file);
             if (playGenRef.current !== gen) return; // Stale
@@ -1387,8 +1553,8 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     // Pre-fetch first audio file in the folder so it's cached for instant playback
                     if (currentItem.children) {
                         const firstAudio = currentItem.children.find(c => c.kind === 'file' && c.type === 'audio');
-                        if (firstAudio?.handle && window.audioEngine) {
-                            firstAudio.handle.getFile().then(f => window.audioEngine.loadAudio(f)).catch(() => {});
+                        if (firstAudio && (firstAudio.handle || firstAudio.nativePath) && window.audioEngine) {
+                            getFileFromItem(firstAudio).then(f => window.audioEngine.loadAudio(f)).catch(() => {});
                         }
                     }
                 } else {
@@ -1430,8 +1596,8 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                             let buffer;
                             if (fileItem._tab === 'factory') {
                                 buffer = fileItem.audioBuffer;
-                            } else if (fileItem.handle) {
-                                const file = await fileItem.handle.getFile();
+                            } else if (fileItem.handle || fileItem.nativePath) {
+                                const file = await getFileFromItem(fileItem);
                                 buffer = await window.audioEngine.loadAudio(file);
                             }
                             if (!buffer) return;
@@ -1517,8 +1683,8 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                 const peekIdx = nextIdx + dir * ahead;
                 if (peekIdx < 0 || peekIdx >= navItems.length) break;
                 const peekItem = navItems[peekIdx];
-                if (peekItem && peekItem._nav === 'file' && peekItem.handle) {
-                    peekItem.handle.getFile()
+                if (peekItem && peekItem._nav === 'file' && (peekItem.handle || peekItem.nativePath)) {
+                    getFileFromItem(peekItem)
                         .then(f => window.audioEngine && window.audioEngine.loadAudio(f))
                         .catch(() => {});
                 }
@@ -1654,7 +1820,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                             if (parentFolder) selectSubfolder(parentFolder);
                         }}
                         onContextMenu={(e) => {
-                            if (item.type === 'audio') {
+                            if (item.type === 'audio' || item.type === 'midi') {
                                 e.preventDefault();
                                 // Just highlight without playing
                                 handleFileClick(item, false);
@@ -1942,19 +2108,21 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     color: '#fff', padding: '20px', textAlign: 'center',
                     backdropFilter: 'blur(10px)'
                 }}>
-                    <div style={{
-                        width: '40px', height: '40px',
-                        border: `3px solid ${isDark ? hexToRgba(ac, 0.1) : hexToRgba(ac, 0.2)}`,
-                        borderTop: `3px solid ${ac}`,
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        marginBottom: '15px'
-                    }} />
-                    <style>{`
-                        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                    `}</style>
-                    <div style={{ fontSize: '14px', fontWeight: '900', color: ac, letterSpacing: '2px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '900', color: ac, letterSpacing: '2px', marginBottom: '16px' }}>
                         {t('browser.analyzingMidiDna')}
+                    </div>
+                    <div style={{
+                        width: '180px', height: '6px', borderRadius: '3px',
+                        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                        overflow: 'hidden', marginBottom: '10px'
+                    }}>
+                        <div style={{
+                            width: `${extractProgress}%`, height: '100%', borderRadius: '3px',
+                            background: ac
+                        }} />
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                        {extractProgress}%
                     </div>
                 </div>
             )}
@@ -3093,13 +3261,19 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 onClick={async () => {
                                     if (window.libraryManager) {
                                         await window.libraryManager.removeFolder(contextMenu.item.name);
-                                        setFolders(prev => prev.filter(f => f.name !== contextMenu.item.name));
-                                        setFolderFiles(prev => {
-                                            const next = { ...prev };
-                                            delete next[contextMenu.item.name];
-                                            return next;
-                                        });
                                     }
+                                    // Also remove from Electron native persistence
+                                    if (window.electronAPI?.folders?.load && contextMenu.item.nativePath) {
+                                        const result = await window.electronAPI.folders.load();
+                                        const updated = (result.folders || []).filter(p => p !== contextMenu.item.nativePath);
+                                        await window.electronAPI.folders.save(updated);
+                                    }
+                                    setFolders(prev => prev.filter(f => f.name !== contextMenu.item.name));
+                                    setFolderFiles(prev => {
+                                        const next = { ...prev };
+                                        delete next[contextMenu.item.name];
+                                        return next;
+                                    });
                                     setContextMenu(null);
                                 }}
                                 style={{

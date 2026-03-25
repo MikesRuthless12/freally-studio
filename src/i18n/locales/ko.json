@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "샘플 검색...",
   "browser.removeFolderConfirm": "이 폴더와 모든 샘플을 제거하시겠습니까?",
   "browser.removeFolderLibraryConfirm": "이 폴더와 모든 샘플을 라이브러리에서 제거하시겠습니까?",
+  "browser.cannotAddRootDrive": "루트 드라이브를 추가할 수 없습니다. 드라이브 내의 폴더를 선택해 주세요.",
+  "browser.cannotScanRootDrive": "루트 드라이브는 스캔할 수 없습니다",
   "browser.searchPresets": "프리셋 검색...",
   "preset.enterName": "프리셋 이름 입력",
   "preset.optionalDesc": "설명 (선택사항)",

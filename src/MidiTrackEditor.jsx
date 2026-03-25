@@ -3,6 +3,7 @@ import PianoRollEditor from './PianoRollEditor';
 import { SCALES } from './MusicTheory';
 import { collectAudioFiles } from './randomFileUtils';
 import MIDIParser from './MIDIParser';
+import { getFileFromItem } from './getFileFromItem.js';
 import { hexToRgba } from './accentThemes';
 import { useTranslation } from './i18n/I18nContext.jsx';
 
@@ -127,7 +128,7 @@ const MidiTrackEditor = ({
             const audioFiles = await collectAudioFiles(selectedFolder);
             if (audioFiles.length === 0) { alert(t('midiEditor.noAudioFound')); return; }
             const randomFile = audioFiles[Math.floor(Math.random() * audioFiles.length)];
-            const file = await randomFile.handle.getFile();
+            const file = await getFileFromItem(randomFile);
             const instrumentId = `midi_inst_${track.id}_${Date.now()}`;
             await sampler.loadInstrumentFromFiles(instrumentId, [file], file.name);
             if (onInstrumentChange) onInstrumentChange(track.id, instrumentId, file.name);
@@ -187,8 +188,9 @@ const MidiTrackEditor = ({
         if (json) {
             try {
                 const data = JSON.parse(json);
-                if (data.handle) {
-                    const file = await data.handle.getFile();
+                const dragItem = window.draggedItem;
+                if (dragItem && (dragItem.handle || dragItem.nativePath)) {
+                    const file = await getFileFromItem(dragItem);
                     if (file.name.match(/\.(wav|mp3|ogg|flac|aiff|aif|webm)$/i)) {
                         const instrumentId = `midi_inst_${track.id}_${Date.now()}`;
                         await sampler.loadInstrumentFromFiles(instrumentId, [file], file.name);

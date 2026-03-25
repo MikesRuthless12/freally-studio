@@ -23,6 +23,7 @@ import CursorMap from './collab/CursorMap';
 import GoogleAuth from './collab/GoogleAuth';
 import { useToast, ToastContainer } from './collab/Toast';
 import { ProjectManager } from './ProjectManager';
+import { getFileFromItem } from './getFileFromItem.js';
 import { useUndoRedo } from './useUndoRedo';
 import { useMetronome } from './useMetronome';
 import MixerPanel from './MixerPanel';
@@ -175,6 +176,8 @@ const WavLoomAppComplete = () => {
 
     // Active tab
     const [activeTab, setActiveTab] = useState('drums');
+    const activeTabRef = useRef(activeTab);
+    useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
     // Lyrics imported from Lyric Engine → Lyrics Studio (includes genre/mood/bpm)
     const [importedLyrics, setImportedLyrics] = useState('');
@@ -305,6 +308,7 @@ const WavLoomAppComplete = () => {
         // Dynamically update active audio sources when clip properties change during
         // playback (e.g. time stretch, pitch). This avoids stopping/restarting audio.
         if (globalIsPlayingRef.current && activeAudioClipSources.current.length > 0) {
+            const ctx = samplerRef.current?.audioContext;
             activeAudioClipSources.current.forEach(entry => {
                 if (!entry._clipId || !entry._trackId || !entry.source) return;
                 const track = audioTracks.find(t => t.id === entry._trackId);
@@ -315,6 +319,95 @@ const WavLoomAppComplete = () => {
                 if (entry._playbackRate !== newRate) {
                     try { entry.source.playbackRate.value = newRate; } catch (_) {}
                     entry._playbackRate = newRate;
+                }
+                // Dynamically update fade automation when fade values change during playback
+                const newFadeIn = clip.fadeIn || 0;
+                const newFadeOut = clip.fadeOut || 0;
+                const newFadeInCurve = clip.fadeInCurve ?? 0;
+                const newFadeOutCurve = clip.fadeOutCurve ?? 0;
+                const fadeChanged = newFadeIn !== entry._fadeIn || newFadeOut !== entry._fadeOut
+                    || newFadeInCurve !== entry._fadeInCurve || newFadeOutCurve !== entry._fadeOutCurve;
+                if (fadeChanged && entry.gainNode && ctx && entry._scheduleTime != null) {
+                    try {
+                        const now = ctx.currentTime;
+                        const elapsed = now - entry._scheduleTime;
+                        const totalDur = entry._remainingDur;
+                        if (elapsed >= totalDur || elapsed < 0) return;
+
+                        const { gainNode } = entry;
+                        // Cancel existing automation, hold current value
+                        if (typeof gainNode.gain.cancelAndHoldAtTime === 'function') {
+                            gainNode.gain.cancelAndHoldAtTime(now);
+                        } else {
+                            gainNode.gain.cancelScheduledValues(now);
+                            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+                        }
+
+                        const buildCurve = (start, end, curveAmount, numPoints) => {
+                            const pts = new Float32Array(numPoints);
+                            for (let i = 0; i < numPoints; i++) {
+                                let t = i / (numPoints - 1);
+                                if (curveAmount > 0) t = Math.pow(t, 1 + curveAmount * 2);
+                                else if (curveAmount < 0) t = 1 - Math.pow(1 - t, 1 + Math.abs(curveAmount) * 2);
+                                pts[i] = start + (end - start) * t;
+                            }
+                            return pts;
+                        };
+
+                        if (newFadeIn <= 0 && newFadeOut <= 0) {
+                            // No fades — full volume
+                            gainNode.gain.linearRampToValueAtTime(1.0, now + 0.01);
+                        } else {
+                            const fadeInEnd = Math.min(newFadeIn, totalDur);
+                            const effectiveFadeOut = Math.max(newFadeOut, 0.025);
+                            const fadeOutStartOff = Math.max(fadeInEnd + 0.002, totalDur - effectiveFadeOut);
+                            const fadeOutDurTotal = totalDur - fadeOutStartOff;
+
+                            if (elapsed < fadeInEnd && newFadeIn > 0) {
+                                // In fade-in region — ramp to correct level, continue fade-in
+                                const remaining = fadeInEnd - elapsed;
+                                const t = elapsed / fadeInEnd;
+                                let cT = t;
+                                if (newFadeInCurve > 0) cT = Math.pow(t, 1 + newFadeInCurve * 2);
+                                else if (newFadeInCurve < 0) cT = 1 - Math.pow(1 - t, 1 + Math.abs(newFadeInCurve) * 2);
+                                const currentGain = Math.max(0.0001, 0.0001 + 0.9999 * cT);
+                                gainNode.gain.setValueAtTime(currentGain, now);
+                                if (remaining > 0.005) {
+                                    gainNode.gain.setValueCurveAtTime(buildCurve(currentGain, 1, newFadeInCurve, 64), now + 0.001, remaining);
+                                }
+                            } else {
+                                // Past fade-in — sustain at full volume
+                                gainNode.gain.setValueAtTime(1.0, now);
+                            }
+
+                            // Schedule fade-out
+                            if (newFadeOut > 0 && fadeOutDurTotal > 0.01) {
+                                const fadeOutAbsStart = entry._scheduleTime + fadeOutStartOff;
+                                if (fadeOutAbsStart > now + 0.002) {
+                                    // Fade-out hasn't started yet
+                                    gainNode.gain.setValueAtTime(1.0, fadeOutAbsStart);
+                                    gainNode.gain.setValueCurveAtTime(buildCurve(1, 0.0001, newFadeOutCurve, 64), fadeOutAbsStart, fadeOutDurTotal);
+                                } else if (elapsed >= fadeOutStartOff) {
+                                    // Already in fade-out region
+                                    const foElapsed = elapsed - fadeOutStartOff;
+                                    const foRemaining = fadeOutDurTotal - foElapsed;
+                                    const t = Math.min(1, foElapsed / fadeOutDurTotal);
+                                    let cT = t;
+                                    if (newFadeOutCurve > 0) cT = Math.pow(t, 1 + newFadeOutCurve * 2);
+                                    else if (newFadeOutCurve < 0) cT = 1 - Math.pow(1 - t, 1 + Math.abs(newFadeOutCurve) * 2);
+                                    const currentGain = Math.max(0.0001, 1 - 0.9999 * cT);
+                                    gainNode.gain.setValueAtTime(currentGain, now);
+                                    if (foRemaining > 0.005) {
+                                        gainNode.gain.setValueCurveAtTime(buildCurve(currentGain, 0.0001, newFadeOutCurve, 64), now + 0.001, foRemaining);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (_) { /* gain automation update failed — non-fatal */ }
+                    entry._fadeIn = newFadeIn;
+                    entry._fadeOut = newFadeOut;
+                    entry._fadeInCurve = newFadeInCurve;
+                    entry._fadeOutCurve = newFadeOutCurve;
                 }
             });
         }
@@ -2320,13 +2413,32 @@ const WavLoomAppComplete = () => {
                 boundaries.push({ id: s.id, startStep: cumSteps, endStep: cumSteps + s.bars * 32 });
                 cumSteps += s.bars * 32;
             });
+            // Extend totalSteps to cover audio clips (only on arrange tab)
+            let effectiveSteps = cumSteps;
+            if (activeTab === 'arrange') {
+                const stepDur = stepDurationRef.current || (60 / (globalTempo * 8));
+                audioTracks.forEach(track => {
+                    track.clips.forEach(clip => {
+                        if (!clip.buffer) return;
+                        const clipBar = clip.timelineBar ?? 0;
+                        const clipStartStep = clipBar * 32;
+                        const rate = clip.playbackRate || 1;
+                        const bufDur = clip.buffer.duration / rate - (clip.trimStart || 0) - (clip.trimEnd || 0);
+                        const clipEndStep = clipStartStep + Math.ceil(bufDur / stepDur);
+                        if (clipEndStep > effectiveSteps) effectiveSteps = clipEndStep;
+                    });
+                });
+            }
             // Convert bar-based stop marker to step position
             const stopStep = stopMarkerBarRef.current != null ? stopMarkerBarRef.current * 32 : null;
-            arrangementRef.current = { totalSteps: cumSteps, boundaries, stopStep };
+            if (effectiveSteps !== cumSteps) {
+                console.warn(`[Arrange] Extended totalSteps from ${cumSteps} (${cumSteps/32} bars) to ${effectiveSteps} (${(effectiveSteps/32).toFixed(1)} bars) for audio clips`);
+            }
+            arrangementRef.current = { totalSteps: effectiveSteps, boundaries, stopStep };
         } else {
             arrangementRef.current = null;
         }
-    }, [arr.arrangementMode, arr.arrangement, activeTab, hasAnyClips, loopSectionIds, stopMarkerBar]);
+    }, [arr.arrangementMode, arr.arrangement, activeTab, hasAnyClips, loopSectionIds, stopMarkerBar, audioTracks, globalTempo]);
 
     // Track tab changes. Previously this halted playback when leaving the
     // arrange tab, but that's no longer needed since clipPlaybackActive is
@@ -2794,6 +2906,8 @@ const WavLoomAppComplete = () => {
      * Web Audio handles mixing — no JS section-switching needed for audio tracks.
      */
     const scheduleAudioClipsForTimeline = useCallback((playbackStartTimeSecs, timelineElapsedSecs = 0) => {
+        // Only play arrangement audio clips when on the arrange tab
+        if (activeTabRef.current !== 'arrange') return;
         const sampler = samplerRef.current;
         if (!sampler) return;
         const tracks = audioTracksRef.current;
@@ -2860,13 +2974,8 @@ const WavLoomAppComplete = () => {
                 // Resume compensation: how far into this clip we already are
                 const clipLateBy = Math.max(0, timelineElapsedSecs - clipStartSecs);
                 let remainingDur = clipDuration - clipLateBy;
-                // Clamp to arrangement end — prevent audio from playing past the last section
-                // Skip clamping for recording clips: they may be longer than the arrangement
-                const isRecordingClip = clip.name && clip.name.startsWith('Recording');
-                if (arrangementEndSecs > 0 && !isRecordingClip) {
-                    const arrangementRemaining = Math.max(0, arrangementEndSecs - clipStartSecs - clipLateBy);
-                    remainingDur = Math.min(remainingDur, arrangementRemaining);
-                }
+                // Audio clips play their full buffer duration regardless of arrangement length.
+                // Only clamp at an explicit stop marker, not at the arrangement boundary.
                 if (remainingDur <= 0.01) return; // clip already finished or past arrangement end
 
                 const LOOKAHEAD = 0.02;
@@ -2883,6 +2992,12 @@ const WavLoomAppComplete = () => {
                 result._trackId = track.id;
                 result._timelineBar = absBar;
                 result._playbackRate = playbackRate;
+                result._scheduleTime = scheduleTime;
+                result._remainingDur = remainingDur;
+                result._fadeIn = clip.fadeIn || 0;
+                result._fadeOut = clip.fadeOut || 0;
+                result._fadeInCurve = clip.fadeInCurve ?? 0;
+                result._fadeOutCurve = clip.fadeOutCurve ?? 0;
 
                 // Apply user fade in/out (only when user explicitly set fades).
                 // playAudioClip() already handles anti-click fade-in (8ms) and fade-out (25ms)
@@ -2899,12 +3014,34 @@ const WavLoomAppComplete = () => {
                         gainNode.gain.cancelScheduledValues(scheduleTime);
                     }
                     const effectiveFadeIn = clipLateBy > fadeIn ? 0.008 : Math.max(fadeIn - clipLateBy, 0.008);
-                    gainNode.gain.setValueAtTime(0, scheduleTime);
-                    gainNode.gain.linearRampToValueAtTime(1, scheduleTime + Math.min(effectiveFadeIn, remainingDur));
+                    const fadeInCurve = clip.fadeInCurve ?? 0;
+                    const fadeOutCurve = clip.fadeOutCurve ?? 0;
+
+                    // Bell curve fades: use setValueCurveAtTime for smooth S-curves
+                    // Curve value maps: -1 = concave (log), 0 = linear, 1 = convex (exp)
+                    const buildCurve = (start, end, curveAmount, numPoints) => {
+                        const pts = new Float32Array(numPoints);
+                        for (let i = 0; i < numPoints; i++) {
+                            let t = i / (numPoints - 1);
+                            // Apply curve: positive = exponential (slow start), negative = logarithmic (fast start)
+                            if (curveAmount > 0) t = Math.pow(t, 1 + curveAmount * 2);
+                            else if (curveAmount < 0) t = 1 - Math.pow(1 - t, 1 + Math.abs(curveAmount) * 2);
+                            pts[i] = start + (end - start) * t;
+                        }
+                        return pts;
+                    };
+
+                    const fadeInDur = Math.min(effectiveFadeIn, remainingDur);
+                    gainNode.gain.setValueAtTime(0.0001, scheduleTime);
+                    gainNode.gain.setValueCurveAtTime(buildCurve(0.0001, 1, fadeInCurve, 64), scheduleTime, fadeInDur);
+
                     const effectiveFadeOut = Math.max(fadeOut, 0.025);
-                    const fadeOutStart = scheduleTime + Math.max(effectiveFadeIn + 0.001, remainingDur - effectiveFadeOut);
-                    gainNode.gain.setValueAtTime(1.0, fadeOutStart);
-                    gainNode.gain.linearRampToValueAtTime(0, scheduleTime + remainingDur);
+                    const fadeOutStart = scheduleTime + Math.max(fadeInDur + 0.002, remainingDur - effectiveFadeOut);
+                    const fadeOutDur = scheduleTime + remainingDur - fadeOutStart;
+                    if (fadeOutDur > 0.01) {
+                        gainNode.gain.setValueAtTime(1.0, fadeOutStart);
+                        gainNode.gain.setValueCurveAtTime(buildCurve(1, 0.0001, fadeOutCurve, 64), fadeOutStart, fadeOutDur);
+                    }
                 }
 
                 activeAudioClipSources.current.push(result);
@@ -3027,7 +3164,7 @@ const WavLoomAppComplete = () => {
             if (currentStepDuration <= 0) { scheduleNext(tick); return; }
 
             const arrData = arrangementRef.current;
-            const hasArrangement = arrData && arrData.arrangement && arrData.arrangement.length > 0;
+            const hasArrangement = arrData && arrData.boundaries && arrData.boundaries.length > 0;
             let discreteStep, currentPos;
 
             if (hasArrangement) {
@@ -3892,6 +4029,11 @@ const WavLoomAppComplete = () => {
             }
             if (metadata.likelyKey) setGlobalKey(metadata.likelyKey);
             if (metadata.likelyScale) setGlobalScale(metadata.likelyScale);
+            // Auto-size bars to fit the full sample/MIDI duration
+            if (metadata.requiredBars && [4, 8, 16, 32, 64].includes(metadata.requiredBars)) {
+                setGlobalBars(metadata.requiredBars);
+                console.log(`[Extract] Auto-set bars to ${metadata.requiredBars} to fit sample duration`);
+            }
         }
 
         if (target === 'all') {
@@ -3949,6 +4091,163 @@ const WavLoomAppComplete = () => {
         }, 100);
     };
 
+
+    // Monophony + chord grouping filter (same as Browser.jsx's filterExactPattern)
+    const bounceFilter = (pattern, type, totalSteps) => {
+        if (!pattern || pattern.length === 0) return [];
+        if (type === 'melody' || type === 'bass') {
+            const grid = Array(totalSteps).fill(null);
+            pattern.forEach(n => {
+                const st = Math.round(n.time), dur = Math.round(n.duration);
+                const end = Math.min(totalSteps, st + dur);
+                const vel = n.velocity !== undefined ? n.velocity : 0.8;
+                if (vel < 0.1) return;
+                for (let i = st; i < end; i++) {
+                    if (i < 0 || i >= totalSteps) continue;
+                    if (!grid[i]) grid[i] = { note: n.note, velocity: vel };
+                    else if (type === 'melody' ? n.note > grid[i].note : n.note < grid[i].note)
+                        grid[i] = { note: n.note, velocity: vel };
+                }
+            });
+            const result = [];
+            let cur = null, startT = 0;
+            for (let i = 0; i <= totalSteps; i++) {
+                const step = i < totalSteps ? grid[i] : null;
+                if (!cur) { if (step) { cur = step; startT = i; } }
+                else if (!step || step.note !== cur.note) {
+                    result.push({ time: startT, duration: i - startT, note: cur.note, velocity: cur.velocity });
+                    cur = step; startT = i;
+                }
+            }
+            return result;
+        }
+        // Chords: group by time, keep top 4
+        const tg = {};
+        pattern.forEach(n => {
+            const ts = Math.round(n.time);
+            if (n.velocity < 0.1) return;
+            if (!tg[ts]) tg[ts] = [];
+            tg[ts].push({ ...n, time: ts });
+        });
+        let fp = [];
+        Object.values(tg).forEach(g => { g.sort((a, b) => a.note - b.note); fp.push(...g.slice(-4)); });
+        return fp.filter(n => n.time < totalSteps)
+            .map(n => ({ ...n, velocity: n.velocity || 0.8, duration: Math.max(1, Math.round(n.duration)) }))
+            .sort((a, b) => a.time - b.time || a.note - b.note);
+    };
+
+    /**
+     * Bounce audio clip to generators (reuses MIDI extraction pipeline)
+     */
+    const handleBounceToGenerators = async (clip) => {
+        if (!clip?.buffer) return;
+        try {
+            const { MIDIParser } = await import('./MIDIParser');
+            const { getFileFromItem } = await import('./getFileFromItem.js');
+            const audioBuffer = clip.buffer;
+            const clipName = clip.name || '';
+
+            // Parse filename metadata (BPM, key, scale)
+            const filenameMetadata = {};
+            const bpmMatch = clipName.match(/(\d{2,3})\s*(?:BPM|bpm)/i) || clipName.match(/[-\s]_?(60|7\d|8\d|9\d|1[0-9]\d|200)(?!\d)/);
+            if (bpmMatch) filenameMetadata.tempo = parseInt(bpmMatch[1]);
+            const keyNames = 'C|C#|Db|D|D#|Eb|E|F|F#|Gb|G|G#|Ab|A|A#|Bb|B';
+            const keyMatch = clipName.match(new RegExp(`\\b(${keyNames})\\s*(Minor|Major|Min|Maj|m|M)?\\b`, 'i'));
+            if (keyMatch) {
+                filenameMetadata.likelyKey = keyMatch[1].toUpperCase();
+                const sp = (keyMatch[2] || '').toLowerCase();
+                filenameMetadata.likelyScale = (sp.includes('min') || sp === 'm') ? 'Minor' : (sp.includes('maj') ? 'Major' : 'Minor');
+            }
+            console.log(`[Bounce] Clip: "${clipName}", parsed metadata:`, filenameMetadata);
+
+            // Search loaded folders for a matching MIDI file
+            const baseName = clipName.replace(/\.[^/.]+$/, '');
+            let midiItem = null;
+            const findMidi = (items) => {
+                for (const f of (items || [])) {
+                    if (f.kind === 'directory') { const r = findMidi(f.children); if (r) return r; }
+                    else if (f.type === 'midi' && f.name.replace(/\.[^/.]+$/, '') === baseName) return f;
+                }
+                return null;
+            };
+            const folderFiles = window.__wavloomFolderFiles || {};
+            for (const files of Object.values(folderFiles)) {
+                midiItem = findMidi(files);
+                if (midiItem) break;
+            }
+
+            if (midiItem) {
+                // ── MIDI match found: use clean MIDI data ──
+                console.log(`[Bounce] Found matching MIDI: ${midiItem.name}. Using MIDI data.`);
+                const midiFile = await getFileFromItem(midiItem);
+                const ab = await midiFile.arrayBuffer();
+                const parser = new MIDIParser();
+                const midiData = await parser.parseMIDIFile(ab);
+                const allNotes = [];
+                midiData.tracks.forEach(tr => allNotes.push(...parser.eventsToNotes(tr.events)));
+
+                const useTempo = filenameMetadata.tempo || globalTempo || 120;
+                const analysis = parser.analyzePattern(allNotes, useTempo);
+                const metadata = { ...analysis, ...filenameMetadata };
+
+                const tpb = midiData.ticksPerBeat || 480;
+                const maxTick = allNotes.length > 0 ? Math.max(...allNotes.map(n => n.startTick + n.duration)) : 0;
+                const durSec = maxTick * (60 / useTempo) / tpb;
+                const barDur = 240 / useTempo;
+                let requiredBars = 64;
+                for (const b of [4, 8, 16, 32, 64]) { if (Math.ceil(durSec / barDur) <= b) { requiredBars = b; break; } }
+                metadata.requiredBars = requiredBars;
+
+                const totalSteps = requiredBars * 32;
+                const stepNotes = parser.convertToStepFormat(allNotes).filter(n => n.channel !== 9);
+                const roles = parser.splitByRole(stepNotes);
+                if (midiData.numTracks > 1) {
+                    const mt = parser.getBestTrackForRole(midiData, 'melody');
+                    const bt = parser.getBestTrackForRole(midiData, 'bass');
+                    const ct = parser.getBestTrackForRole(midiData, 'chords');
+                    if (mt) roles.melody = mt;
+                    if (bt) roles.bass = bt;
+                    if (ct) roles.chords = ct;
+                }
+
+                handleExtractMIDI({ patterns: {
+                    melody: bounceFilter(roles.melody, 'melody', totalSteps),
+                    bass: bounceFilter(roles.bass, 'bass', totalSteps),
+                    chords: bounceFilter(roles.chords, 'chords', totalSteps)
+                }, metadata }, 'all');
+            } else {
+                // ── No MIDI match: fall back to DSP analysis ──
+                console.log(`[Bounce] No matching MIDI found for "${baseName}". Using DSP extraction.`);
+                const { AudioAnalyzer } = await import('./AudioAnalyzer');
+                const analyzer = new AudioAnalyzer();
+                const audioAnalysis = await analyzer.analyzeAudioFile(audioBuffer);
+                const metadata = { ...audioAnalysis, ...filenameMetadata };
+                const useTempo = metadata.tempo || globalTempo || 120;
+                const barDur = 240 / useTempo;
+                let requiredBars = 64;
+                for (const b of [4, 8, 16, 32, 64]) { if (Math.ceil(audioBuffer.duration / barDur) <= b) { requiredBars = b; break; } }
+                metadata.requiredBars = requiredBars;
+
+                const totalSteps = requiredBars * 32;
+                const melodyRaw = await analyzer.extractMIDI(audioBuffer, useTempo, 'melody');
+                const bassRaw = await analyzer.extractMIDI(audioBuffer, useTempo, 'bass');
+                const chordsRaw = await analyzer.extractMIDI(audioBuffer, useTempo, 'chords');
+                const drumsRaw = await analyzer.extractMIDI(audioBuffer, useTempo, 'drums');
+
+                handleExtractMIDI({
+                    patterns: {
+                        melody: bounceFilter(melodyRaw, 'melody', totalSteps),
+                        bass: bounceFilter(bassRaw, 'bass', totalSteps),
+                        chords: bounceFilter(chordsRaw, 'chords', totalSteps),
+                        drums: drumsRaw
+                    },
+                    metadata
+                }, 'all');
+            }
+        } catch (err) {
+            console.error('[BounceToGenerators] Failed:', err);
+        }
+    };
 
     /**
      * Handle folder removal
@@ -5167,9 +5466,9 @@ const WavLoomAppComplete = () => {
 
         if (internalItem?.audioBuffer) {
             resolvedItems.push({ audioBuffer: internalItem.audioBuffer, name: internalItem.name || 'Sample', isAudio: true, isMidi: false });
-        } else if (internalItem?.handle) {
+        } else if (internalItem?.handle || internalItem?.nativePath) {
             try {
-                const f = await internalItem.handle.getFile();
+                const f = await getFileFromItem(internalItem);
                 if (f) resolvedItems.push({
                     file: f, name: f.name,
                     isMidi: /\.midi?$/i.test(f.name),
@@ -6203,16 +6502,16 @@ const WavLoomAppComplete = () => {
                             // If a MIDI track editor modal or arrangement clip editor is open, load the sample into it
                             const targetMidiTrack = editingMidiTrack || focusedMidiClipTrackId;
                             if (targetMidiTrack) {
-                                if (file.type === 'audio' && file.handle) {
+                                if (file.type === 'audio' && (file.handle || file.nativePath)) {
                                     try {
-                                        const f = await file.handle.getFile();
+                                        const f = await getFileFromItem(file);
                                         const instrumentId = `midi_inst_${targetMidiTrack}_${Date.now()}`;
                                         await samplerRef.current.loadInstrumentFromFiles(instrumentId, [f], f.name);
                                         updateMidiTrackInstrument(targetMidiTrack, instrumentId, f.name);
                                     } catch (err) { console.error('[Browser→MidiTrack] load error:', err); }
-                                } else if (file.type === 'midi' && file.handle) {
+                                } else if (file.type === 'midi' && (file.handle || file.nativePath)) {
                                     try {
-                                        const f = await file.handle.getFile();
+                                        const f = await getFileFromItem(file);
                                         const parser = new MIDIParser();
                                         const midiData = await parser.loadMIDIFile(f);
                                         let notes = [];
@@ -6329,7 +6628,9 @@ const WavLoomAppComplete = () => {
                     </div>
                 )}
                 {/* Header Row 1: Logo + Playback + Right controls */}
-                <div style={{
+                <div
+                    onDoubleClick={() => { if (isElectron() && window.electronAPI?.window?.maximize) window.electronAPI.window.maximize(); }}
+                    style={{
                     padding: '8px 16px',
                     borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)'}`,
                     background: isDark ? 'rgba(20, 20, 25, 0.8)' : '#fff',
@@ -6378,18 +6679,29 @@ const WavLoomAppComplete = () => {
                                 </span>
                             </div>
 
-                            <h1 key={accentTheme} data-tour-id="tour-welcome" style={{
+                            <h1 key={accentTheme} data-tour-id="tour-welcome" onDoubleClick={(e) => { e.stopPropagation(); if (isElectron() && window.electronAPI?.window?.maximize) window.electronAPI.window.maximize(); }}
+                                className="wavloom-title-hover"
+                                style={{
                                 margin: 0,
                                 fontSize: '22px',
                                 fontWeight: '900',
                                 letterSpacing: '-0.5px',
-                                backgroundImage: accent.type === 'gradient' ? acGrad : 'none',
-                                WebkitBackgroundClip: accent.type === 'gradient' ? 'text' : 'unset',
-                                WebkitTextFillColor: accent.type === 'gradient' ? 'transparent' : ac,
-                                backgroundClip: accent.type === 'gradient' ? 'text' : 'unset',
-                                color: ac
+                                color: ac,
+                                cursor: 'default',
+                                display: 'flex',
                             }}>
-                                WAVLOOM STUDIO
+                                {'WAVLOOM STUDIO'.split('').map((char, i) => (
+                                    <span key={i} className="wavloom-letter" style={{
+                                        display: 'inline-block',
+                                        backgroundImage: accent.type === 'gradient' ? acGrad : 'none',
+                                        WebkitBackgroundClip: accent.type === 'gradient' ? 'text' : 'unset',
+                                        WebkitTextFillColor: accent.type === 'gradient' ? 'transparent' : ac,
+                                        backgroundClip: accent.type === 'gradient' ? 'text' : 'unset',
+                                        color: ac,
+                                        transitionDelay: `${i * 0.03}s`,
+                                        minWidth: char === ' ' ? '8px' : undefined,
+                                    }}>{char}</span>
+                                ))}
                             </h1>
 
                             <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
@@ -6457,6 +6769,7 @@ const WavLoomAppComplete = () => {
                                     }
                                     setGlobalIsPlaying(nextState);
                                     if (!nextState) {
+                                        setAudioInsertionBar(0);
                                         window.dispatchEvent(new Event('stopAllAudio'));
                                     }
                                 }}
@@ -7690,6 +8003,10 @@ const WavLoomAppComplete = () => {
                                         onSetLoopRange={setLoopRange}
                                         loopActive={loopActive}
                                         onSetLoopActive={setLoopActive}
+                                        onBounceToGenerators={handleBounceToGenerators}
+                                        globalBars={globalBars}
+                                        setGlobalBars={setGlobalBars}
+                                        setGlobalResolution={setGlobalResolution}
                                         previewDrumPattern={patterns.drums}
                                         previewChordPattern={patterns.chords}
                                         previewMelodyPattern={patterns.melody}

@@ -6,6 +6,7 @@ import { MidiPreviewSynth } from './MidiPreviewSynth';
 import MIDIParser from './MIDIParser';
 import { hexToRgba } from './accentThemes';
 import { useTranslation } from './i18n/I18nContext';
+import { getFileFromItem } from './getFileFromItem.js';
 
 const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRemoveFolder, onExtractMIDI, onDragSample, theme = 'dark', accentColors}) => {
     const { t } = useTranslation();
@@ -25,6 +26,7 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
     const [expandedFolders, setExpandedFolders] = useState(new Set());
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loadingSavedFolders, setLoadingSavedFolders] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackPosition, setPlaybackPosition] = useState(0);
     const [contextMenu, setContextMenu] = useState(null);
@@ -223,14 +225,134 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
         }
     };
 
+    const isElectron = () => typeof window !== 'undefined' && window.electronAPI?.isElectron;
+
+    /**
+     * Build folder tree from Electron native fs scan results (lazy — no audio decoding)
+     */
+    const buildFolderTreeFromPaths = (folderPath, files) => {
+        const folderName = folderPath.split(/[\\/]/).pop();
+        const tree = {
+            name: folderName,
+            path: folderPath,
+            nativePath: folderPath,
+            type: 'folder',
+            children: [],
+            files: [],
+            samples: [],
+            expanded: false,
+            id: Date.now() + Math.random(),
+        };
+        // Build sub-folder structure from relative paths
+        const subFolders = {};
+        for (const f of files) {
+            const parts = f.relPath.split('/');
+            if (parts.length === 1) {
+                // Root-level file
+                const fileObj = {
+                    name: f.name,
+                    path: f.path,
+                    nativePath: f.path,
+                    type: f.type,
+                    id: Date.now() + Math.random(),
+                };
+                tree.files.push(fileObj);
+                if (f.type === 'audio') tree.samples.push(fileObj);
+            } else {
+                // File in subfolder
+                const subName = parts[0];
+                if (!subFolders[subName]) {
+                    subFolders[subName] = [];
+                }
+                subFolders[subName].push({ ...f, relPath: parts.slice(1).join('/') });
+            }
+        }
+        // Recursively build children
+        for (const [subName, subFiles] of Object.entries(subFolders).sort(([a], [b]) => a.localeCompare(b))) {
+            const subPath = folderPath + '/' + subName;
+            const childTree = buildFolderTreeFromPaths(subPath, subFiles);
+            tree.children.push(childTree);
+            tree.samples.push(...childTree.samples);
+        }
+        tree.files.sort((a, b) => a.name.localeCompare(b.name));
+        return tree;
+    };
+
+    /**
+     * Save current folder paths to Electron persistence
+     */
+    const saveFolderPaths = useCallback((folders) => {
+        if (!isElectron() || !window.electronAPI.folders) return;
+        const paths = folders.map(f => f.nativePath).filter(Boolean);
+        window.electronAPI.folders.save(paths);
+    }, []);
+
+    /**
+     * Load saved folders on mount (Electron only)
+     */
+    useEffect(() => {
+        if (!isElectron() || !window.electronAPI.folders) return;
+        let cancelled = false;
+        (async () => {
+            setLoadingSavedFolders(true);
+            try {
+                const result = await window.electronAPI.folders.load();
+                if (cancelled || !result.folders.length) { setLoadingSavedFolders(false); return; }
+                const trees = [];
+                for (const folderPath of result.folders) {
+                    try {
+                        const scanResult = await window.electronAPI.folders.scan(folderPath);
+                        if (scanResult.files) {
+                            trees.push(buildFolderTreeFromPaths(folderPath, scanResult.files));
+                        }
+                    } catch (err) {
+                        console.warn('Failed to rescan saved folder:', folderPath, err);
+                    }
+                }
+                if (!cancelled && trees.length > 0) {
+                    setRootFolders(trees);
+                }
+            } catch (err) {
+                console.warn('Failed to load saved folders:', err);
+            }
+            if (!cancelled) setLoadingSavedFolders(false);
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
     /**
      * Import folder structure
      */
-    /**
-     * Import folder structure via FileSystem Access API
-     */
     const handleImportFolder = async () => {
         try {
+            // In Electron, use native dialog for folder picking
+            if (isElectron() && window.electronAPI?.folders?.scan) {
+                console.log('[FileExplorer] Using Electron native folder import');
+                const result = await window.electronAPI.fs.showOpenDialog({
+                    properties: ['openDirectory'],
+                    title: 'Select Sample Folder',
+                });
+                if (result.canceled || !result.filePaths?.length) return;
+                const folderPath = result.filePaths[0];
+                console.log('[FileExplorer] Scanning folder:', folderPath);
+                const scanResult = await window.electronAPI.folders.scan(folderPath);
+                if (scanResult.error) { console.error('Scan failed:', scanResult.error); return; }
+                console.log('[FileExplorer] Found', scanResult.files.length, 'files');
+                const folderTree = buildFolderTreeFromPaths(folderPath, scanResult.files);
+                setRootFolders(prev => {
+                    const existing = prev.findIndex(f => f.nativePath === folderPath);
+                    return existing >= 0
+                        ? prev.map((f, i) => i === existing ? folderTree : f)
+                        : [...prev, folderTree];
+                });
+                // Save folder paths to persistence after state update
+                const allPaths = [...rootFolders.map(f => f.nativePath).filter(Boolean), folderPath];
+                const uniquePaths = [...new Set(allPaths)];
+                console.log('[FileExplorer] Saving folder paths:', uniquePaths);
+                await window.electronAPI.folders.save(uniquePaths);
+                return;
+            }
+            // Fallback: File System Access API (web/PWA)
             const dirHandle = await window.showDirectoryPicker();
             const folderTree = await buildFolderTreeFromHandle(dirHandle, dirHandle.name, true);
             setRootFolders(prev => {
@@ -408,6 +530,10 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
             let file;
             if (midiFile.handle && midiFile.handle.getFile) {
                 file = await midiFile.handle.getFile();
+            } else if (midiFile.nativePath && window.electronAPI?.fs?.readFile) {
+                const result = await window.electronAPI.fs.readFile(midiFile.nativePath);
+                if (result.error) throw new Error(result.error);
+                file = new File([result.data], midiFile.name || 'unknown.mid', { type: 'audio/midi' });
             } else if (midiFile.file) {
                 file = midiFile.file;
             } else {
@@ -805,15 +931,14 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
             const buffer = await analyzer.loadAudioFile(file);
 
             if (dest === 'all') {
-                // Extract 3 separate patterns using range filtering
                 const patterns = {
-                    melody: analyzer.extractMIDI(buffer, 120, 'melody'),
-                    bass: analyzer.extractMIDI(buffer, 120, 'bass'),
-                    chords: analyzer.extractMIDI(buffer, 120, 'chords')
+                    melody: await analyzer.extractMIDI(buffer, 120, 'melody'),
+                    bass: await analyzer.extractMIDI(buffer, 120, 'bass'),
+                    chords: await analyzer.extractMIDI(buffer, 120, 'chords')
                 };
                 if (onExtractMIDI) onExtractMIDI(patterns, 'all');
             } else {
-                const pattern = analyzer.extractMIDI(buffer, 120, dest);
+                const pattern = await analyzer.extractMIDI(buffer, 120, dest);
                 if (onExtractMIDI) onExtractMIDI(pattern, dest);
             }
         } catch (err) {
@@ -1259,7 +1384,14 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
                                 style={{ padding: '8px 16px', cursor: 'pointer', fontSize: '13px', color: '#ff4444' }}
                                 onClick={() => {
                                     if (window.confirm(`Remove folder "${contextMenu.target.name}"?`)) {
-                                        setRootFolders(prev => prev.filter(f => f.id !== contextMenu.target.id));
+                                        let updatedFolders;
+                                        setRootFolders(prev => {
+                                            updatedFolders = prev.filter(f => f.id !== contextMenu.target.id);
+                                            return updatedFolders;
+                                        });
+                                        setTimeout(() => {
+                                            if (updatedFolders) saveFolderPaths(updatedFolders);
+                                        }, 100);
                                         setContextMenu(null);
                                         if (onRemoveFolder) onRemoveFolder(contextMenu.target);
                                     }

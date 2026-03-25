@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Cerca sample...",
   "browser.removeFolderConfirm": "Rimuovere questa cartella e tutti i suoi sample?",
   "browser.removeFolderLibraryConfirm": "Rimuovere questa cartella e tutti i sample dalla libreria?",
+  "browser.cannotAddRootDrive": "Impossibile aggiungere un'unità radice. Selezionare una cartella all'interno dell'unità.",
+  "browser.cannotScanRootDrive": "Impossibile scansionare le unità radice",
   "browser.searchPresets": "Cerca preset...",
   "preset.enterName": "Inserisci nome preset",
   "preset.optionalDesc": "Descrizione facoltativa",

@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "सैंपल खोजें...",
   "browser.removeFolderConfirm": "इस फ़ोल्डर और सभी सैंपल को हटाएं?",
   "browser.removeFolderLibraryConfirm": "इस फ़ोल्डर और सभी सैंपल को लाइब्रेरी से हटाएं?",
+  "browser.cannotAddRootDrive": "रूट ड्राइव जोड़ा नहीं जा सकता। कृपया ड्राइव के अंदर एक फ़ोल्डर चुनें।",
+  "browser.cannotScanRootDrive": "रूट ड्राइव स्कैन नहीं किए जा सकते",
   "browser.searchPresets": "प्रीसेट खोजें...",
   "preset.enterName": "प्रीसेट का नाम दर्ज करें",
   "preset.optionalDesc": "वैकल्पिक विवरण",

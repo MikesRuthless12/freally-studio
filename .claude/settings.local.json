@@ -160,7 +160,17 @@
       "Bash(taskkill //F //PID 11832)",
       "Bash(gh auth:*)",
       "Bash(git config:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(npm run:*)",
+      "Bash(ELECTRON_DEV_URL=https://localhost:5174 npx electron .)",
+      "Bash(npx electron:*)",
+      "Read(//c/Users/miken/AppData/Roaming/wavloom-studio//**)",
+      "Read(//c/Users/miken/AppData/Roaming/**)",
+      "Bash(taskkill //F //IM electron.exe)",
+      "Bash(rm -rf \"/c/Users/miken/AppData/Roaming/wavloom-studio/GPUCache\" \"/c/Users/miken/AppData/Roaming/wavloom-studio/Cache\" \"/c/Users/miken/AppData/Roaming/wavloom-studio/Code Cache\")",
+      "Read(//c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/$APPDATA/wavloom-studio/**)",
+      "Read(//c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/$LOCALAPPDATA/wavloom-studio/**)",
+      "Bash(grep -A 20 '\"\"native:install\"\"' package.json)"
     ]
   }
 }

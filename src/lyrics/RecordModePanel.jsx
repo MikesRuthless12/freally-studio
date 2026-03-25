@@ -11,7 +11,7 @@ import { detectRhymePattern } from './engine/RhymeEngine';
 import { optimizeHook } from './HookOptimizer';
 import { formatAsProject, downloadFile } from './engine/ExportFormatter';
 import { useTranslation } from '../i18n/I18nContext.jsx';
-import { preloadPhraseBank } from './engine/PhraseLoader';
+import { preloadPhraseBank, getAvailableGenres, resolveLangCode } from './engine/PhraseLoader';
 import Teleprompter from './Teleprompter';
 
 const GENRES = ['Pop', 'Hip Hop', 'Rock', 'Country', 'R&B', 'EDM', 'Indie', 'Folk', 'Metal', 'Jazz', 'K-Pop', 'Latin', 'Gospel'];
@@ -189,6 +189,23 @@ export default function RecordModePanel({
             preloadPhraseBank(code).catch(() => {});
         }
     }, [lyricLanguage]);
+
+    // Filter genres based on what the selected language actually supports
+    const filteredGenres = useMemo(() => {
+        const code = NAME_TO_LANG_CODE[lyricLanguage];
+        const available = getAvailableGenres(code);
+        if (!available) return GENRES;
+        return GENRES.filter(g => {
+            const key = g.toLowerCase().replace(/[\s-]/g, '');
+            return available.includes(key);
+        });
+    }, [lyricLanguage]);
+
+    useEffect(() => {
+        if (filteredGenres.length > 0 && !filteredGenres.includes(genre)) {
+            setGenre(filteredGenres[0]);
+        }
+    }, [filteredGenres, genre]);
 
     // Auto-regenerate lyrics when language changes (if song already exists)
     const prevLyricLangRef = useRef(lyricLanguage);
@@ -578,7 +595,7 @@ export default function RecordModePanel({
                     flexShrink: 0,
                 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 10px' }}>
-                        <RMSelect label={t('lyricEngine.genre')} value={genre} onChange={setGenre} options={GENRES} {...themeProps} />
+                        <RMSelect label={t('lyricEngine.genre')} value={genre} onChange={setGenre} options={filteredGenres} {...themeProps} />
                         <RMSelect label={t('lyricEngine.mood')} value={mood} onChange={setMood} options={MOODS} {...themeProps} />
                         <RMSelect label={t('lyricEngine.key')} value={songKey} onChange={setSongKey} options={KEYS} {...themeProps} />
                         <RMSelect label={t('lyricEngine.scale')} value={scale} onChange={setScale} options={SCALES} {...themeProps} />

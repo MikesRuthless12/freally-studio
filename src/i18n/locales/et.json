@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Otsi sämpleid...",
   "browser.removeFolderConfirm": "Eemaldada see kaust ja kõik sämplid?",
   "browser.removeFolderLibraryConfirm": "Eemaldada kaust ja sämplid teegist?",
+  "browser.cannotAddRootDrive": "Juurketast ei saa lisada. Palun valige kaust ketta seest.",
+  "browser.cannotScanRootDrive": "Juurkettaid ei saa skannida",
   "browser.searchPresets": "Otsi eelseadeid...",
   "preset.enterName": "Sisestage eelseade nimi",
   "preset.optionalDesc": "Valikuline kirjeldus",

@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "搜索采样...",
   "browser.removeFolderConfirm": "删除此文件夹及其所有采样？",
   "browser.removeFolderLibraryConfirm": "从库中删除此文件夹及其所有采样？",
+  "browser.cannotAddRootDrive": "无法添加根驱动器。请选择驱动器内的文件夹。",
+  "browser.cannotScanRootDrive": "无法扫描根驱动器",
   "browser.searchPresets": "搜索预设...",
   "preset.enterName": "输入预设名称",
   "preset.optionalDesc": "可选描述",

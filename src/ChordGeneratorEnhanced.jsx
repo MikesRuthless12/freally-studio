@@ -4,6 +4,7 @@ import { generateChordPattern } from './PatternEngine';
 import PianoRollEditor from './PianoRollEditor';
 import { collectAudioFiles, collectMidiFiles, shuffleArray } from './randomFileUtils';
 import MIDIParser from './MIDIParser';
+import { getFileFromItem } from './getFileFromItem.js';
 import SampleSlicerEditor from './SampleSlicerEditor.jsx';
 import { hexToRgba } from './accentThemes';
 import { loopMelodicPattern } from './patternUtils';
@@ -38,6 +39,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
     const muted = globalMutes?.has('chords') || false;
     const [locked, setLocked] = useState(false);
     const prevBarsRef = useRef(globalBars);
+    const prevExternalPatternRef = useRef(externalPattern);
 
     const isSoloed = globalSolos?.has('chords') || false;
 
@@ -56,13 +58,10 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
         });
     }, [setGlobalMutes, sampler]);
 
-    // Sync from external pattern (e.g. folder analysis)
-    useEffect(() => {
-        if (externalPattern && externalPattern.length > 0 && !locked) {
-                setChordPattern(externalPattern);
-        }
-    }, [externalPattern, locked]);
-
+    // Detect when externalPattern changes during this render (used to skip bars-loop)
+    const externalPatternChanged = externalPattern !== prevExternalPatternRef.current
+        && externalPattern && externalPattern.length > 0;
+    prevExternalPatternRef.current = externalPattern;
 
     useEffect(() => {
         if (locked) return;
@@ -70,10 +69,19 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
         const newBars = globalBars;
         prevBarsRef.current = newBars;
         if (oldBars === newBars) return;
+        // Skip loop-resize when an external pattern arrived in the same render
+        if (externalPatternChanged) return;
         const newPattern = loopMelodicPattern(chordPattern, oldBars, newBars);
         setChordPattern(newPattern);
         if (onPatternChange) onPatternChange(newPattern);
     }, [globalBars, locked]);
+
+    // Sync from external pattern (e.g. folder analysis / MIDI extraction)
+    useEffect(() => {
+        if (externalPattern && externalPattern.length > 0 && !locked) {
+            setChordPattern(externalPattern);
+        }
+    }, [externalPattern, locked]);
 
 
 
@@ -113,7 +121,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
 
             if (audioFiles.length > 0 && sampler) {
                 const pick = audioFiles[Math.floor(Math.random() * audioFiles.length)];
-                const file = await pick.handle.getFile();
+                const file = await getFileFromItem(pick);
                 const sampleName = pick.name.replace(/\.[^.]+$/, '');
                 const instrumentId = `chords_rand_${Date.now()}`;
                 await sampler.loadInstrumentFromFiles(instrumentId, [file], sampleName);
@@ -129,7 +137,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                 const pick = midiFiles[Math.floor(Math.random() * midiFiles.length)];
                 try {
                     const parser = new MIDIParser();
-                    const file = await pick.handle.getFile();
+                    const file = await getFileFromItem(pick);
                     const midiData = await parser.loadMIDIFile(file);
                     const allNotes = [];
                     midiData.tracks.forEach(track => {
@@ -171,11 +179,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                 // Parse on-demand if notes not pre-parsed (Browser.jsx path)
                 if (!notes || notes.length === 0) {
                     let file;
-                    if (draggedItem.handle && draggedItem.handle.getFile) {
-                        file = await draggedItem.handle.getFile();
-                    } else if (draggedItem.file) {
-                        file = draggedItem.file;
-                    }
+                    file = await getFileFromItem(draggedItem);
                     if (file) {
                         const parser = new MIDIParser();
                         const midiData = await parser.loadMIDIFile(file);
@@ -235,8 +239,8 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                     return;
                 } catch (err) { console.error('[Chords] External MIDI parse error:', err); }
             }
-        } else if (draggedItem && draggedItem.handle) {
-            file = await draggedItem.handle.getFile();
+        } else if (draggedItem && (draggedItem.handle || draggedItem.nativePath)) {
+            file = await getFileFromItem(draggedItem);
         }
 
         if (file && file.type.startsWith('audio/') && sampler) {
@@ -314,7 +318,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
         loadSample: async (sampleItem) => {
             if (!sampleItem || !sampler) return;
             try {
-                const file = await sampleItem.handle.getFile();
+                const file = await getFileFromItem(sampleItem);
                 const instrumentId = `chords_ext_${Date.now()}`;
                 await sampler.loadInstrumentFromFiles(instrumentId, [file], file.name);
                 setLoadedInstrument(instrumentId);
@@ -326,7 +330,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
         loadMIDI: async (midiItem) => {
             if (!midiItem) return;
             try {
-                const file = await midiItem.handle.getFile();
+                const file = await getFileFromItem(midiItem);
                 const parser = new MIDIParser();
                 const midiData = await parser.loadMIDIFile(file);
 
@@ -383,7 +387,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                 if (handle.kind === 'file' && name.toLowerCase().endsWith('.mid')) midiFiles.push({ name, handle });
             }
             if (midiFiles.length === 0) return alert(t('common.noMidiFound'));
-            const file = await midiFiles[Math.floor(Math.random() * midiFiles.length)].handle.getFile();
+            const file = await getFileFromItem(midiFiles[Math.floor(Math.random() * midiFiles.length)]);
             const parser = new MIDIParser();
             const midiData = await parser.loadMIDIFile(file);
             let notes = [];

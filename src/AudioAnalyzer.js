@@ -66,135 +66,147 @@ export class AudioAnalyzer {
      * @param {number} tempo 
      * @param {string} componentType - 'bass', 'melody', 'chords', or 'all'
      */
-    extractMIDI(audioBuffer, tempo = 120, componentType = 'all') {
+    /**
+     * Async MIDI extraction with FFT spectral peak detection and progress reporting.
+     * Finds multiple simultaneous pitches (chords) at each grid position.
+     * @param {AudioBuffer} audioBuffer
+     * @param {number} tempo
+     * @param {string} componentType - 'bass', 'melody', 'chords', 'drums', or 'all'
+     * @param {function} onProgress - optional callback(percent: 0-100)
+     * @returns {Promise<Array|Object>}
+     */
+    async extractMIDI(audioBuffer, tempo = 120, componentType = 'all', onProgress) {
         const sampleRate = audioBuffer.sampleRate;
         const channelData = audioBuffer.getChannelData(0);
+        const stepDuration = 60 / (tempo * 8); // 32nd note in seconds
 
-        // Apply DSP Filtering to isolate component frequencies BEFORE onset detection
-        let processingData = channelData;
-
-        if (componentType === 'bass') {
-            // Isolate low frequencies below ~220 Hz for cleaner bass onsets (captures up to A3)
-            processingData = this.applyLowPassFilter(channelData, 220, sampleRate);
-        } else if (componentType === 'melody') {
-            // Isolate high frequencies above ~280 Hz (C#4 approx) to capture lower melodies like Anthem
-            processingData = this.applyHighPassFilter(channelData, 280, sampleRate);
-        } else if (componentType === 'chords') {
-            // Isolate mid-range chord frequencies (180-2000 Hz)
-            processingData = this.applyBandPassFilter(channelData, 180, 2000, sampleRate);
+        if (componentType === 'drums') {
+            return this._extractDrums(channelData, sampleRate, stepDuration);
         }
 
-        const onsets = this.detectOnsets(processingData, sampleRate);
+        const fftSize = 4096;
+        const totalSteps = Math.ceil(audioBuffer.duration / stepDuration);
+        // Scan every 16th note (every 2 × 32nd-note steps)
+        const scanInterval = stepDuration * 2;
+        const scanSamples = Math.round(scanInterval * sampleRate);
+        const totalScans = Math.floor((channelData.length - fftSize) / scanSamples);
+
+        // Frequency range per component
+        const freqRange = {
+            bass:   { min: 30,  max: 350  },
+            melody: { min: 130, max: 4000 },
+            chords: { min: 100, max: 3000 },
+            all:    { min: 30,  max: 4000 },
+        }[componentType] || { min: 30, max: 4000 };
+
+        // --- Pass 1: FFT spectral scan at every grid position ---
+        // gridFrames[i] = { step, notes: [midiNote, ...] }
+        const gridFrames = [];
+        let scanIdx = 0;
+
+        for (let sample = 0; sample + fftSize < channelData.length; sample += scanSamples) {
+            const step = Math.round((sample / sampleRate) / stepDuration);
+            if (step >= totalSteps) break;
+
+            // Skip silent frames
+            const energy = this.getFrameEnergy(channelData, sample, 2048);
+            if (energy < 0.00003) { scanIdx++; continue; }
+
+            // FFT spectral peaks (multiple simultaneous notes)
+            const fftPeaks = this._detectSpectralPeaks(channelData, sample, sampleRate, fftSize, freqRange);
+
+            // Autocorrelation pitch (reliable single-pitch fallback)
+            const acPitch = this.detectPitch(channelData, sample, sampleRate);
+
+            // Merge: start with FFT peaks, ensure autocorrelation result is included
+            const noteSet = new Set();
+            const frameNotes = [];
+            for (const p of fftPeaks) {
+                if (!noteSet.has(p.midiNote)) { noteSet.add(p.midiNote); frameNotes.push(p.midiNote); }
+            }
+            if (acPitch && acPitch.confidence > 0.08) {
+                let acNote = acPitch.midiNote;
+                // Clamp to range
+                if (componentType === 'bass') { while (acNote > 55) acNote -= 12; acNote = Math.max(28, acNote); }
+                else if (componentType === 'melody') { while (acNote < 48) acNote += 12; while (acNote > 96) acNote -= 12; }
+                if (!noteSet.has(acNote)) { noteSet.add(acNote); frameNotes.push(acNote); }
+            }
+
+            if (frameNotes.length > 0) {
+                gridFrames.push({ step, notes: frameNotes });
+            }
+
+            // Yield to UI every ~50 scans
+            scanIdx++;
+            if (onProgress && scanIdx % 50 === 0) {
+                onProgress(Math.round((scanIdx / totalScans) * 90));
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+
+        if (onProgress) onProgress(92);
+
+        console.warn(`[Extract:${componentType}] Scan: ${scanIdx} frames, ${gridFrames.length} with notes`);
+        if (gridFrames.length === 0) return [];
+
+        // --- Pass 2: Convert grid frames into note events ---
+        // Track active notes per pitch; emit when a pitch disappears from the grid
+        const activeNotes = new Map(); // midiNote → { startStep }
         const pattern = [];
 
-        // 32nd note duration in seconds (Application standard)
-        const stepDuration = 60 / (tempo * 8);
+        const emitNote = (note, startStep, endStep) => {
+            let dur = Math.max(1, endStep - startStep + 2);
+            if (componentType === 'bass') dur = Math.max(4, dur);
+            pattern.push({ time: startStep, note, velocity: 1.0, duration: dur });
+        };
 
-        // For drum extraction, we return an object of lanes
-        if (componentType === 'drums') {
-            const drumPatterns = {
-                kick: { root: { pattern: Array(128).fill(false), duration: Array(128).fill(1), velocity: Array(128).fill(100), pitch: 0 } },
-                snare: { root: { pattern: Array(128).fill(false), duration: Array(128).fill(1), velocity: Array(128).fill(100), pitch: 0 } },
-                closedHat: { root: { pattern: Array(128).fill(false), duration: Array(128).fill(1), velocity: Array(128).fill(100), pitch: 0 } },
-            };
+        let prevStep = -999;
+        for (const frame of gridFrames) {
+            const currentNotes = new Set(frame.notes);
+            const gap = frame.step - prevStep;
 
-            for (let i = 0; i < onsets.length; i++) {
-                const onset = onsets[i];
-                const step = Math.round(onset.time / stepDuration);
-                if (step >= 128) continue;
+            // If there's a large gap, end all active notes
+            if (gap > 4) {
+                for (const [note, info] of activeNotes) {
+                    emitNote(note, info.startStep, prevStep);
+                }
+                activeNotes.clear();
+            }
 
-                const pitch = this.detectPitch(channelData, onset.sample, sampleRate);
-                const freq = pitch ? pitch.frequency : 100; // Default to kick frequency if no clear pitch
-
-                // Frequency-based mapping
-                if (freq < 150) {
-                    drumPatterns.kick.root.pattern[step] = true;
-                    drumPatterns.kick.root.velocity[step] = Math.round(onset.energy * 127 * 5);
-                } else if (freq < 1000) {
-                    drumPatterns.snare.root.pattern[step] = true;
-                    drumPatterns.snare.root.velocity[step] = Math.round(onset.energy * 127 * 5);
-                } else {
-                    drumPatterns.closedHat.root.pattern[step] = true;
-                    drumPatterns.closedHat.root.velocity[step] = Math.round(onset.energy * 127 * 5);
+            // End notes no longer present
+            for (const [note, info] of activeNotes) {
+                if (!currentNotes.has(note)) {
+                    emitNote(note, info.startStep, prevStep);
+                    activeNotes.delete(note);
                 }
             }
-            return drumPatterns;
-        }
 
-        for (let i = 0; i < onsets.length; i++) {
-            const onset = onsets[i];
-            const nextOnset = onsets[i + 1];
-
-            // Pitch detection should still ideally run on the original signal or slightly filtered
-            // However, since we filtered the transients so well, we can try using the source data again for pitch
-            const pitch = this.detectPitch(channelData, onset.sample, sampleRate);
-            // Lowered confidence threshold from 0.3 to 0.2 to capture more subtle notes
-            if (pitch && pitch.confidence > 0.2) {
-                let note = pitch.midiNote;
-                let addNotes = [note];
-
-                if (componentType === 'bass') {
-                    // Bounded transposition: max 2 octaves down, then clamp to bass range (E1-G3)
-                    let bassShifts = 0;
-                    while (note > 55 && bassShifts < 2) { note -= 12; bassShifts++; }
-                    note = Math.max(28, Math.min(55, note));
-                    addNotes = [note];
-                } else if (componentType === 'melody') {
-                    // Normalize to Melody register (C3-C7), but only shift if far outside
-                    while (note < 40) note += 12;
-                    while (note > 100) note -= 12;
-                    note = Math.max(48, Math.min(96, note)); // Final clamp to C3-C7
-                    addNotes = [note];
-                } else if (componentType === 'chords') {
-                    // Keep only the detected pitch, clamped to chord register (C3-C5)
-                    while (note < 48) note += 12;
-                    while (note > 72) note -= 12;
-                    addNotes = [note];
+            // Start new notes
+            for (const note of currentNotes) {
+                if (!activeNotes.has(note)) {
+                    activeNotes.set(note, { startStep: frame.step });
                 }
-
-                // Calculate duration in 32nd steps
-                // Let the natural energy decay define length instead of chopping off at next drum transient
-                const maxEndSample = channelData.length;
-                const noteDurationSeconds = this.analyzeNoteDuration(channelData, onset.sample, maxEndSample, sampleRate);
-                let durationInSteps = Math.max(1, Math.round(noteDurationSeconds / stepDuration));
-
-                // Quantize to 32nd steps
-                const step = Math.round(onset.time / stepDuration);
-                let velocity = 1.0; // Math.min(onset.energy * 6, 1.0); FORCED VELOCITY 1.0 per user request
-
-                // Apply component-specific duration adjustments
-                if (componentType === 'bass') {
-                    durationInSteps = Math.max(4, durationInSteps); // Enforce minimum 8th note duration
-                } else if (componentType === 'chords') {
-                    durationInSteps = Math.max(8, durationInSteps); // Enforce minimum quarter note duration
-                }
-
-                addNotes.forEach(n => {
-                    // Create note object
-                    pattern.push({
-                        time: step,
-                        note: n, // The calculated MIDI note from pitch tracker
-                        velocity: velocity, // FORCED VELOCITY 1.0 per user request
-                        duration: durationInSteps,
-                        rawEnergy: onset.energy // Keep raw energy for potential future use (velocity etc)
-                    });
-                });
             }
+
+            prevStep = frame.step;
         }
 
-        // Deduplicate: If multiple notes of the same pitch happen at the same step, keep one.
-        // Also ensure we aren't collapsing different octaves of the same note if unintended.
-        const uniquePattern = [];
+        // Flush remaining active notes
+        for (const [note, info] of activeNotes) {
+            emitNote(note, info.startStep, prevStep);
+        }
+
+        if (onProgress) onProgress(95);
+        console.warn(`[Extract:${componentType}] Emitted ${pattern.length} raw notes`);
+
+        // --- Pass 3: Deduplicate and apply voice filtering ---
         const seen = new Set();
+        const uniquePattern = [];
         for (const n of pattern) {
             const key = `${n.time}-${n.note}`;
-            if (!seen.has(key)) {
-                uniquePattern.push(n);
-                seen.add(key);
-            }
+            if (!seen.has(key)) { uniquePattern.push(n); seen.add(key); }
         }
 
-        // Apply exact component strict filtering rules if needed
         const timeGroups = {};
         uniquePattern.forEach(n => {
             if (!timeGroups[n.time]) timeGroups[n.time] = [];
@@ -203,33 +215,150 @@ export class AudioAnalyzer {
 
         const finalPattern = [];
         Object.values(timeGroups).forEach(group => {
-            group.sort((a, b) => a.note - b.note); // Sort low to high pitch
-
+            group.sort((a, b) => a.note - b.note);
             if (componentType === 'bass') {
-                // User requirement: "basslines from the bottom of the midi.. with just those 2 lines at the bottom... the bottom notes going across"
-                // Extract only the bottom 1 or 2 distinct notes *at this specific time step*
                 finalPattern.push(...group.slice(0, 2));
             } else if (componentType === 'chords') {
-                // User requirement: "and the 4 lines at the top for the chords... the top notes going across"
-                // Extract only the top 4 distinct notes *at this specific time step*
-                if (group.length > 4) {
-                    finalPattern.push(...group.slice(group.length - 4));
-                } else {
-                    finalPattern.push(...group);
-                }
+                finalPattern.push(...(group.length > 6 ? group.slice(group.length - 6) : group));
             } else if (componentType === 'melody') {
-                // For melody we want the single highest note at this time step typically, 
-                // but if we want exactly the whole top pattern, we keep it. Keeping highest for monophonic clarity.
-                finalPattern.push(group[group.length - 1]);
+                finalPattern.push(group[group.length - 1]); // Highest note
             } else {
                 finalPattern.push(...group);
             }
         });
 
-        // Re-sort temporally
         finalPattern.sort((a, b) => a.time - b.time);
-
+        if (onProgress) onProgress(100);
         return finalPattern;
+    }
+
+    /**
+     * Radix-2 FFT (in-place, Cooley-Tukey)
+     */
+    _fft(real, imag) {
+        const n = real.length;
+        for (let i = 1, j = 0; i < n; i++) {
+            let bit = n >> 1;
+            for (; j & bit; bit >>= 1) j ^= bit;
+            j ^= bit;
+            if (i < j) {
+                [real[i], real[j]] = [real[j], real[i]];
+                [imag[i], imag[j]] = [imag[j], imag[i]];
+            }
+        }
+        for (let len = 2; len <= n; len <<= 1) {
+            const half = len >> 1;
+            const angle = -2 * Math.PI / len;
+            const wR = Math.cos(angle), wI = Math.sin(angle);
+            for (let i = 0; i < n; i += len) {
+                let cR = 1, cI = 0;
+                for (let j = 0; j < half; j++) {
+                    const uR = real[i + j], uI = imag[i + j];
+                    const vR = real[i + j + half] * cR - imag[i + j + half] * cI;
+                    const vI = real[i + j + half] * cI + imag[i + j + half] * cR;
+                    real[i + j] = uR + vR; imag[i + j] = uI + vI;
+                    real[i + j + half] = uR - vR; imag[i + j + half] = uI - vI;
+                    const nR = cR * wR - cI * wI; cI = cR * wI + cI * wR; cR = nR;
+                }
+            }
+        }
+    }
+
+    /**
+     * Find multiple simultaneous pitches via FFT spectral peak detection
+     */
+    _detectSpectralPeaks(channelData, startSample, sampleRate, fftSize, freqRange) {
+        const real = new Float64Array(fftSize);
+        const imag = new Float64Array(fftSize);
+        const end = Math.min(startSample + fftSize, channelData.length);
+        for (let i = 0; i < fftSize && startSample + i < end; i++) {
+            real[i] = channelData[startSample + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (fftSize - 1))); // Hann
+        }
+        this._fft(real, imag);
+
+        const halfN = fftSize / 2;
+        const freqRes = sampleRate / fftSize;
+        const minBin = Math.max(1, Math.floor(freqRange.min / freqRes));
+        const maxBin = Math.min(halfN - 1, Math.ceil(freqRange.max / freqRes));
+
+        // Magnitude spectrum
+        const mag = new Float64Array(halfN);
+        for (let i = 0; i < halfN; i++) mag[i] = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
+
+        // Threshold: 5% of the max magnitude in the frequency range
+        let maxMag = 0;
+        for (let i = minBin; i < maxBin; i++) { if (mag[i] > maxMag) maxMag = mag[i]; }
+        if (maxMag === 0) return [];
+        const threshold = maxMag * 0.05;
+
+        // Find spectral peaks
+        const rawPeaks = [];
+        for (let i = minBin + 1; i < maxBin - 1; i++) {
+            if (mag[i] > threshold && mag[i] > mag[i - 1] && mag[i] > mag[i + 1]) {
+                // Parabolic interpolation
+                const y1 = mag[i - 1], y2 = mag[i], y3 = mag[i + 1];
+                const d = 2 * (2 * y2 - y1 - y3);
+                const offset = d !== 0 ? (y1 - y3) / d : 0;
+                const freq = (i + offset) * freqRes;
+                const midiNote = Math.round(69 + 12 * Math.log2(freq / 440));
+                if (midiNote >= 21 && midiNote <= 108) {
+                    rawPeaks.push({ freq, midiNote, magnitude: y2 });
+                }
+            }
+        }
+
+        rawPeaks.sort((a, b) => b.magnitude - a.magnitude);
+
+        // Remove only exact octave harmonics (2×, 4×) — don't remove 3rd/5th as they are real chord tones
+        const fundamentals = [];
+        for (const peak of rawPeaks) {
+            let isOctaveHarmonic = false;
+            for (const fund of fundamentals) {
+                const ratio = peak.freq / fund.freq;
+                if (Math.abs(ratio - 2) < 0.04 || Math.abs(ratio - 4) < 0.04) {
+                    isOctaveHarmonic = true; break;
+                }
+            }
+            if (!isOctaveHarmonic) fundamentals.push(peak);
+        }
+
+        // Deduplicate same MIDI note
+        const noteMap = new Map();
+        for (const p of fundamentals) {
+            if (!noteMap.has(p.midiNote) || noteMap.get(p.midiNote).magnitude < p.magnitude) {
+                noteMap.set(p.midiNote, p);
+            }
+        }
+        return Array.from(noteMap.values()).sort((a, b) => a.midiNote - b.midiNote);
+    }
+
+    /**
+     * Drum extraction using onset-based detection (percussive transients)
+     */
+    _extractDrums(channelData, sampleRate, stepDuration) {
+        const onsets = this.detectOnsets(channelData, sampleRate);
+        const drumPatterns = {
+            kick: { root: { pattern: Array(128).fill(false), duration: Array(128).fill(1), velocity: Array(128).fill(100), pitch: 0 } },
+            snare: { root: { pattern: Array(128).fill(false), duration: Array(128).fill(1), velocity: Array(128).fill(100), pitch: 0 } },
+            closedHat: { root: { pattern: Array(128).fill(false), duration: Array(128).fill(1), velocity: Array(128).fill(100), pitch: 0 } },
+        };
+        for (const onset of onsets) {
+            const step = Math.round(onset.time / stepDuration);
+            if (step >= 128) continue;
+            const pitch = this.detectPitch(channelData, onset.sample, sampleRate);
+            const freq = pitch ? pitch.frequency : 100;
+            if (freq < 150) {
+                drumPatterns.kick.root.pattern[step] = true;
+                drumPatterns.kick.root.velocity[step] = Math.round(onset.energy * 127 * 5);
+            } else if (freq < 1000) {
+                drumPatterns.snare.root.pattern[step] = true;
+                drumPatterns.snare.root.velocity[step] = Math.round(onset.energy * 127 * 5);
+            } else {
+                drumPatterns.closedHat.root.pattern[step] = true;
+                drumPatterns.closedHat.root.velocity[step] = Math.round(onset.energy * 127 * 5);
+            }
+        }
+        return drumPatterns;
     }
 
 
@@ -369,8 +498,8 @@ export class AudioAnalyzer {
         const mean = energies.reduce((sum, e) => sum + e, 0) / energies.length;
         const variance = energies.reduce((sum, e) => sum + (e - mean) ** 2, 0) / energies.length;
         const stdDev = Math.sqrt(variance);
-        // Slightly lower standard deviation multiplier to catch more subtle melodies
-        return mean + 1.2 * stdDev;
+        // Lower multiplier to catch subtle melodic onsets (piano, synth pads)
+        return mean + 0.8 * stdDev;
     }
 
     /**
@@ -627,7 +756,7 @@ export class AudioAnalyzer {
                 }
 
                 const analysis = await this.analyzeAudioFile(audioBuffer);
-                const extractedMidi = this.extractMIDI(audioBuffer, analysis.tempo);
+                const extractedMidi = await this.extractMIDI(audioBuffer, analysis.tempo);
 
                 analyses.push({
                     filename: file.name,

@@ -99,7 +99,7 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
             ctx.beginPath();
             ctx.moveTo(fadeStart, 0);
             const cpX = fadeStart + fadePx * 0.5;
-            const cpY = h * (0.5 + fadeOutCurve * 0.5);
+            const cpY = h * (0.5 - fadeOutCurve * 0.5);
             ctx.quadraticCurveTo(cpX, cpY, w, h);
             ctx.stroke();
         }

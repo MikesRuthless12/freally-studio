@@ -5,6 +5,7 @@ import { SCALES } from './MusicTheory';
 import { generateMelodyPattern, generateBassPattern, generateCounterMelody } from './PatternEngine';
 import { collectAudioFiles, collectMidiFiles, shuffleArray } from './randomFileUtils';
 import MIDIParser from './MIDIParser';
+import { getFileFromItem } from './getFileFromItem.js';
 import SampleSlicerEditor from './SampleSlicerEditor.jsx';
 import { hexToRgba } from './accentThemes';
 import { loopMelodicPattern } from './patternUtils';
@@ -69,6 +70,8 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
     const rootPitch = ((globalOctave + 1) * 12) + (keyOffset >= 0 ? keyOffset : 0);
 
     const [pattern, setPattern] = useState(externalPattern || []);
+    const prevBarsRef = useRef(globalBars);
+    const prevExternalPatternRef = useRef(externalPattern);
 
     const [loadedInstrument, setLoadedInstrument] = useState(null);
     const [instrumentName, setInstrumentName] = useState('');
@@ -104,13 +107,10 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
         }
     };
 
-    // Sync from external pattern (folder analysis)
-    useEffect(() => {
-        if (externalPattern && externalPattern.length > 0) {
-            setPattern(externalPattern);
-        }
-    }, [externalPattern]);
-
+    // Detect when externalPattern changes during this render (used to skip bars-loop)
+    const externalPatternChanged = externalPattern !== prevExternalPatternRef.current
+        && externalPattern && externalPattern.length > 0;
+    prevExternalPatternRef.current = externalPattern;
 
     // Update pattern length when bars change
     useEffect(() => {
@@ -118,10 +118,19 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
         const newBars = globalBars;
         prevBarsRef.current = newBars;
         if (oldBars === newBars) return;
+        // Skip loop-resize when an external pattern arrived in the same render
+        if (externalPatternChanged) return;
         const newPattern = loopMelodicPattern(pattern, oldBars, newBars);
         setPattern(newPattern);
         if (onPatternChange) onPatternChange(newPattern);
     }, [globalBars]);
+
+    // Sync from external pattern (folder analysis / MIDI extraction)
+    useEffect(() => {
+        if (externalPattern && externalPattern.length > 0) {
+            setPattern(externalPattern);
+        }
+    }, [externalPattern]);
 
     const handleLoadInstrument = async () => {
         if (!selectedFolder || !sampler) return alert(t('common.selectFolderFirst'));
@@ -151,7 +160,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
 
             if (audioFiles.length > 0 && sampler) {
                 const pick = audioFiles[Math.floor(Math.random() * audioFiles.length)];
-                const file = await pick.handle.getFile();
+                const file = await getFileFromItem(pick);
                 const sampleName = pick.name.replace(/\.[^.]+$/, '');
                 const instrumentId = `${type}_rand_${Date.now()}`;
                 await sampler.loadInstrumentFromFiles(instrumentId, [file], sampleName);
@@ -167,7 +176,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                 const pick = midiFiles[Math.floor(Math.random() * midiFiles.length)];
                 try {
                     const parser = new MIDIParser();
-                    const file = await pick.handle.getFile();
+                    const file = await getFileFromItem(pick);
                     const midiData = await parser.loadMIDIFile(file);
                     const allNotes = [];
                     midiData.tracks.forEach(track => {
@@ -211,11 +220,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                 // Parse on-demand if notes not pre-parsed (Browser.jsx path)
                 if (!notes || notes.length === 0) {
                     let file;
-                    if (draggedItem.handle && draggedItem.handle.getFile) {
-                        file = await draggedItem.handle.getFile();
-                    } else if (draggedItem.file) {
-                        file = draggedItem.file;
-                    }
+                    file = await getFileFromItem(draggedItem);
                     if (file) {
                         const parser = new MIDIParser();
                         const midiData = await parser.loadMIDIFile(file);
@@ -275,8 +280,8 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                     return;
                 } catch (err) { console.error(`[${type}] External MIDI parse error:`, err); }
             }
-        } else if (draggedItem && draggedItem.handle) {
-            file = await draggedItem.handle.getFile();
+        } else if (draggedItem && (draggedItem.handle || draggedItem.nativePath)) {
+            file = await getFileFromItem(draggedItem);
         }
 
         if (file && file.type.startsWith('audio/') && sampler) {
@@ -397,7 +402,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
         loadSample: async (sampleItem) => {
             if (!sampleItem || !sampler) return;
             try {
-                const file = await sampleItem.handle.getFile();
+                const file = await getFileFromItem(sampleItem);
                 const instrumentId = `${type}_ext_${Date.now()}`;
                 await sampler.loadInstrumentFromFiles(instrumentId, [file], file.name);
                 setLoadedInstrument(instrumentId);
@@ -409,7 +414,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
         loadMIDI: async (midiItem) => {
             if (!midiItem) return;
             try {
-                const file = await midiItem.handle.getFile();
+                const file = await getFileFromItem(midiItem);
                 const parser = new MIDIParser();
                 const midiData = await parser.loadMIDIFile(file);
 
@@ -466,7 +471,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
             if (midiFiles.length === 0) return alert(t('common.noMidiFound'));
 
             const randomMidi = midiFiles[Math.floor(Math.random() * midiFiles.length)];
-            const file = await randomMidi.handle.getFile();
+            const file = await getFileFromItem(randomMidi);
 
             const parser = new MIDIParser();
             const midiData = await parser.loadMIDIFile(file);
@@ -515,7 +520,6 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
     const mutedRef = useRef(muted);
     const isGlobalSoloedRef = useRef(isGlobalSoloed);
     const isAnythingSoloedRef = useRef(isAnythingSoloed);
-    const prevBarsRef = useRef(globalBars);
 
     useEffect(() => { samplerRef2.current = sampler; }, [sampler]);
     useEffect(() => { loadedInstrumentRef.current = loadedInstrument; }, [loadedInstrument]);

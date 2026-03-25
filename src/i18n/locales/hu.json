@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Minták keresése...",
   "browser.removeFolderConfirm": "Eltávolítja ezt a mappát és az összes mintát?",
   "browser.removeFolderLibraryConfirm": "Eltávolítja a mappát és mintákat a könyvtárból?",
+  "browser.cannotAddRootDrive": "Gyökérmeghajtó nem adható hozzá. Kérjük, válasszon egy mappát a meghajtón belül.",
+  "browser.cannotScanRootDrive": "Gyökérmeghajtók nem vizsgálhatók",
   "browser.searchPresets": "Beállítások keresése...",
   "preset.enterName": "Adja meg a beállítás nevét",
   "preset.optionalDesc": "Opcionális leírás",

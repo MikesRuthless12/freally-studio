@@ -1697,7 +1697,14 @@ export class SamplerEngine {
         this._idleSuspendTimer = setTimeout(() => {
             this._idleSuspendTimer = null;
             // Only suspend if still idle (no playback started in the meantime)
+            // Also check if AudioEngine has an active preview source — the shared
+            // AudioContext must stay running for the browser file preview to finish.
             if (!this._audioActive && this.audioContext && this.audioContext.state === 'running') {
+                if (window.audioEngine && (window.audioEngine.isPlaying || window.audioEngine.currentSource)) {
+                    // Browser preview still playing — reschedule check in 6s
+                    this._scheduleIdleSuspend();
+                    return;
+                }
                 this.audioContext.suspend().catch(() => {});
             }
             // Also stop the hot-swap interval if it was started by a preview
@@ -1914,7 +1921,10 @@ export class SamplerEngine {
      * detection and re-trigger sustaining notes automatically.
      */
     loopBoundarySwap() {
-        if (!this._contextCreatedAt || performance.now() - this._contextCreatedAt < 30000) return;
+        // Only swap after 120 seconds — Realtek degradation typically starts around
+        // 60-90s, so 120s gives plenty of margin while avoiding frequent swaps that
+        // cause audible clicks on bass-heavy content (808s, sub-bass).
+        if (!this._contextCreatedAt || performance.now() - this._contextCreatedAt < 120000) return;
 
         const oldCtx = this.audioContext;
         if (!oldCtx || oldCtx.state === 'closed') return;
@@ -1949,7 +1959,7 @@ export class SamplerEngine {
         const newCtx = new Ctx(ctxOptions);
 
         const newMasterGain = newCtx.createGain();
-        newMasterGain.gain.value = savedMasterGain; // full volume — notes have their own ADSR envelopes
+        newMasterGain.gain.value = 0; // start silent — crossfade in after swap
         const newLimiter = this._createSoftLimiter(newCtx);
         newMasterGain.connect(newLimiter);
         newLimiter.connect(newCtx.destination);
@@ -1981,18 +1991,21 @@ export class SamplerEngine {
         // Resume new context so it's ready to play the instant we swap
         newCtx.resume();
 
-        // 3. Crossfade at the master level — no per-voice cancellation.
-        //    Cancelling gain automation on individual voices (cancelAndHold +
-        //    setTargetAtTime + hard stop) causes tiny gain discontinuities.
-        //    Instead, fade the OLD master gain to zero over 50ms via linear ramp.
-        //    This quickly silences any Realtek-degraded audio on the old context
-        //    while avoiding click artifacts. Voices ring out under the fade;
-        //    the 3-second close timer handles final cleanup.
+        // 3. Smooth crossfade at the master level — no per-voice cancellation.
+        //    Fade old context out over 500ms while fading new context in over 500ms.
+        //    Long crossfade prevents clicks on bass-heavy content (808s, sub-bass).
+        const crossfadeDuration = 0.5; // 500ms — smooth for low frequencies
         const ct = oldCtx.currentTime;
         try {
             oldMasterGain.gain.setValueAtTime(oldMasterGain.gain.value, ct);
-            oldMasterGain.gain.linearRampToValueAtTime(0, ct + 0.05);
+            oldMasterGain.gain.linearRampToValueAtTime(0, ct + crossfadeDuration);
         } catch (_) { /* old context may already be closing */ }
+        // Fade new context in from silence to saved gain
+        try {
+            const nt = newCtx.currentTime;
+            newMasterGain.gain.setValueAtTime(0, nt);
+            newMasterGain.gain.linearRampToValueAtTime(savedMasterGain, nt + crossfadeDuration);
+        } catch (_) {}
         this.activeSources.clear();
 
         // 4. Atomic swap — new graph is fully built and resumed

@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Etsi sampleja...",
   "browser.removeFolderConfirm": "Poista tämä kansio ja kaikki samplet?",
   "browser.removeFolderLibraryConfirm": "Poista kansio ja samplet kirjastosta?",
+  "browser.cannotAddRootDrive": "Juuriasemaa ei voi lisätä. Valitse kansio aseman sisältä.",
+  "browser.cannotScanRootDrive": "Juuriasemia ei voi skannata",
   "browser.searchPresets": "Etsi esiasetuksia...",
   "preset.enterName": "Syötä esiasetuksen nimi",
   "preset.optionalDesc": "Valinnainen kuvaus",

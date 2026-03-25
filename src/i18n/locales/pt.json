@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Buscar amostras...",
   "browser.removeFolderConfirm": "Remover esta pasta e todas as amostras?",
   "browser.removeFolderLibraryConfirm": "Remover esta pasta e todas as amostras da biblioteca?",
+  "browser.cannotAddRootDrive": "Não é possível adicionar uma unidade raiz. Por favor, selecione uma pasta dentro da unidade.",
+  "browser.cannotScanRootDrive": "Não é possível escanear unidades raiz",
   "browser.searchPresets": "Buscar predefinições...",
   "preset.enterName": "Digite o nome do preset",
   "preset.optionalDesc": "Descrição opcional",

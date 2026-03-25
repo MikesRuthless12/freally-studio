@@ -149,6 +149,22 @@ export function getLocalizedGenreBank(genre, langCode, englishFallback) {
 }
 
 /**
+ * Get available genre keys for a language from its loaded phrase bank.
+ * Returns null for English (all genres available via built-in JS data).
+ * @param {string} langCode
+ * @returns {string[]|null} Array of genre keys (e.g. ['pop', 'hiphop', 'rock']), or null for English
+ */
+export function getAvailableGenres(langCode) {
+    const code = resolveLangCode(langCode);
+    if (code === 'en') return null; // English supports all genres
+    const bank = phraseCache.get(code);
+    if (bank?.genreBanks) {
+        return Object.keys(bank.genreBanks);
+    }
+    return null;
+}
+
+/**
  * Get rhyme families for a language, falling back to English built-in.
  * @param {string} langCode
  * @param {object} englishFamilies - RHYME_FAMILIES from RhymeEngine.js

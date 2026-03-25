@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Rechercher des samples...",
   "browser.removeFolderConfirm": "Supprimer ce dossier et tous ses samples ?",
   "browser.removeFolderLibraryConfirm": "Supprimer ce dossier et tous ses samples de la bibliothèque ?",
+  "browser.cannotAddRootDrive": "Impossible d'ajouter un lecteur racine. Veuillez sélectionner un dossier à l'intérieur du lecteur.",
+  "browser.cannotScanRootDrive": "Impossible de scanner les lecteurs racine",
   "browser.searchPresets": "Rechercher des presets...",
   "preset.enterName": "Entrez le nom du preset",
   "preset.optionalDesc": "Description facultative",

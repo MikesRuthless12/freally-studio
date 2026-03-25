@@ -3,11 +3,14 @@ import { getProPattern, getLanes } from './drumPatterns';
 import { determineComplexity } from './PatternEngine';
 import { getAllGenres, getSubGenresForGenre } from './GenreLibraryWithSubGenres';
 import { collectAudioFiles } from './randomFileUtils';
+import { getFileFromItem } from './getFileFromItem.js';
 import WaveformVisualizer from './WaveformVisualizer';
 import DrumSampleEditor from './DrumSampleEditor';
 import { hexToRgba } from './accentThemes';
 import { loopDrumPattern } from './patternUtils';
 import { useTranslation } from './i18n/I18nContext.jsx';
+import EuclideanPanel, { EuclideanMiniButton } from './euclidean/EuclideanPanel';
+import { euclidean } from './PatternEngine';
 
 const DrumGeneratorEnhanced = React.forwardRef(({ 
     selectedFolder,
@@ -122,6 +125,10 @@ const DrumGeneratorEnhanced = React.forwardRef(({
     // State for each drum
     const [drumStates, setDrumStates] = useState(createInitialDrumStates(totalSteps));
     const [drumOrder, setDrumOrder] = useState(drumElements);
+
+    // Euclidean Rhythm Panel State
+    const [showEuclidean, setShowEuclidean] = useState(false);
+    const [openEuclideanMini, setOpenEuclideanMini] = useState(null); // "drumId:laneId" or null
 
     // Drum Settings Modal State
     const [activeSettingsDrumId, setActiveSettingsDrumId] = useState(null);
@@ -238,6 +245,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
     const [deleteDragDrumId, setDeleteDragDrumId] = useState(null);
     const [dragOffsets, setDragOffsets] = useState(null); // { [key]: { dId, lId, s, duration, velocity } }
     const dragOriginalDuration = useRef(null); // Stores note duration at drag start for resize
+    const dragOverlappedNotes = useRef(null); // Snapshot of notes overlapped during resize
+    const dragSelectedOriginals = useRef(null); // Stores original durations of all selected notes for multi-resize
 
     // Keyboard Shortcuts
     useEffect(() => {
@@ -494,16 +503,49 @@ const DrumGeneratorEnhanced = React.forwardRef(({
 
                 setDrumStates(prev => {
                     const next = cloneDrumStates(prev);
-                    const lane = next[dragDrumId]?.lanes[dragLaneId];
-                    if (!lane) return prev;
-                    const newDuration = Math.max(snapInterval, Math.round((baseDuration + deltaSteps) / snapInterval) * snapInterval);
-                    // Clamp so note doesn't extend past total steps
-                    const clampedDuration = Math.min(newDuration, totalSteps - dragNoteSourceStep);
-                    if (clampedDuration !== lane.duration[dragNoteSourceStep]) {
-                        lane.duration[dragNoteSourceStep] = clampedDuration;
-                        return next;
+                    let changed = false;
+
+                    // Resize the primary dragged note
+                    const primaryLane = next[dragDrumId]?.lanes[dragLaneId];
+                    if (primaryLane) {
+                        const newDuration = Math.max(snapInterval, Math.round((baseDuration + deltaSteps) / snapInterval) * snapInterval);
+                        const clampedDuration = Math.min(newDuration, totalSteps - dragNoteSourceStep);
+                        if (clampedDuration !== primaryLane.duration[dragNoteSourceStep]) {
+                            const noteEnd = dragNoteSourceStep + clampedDuration;
+                            primaryLane.duration[dragNoteSourceStep] = clampedDuration;
+                            // Snapshot overlapped notes on first expansion
+                            if (!dragOverlappedNotes.current) dragOverlappedNotes.current = {};
+                            for (let s = dragNoteSourceStep + 1; s < noteEnd; s++) {
+                                if (primaryLane.pattern[s] && !dragOverlappedNotes.current[`${dragDrumId}:${dragLaneId}:${s}`]) {
+                                    dragOverlappedNotes.current[`${dragDrumId}:${dragLaneId}:${s}`] = { velocity: primaryLane.velocity[s], duration: primaryLane.duration[s] || 1 };
+                                }
+                                if (primaryLane.pattern[s]) primaryLane.pattern[s] = false;
+                            }
+                            for (const [key, saved] of Object.entries(dragOverlappedNotes.current)) {
+                                if (!key.startsWith(`${dragDrumId}:${dragLaneId}:`)) continue;
+                                const s = parseInt(key.split(':')[2]);
+                                if (s >= noteEnd && !primaryLane.pattern[s]) {
+                                    primaryLane.pattern[s] = true;
+                                    primaryLane.velocity[s] = saved.velocity;
+                                    primaryLane.duration[s] = saved.duration;
+                                }
+                            }
+                            changed = true;
+                        }
                     }
-                    return prev;
+
+                    // Apply same delta to all other selected notes
+                    if (dragSelectedOriginals.current && changed) {
+                        Object.entries(dragSelectedOriginals.current).forEach(([key, orig]) => {
+                            if (orig.dId === dragDrumId && orig.lId === dragLaneId && orig.step === dragNoteSourceStep) return;
+                            const lane = next[orig.dId]?.lanes[orig.lId];
+                            if (!lane || !lane.pattern[orig.step]) return;
+                            const newDur = Math.max(snapInterval, Math.round((orig.duration + deltaSteps) / snapInterval) * snapInterval);
+                            lane.duration[orig.step] = Math.min(newDur, totalSteps - orig.step);
+                        });
+                    }
+
+                    return changed ? next : prev;
                 });
             }
 
@@ -521,15 +563,47 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     const lane = next[dragDrumId]?.lanes[dragLaneId];
                     if (!lane) return prev;
                     const newStart = Math.max(0, Math.round((dragNoteSourceStep + deltaSteps) / snapInterval) * snapInterval);
-                    const newDuration = baseDuration - (newStart - dragNoteSourceStep);
+                    const newDuration = Math.min(baseDuration - (newStart - dragNoteSourceStep), totalSteps - newStart);
                     if (newDuration >= snapInterval && newStart !== dragNoteSourceStep) {
-                        // Move note: clear old position, set new
                         const vel = lane.velocity[dragNoteSourceStep];
                         lane.pattern[dragNoteSourceStep] = false;
                         lane.pattern[newStart] = true;
                         lane.velocity[newStart] = vel;
                         lane.duration[newStart] = newDuration;
-                        // Update source step for chained drags
+                        // Snapshot and delete overlapped notes to the left
+                        if (!dragOverlappedNotes.current) dragOverlappedNotes.current = {};
+                        const noteEnd = newStart + newDuration;
+                        for (let s = newStart + 1; s < noteEnd; s++) {
+                            if (lane.pattern[s] && s !== newStart && !dragOverlappedNotes.current[`${dragDrumId}:${dragLaneId}:${s}`]) {
+                                dragOverlappedNotes.current[`${dragDrumId}:${dragLaneId}:${s}`] = { velocity: lane.velocity[s], duration: lane.duration[s] || 1 };
+                            }
+                            if (lane.pattern[s] && s !== newStart) {
+                                lane.pattern[s] = false;
+                            }
+                        }
+                        // Restore notes no longer overlapped
+                        for (const [key, saved] of Object.entries(dragOverlappedNotes.current)) {
+                            if (!key.startsWith(`${dragDrumId}:${dragLaneId}:`)) continue;
+                            const s = parseInt(key.split(':')[2]);
+                            if ((s < newStart || s >= noteEnd) && !lane.pattern[s]) {
+                                lane.pattern[s] = true;
+                                lane.velocity[s] = saved.velocity;
+                                lane.duration[s] = saved.duration;
+                            }
+                        }
+
+                        // Apply same duration delta to other selected notes
+                        const durationDelta = newDuration - baseDuration;
+                        if (dragSelectedOriginals.current) {
+                            Object.entries(dragSelectedOriginals.current).forEach(([key, orig]) => {
+                                if (orig.dId === dragDrumId && orig.lId === dragLaneId && orig.step === dragNoteSourceStep) return;
+                                const oLane = next[orig.dId]?.lanes[orig.lId];
+                                if (!oLane || !oLane.pattern[orig.step]) return;
+                                const newDur = Math.max(snapInterval, orig.duration + durationDelta);
+                                oLane.duration[orig.step] = Math.min(newDur, totalSteps - orig.step);
+                            });
+                        }
+
                         setDragNoteSourceStep(newStart);
                         setDragStartX(currentX);
                         return next;
@@ -626,6 +700,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
             setDragOffsets(null);
             setDragStartX(null);
             setDragStartY(null);
+            dragOverlappedNotes.current = null;
+            dragSelectedOriginals.current = null;
             setDragDeltaSteps(0);
             setDragDeltaLanes(0);
         };
@@ -851,9 +927,9 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     // Factory sample: already decoded
                     audioBuffer = sampleItem.audioBuffer;
                     name = sampleItem.name;
-                } else if (sampleItem.handle && sampleItem.handle.getFile) {
-                    // Local file: decode from handle
-                    const file = await sampleItem.handle.getFile();
+                } else if (sampleItem.handle || sampleItem.nativePath) {
+                    // Local file: decode from handle or native path
+                    const file = await getFileFromItem(sampleItem);
                     const arrayBuffer = await file.arrayBuffer();
                     audioBuffer = await sampler.audioContext.decodeAudioData(arrayBuffer);
                     name = file.name;
@@ -882,7 +958,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
         loadMIDI: async (midiItem) => {
             if (!midiItem || !sampler) return;
             try {
-                const file = await midiItem.handle.getFile();
+                const file = await getFileFromItem(midiItem);
                 const { MIDIParser } = await import('./MIDIParser');
                 const parser = new MIDIParser();
                 const midiData = await parser.loadMIDIFile(await file.arrayBuffer());
@@ -1050,11 +1126,16 @@ const DrumGeneratorEnhanced = React.forwardRef(({
 
             const currentStep = globalCurrentStep;
 
-            // Detect AudioContext hot-swap — re-trigger sustaining drum notes (e.g. long 808s)
+            // Detect AudioContext hot-swap — re-trigger only long sustaining drum notes (e.g. 808s)
+            // that started BEFORE the current step. Notes starting AT the current step
+            // are handled by normal playback below — no skip, no double-trigger.
+            // Schedule re-triggers after the 500ms master crossfade completes
+            // so they play on the new context at full volume, not during the fade.
             const currentCtx = sampler.audioContext;
             if (currentCtx && currentCtx !== lastDrumCtxRef.current) {
                 lastDrumCtxRef.current = currentCtx;
                 const triggerStep = currentStep % totalSteps;
+                const crossfadeDelay = currentCtx.currentTime + 0.5; // after 500ms crossfade
                 Object.keys(drumStatesRef.current).forEach(drumId => {
                     const drum = drumStatesRef.current[drumId];
                     const isGlobalSoloed = globalSolos?.has(`drums_${drumId} `);
@@ -1062,33 +1143,37 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     if (!shouldPlay) return;
                     Object.values(drum.lanes).forEach(lane => {
                         // Find the most recent note start that is still sustaining at triggerStep
-                        for (let s = triggerStep; s >= 0; s--) {
+                        for (let s = triggerStep - 1; s >= 0; s--) {
                             if (lane.pattern[s]) {
                                 const noteDurSteps = lane.duration?.[s] || 1;
                                 if (s + noteDurSteps > triggerStep) {
-                                    // This note is still sustaining — re-trigger with remaining duration
+                                    // This note started earlier and is still sustaining — re-trigger with remaining duration
                                     const remainingSteps = (s + noteDurSteps) - triggerStep;
                                     const remainingDuration = (remainingSteps / 8) * (60 / globalTempo);
                                     const velocity = lane.velocity[s] / 100;
                                     const pitchShift = lane.pitch;
                                     const basePitch = (octave + 1) * 12;
-                                    sampler.playNote(drumId, basePitch + pitchShift, velocity, remainingDuration);
+                                    sampler.playNote(drumId, basePitch + pitchShift, velocity, remainingDuration, crossfadeDelay);
                                 }
                                 break; // Only check the most recent note start
                             }
                         }
                     });
                 });
+                // Do NOT return — let normal playback handle current-step notes below
             }
 
             // If we just started, or jumped/looped, reset the last processed step
-            if (lastProcessedStepRef.current === -1 || currentStep < lastProcessedStepRef.current) {
-                lastProcessedStepRef.current = currentStep - 1;
+            const loopWrapped = lastProcessedStepRef.current !== -1 && currentStep < lastProcessedStepRef.current;
+            if (lastProcessedStepRef.current === -1 || loopWrapped) {
+                // On loop wrap, ensure we catch up from step 0 so the first beat is never skipped
+                lastProcessedStepRef.current = -1;
             }
 
             // Trigger every step between last and current (handles skips/frame drops)
-            // Cap catch-up to 4 steps max to prevent audio thread overload
-            const catchUpStart = Math.max(lastProcessedStepRef.current + 1, currentStep - 3);
+            // Cap catch-up to 8 steps on loop wrap (to cover beat 1), 4 normally
+            const maxCatchUp = loopWrapped ? 7 : 3;
+            const catchUpStart = Math.max(lastProcessedStepRef.current + 1, currentStep - maxCatchUp);
             for (let step = catchUpStart; step <= currentStep; step++) {
                 const triggerStep = step % totalSteps;
                 Object.keys(drumStatesRef.current).forEach(drumId => {
@@ -1281,7 +1366,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
         if (!globalSelectedSample || !sampler) return;
         if (onSampleLoadingChange) onSampleLoadingChange(true);
         try {
-            const file = await globalSelectedSample.handle.getFile();
+            const file = await getFileFromItem(globalSelectedSample);
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await sampler.audioContext.decodeAudioData(arrayBuffer);
             sampler.loadInstrument(drumId, [{ note: (octave + 1) * 12, buffer: audioBuffer, name: file.name }], file.name);
@@ -1346,8 +1431,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                 return;
             }
 
-            // Local file: decode from handle
-            const file = await randomFile.handle.getFile();
+            // Local file: decode from handle or native path
+            const file = await getFileFromItem(randomFile);
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await sampler.audioContext.decodeAudioData(arrayBuffer);
 
@@ -1388,6 +1473,76 @@ const DrumGeneratorEnhanced = React.forwardRef(({
         generateDrums(true);
         if (setIsGenerated) setIsGenerated(true);
     };
+
+    // Euclidean apply handler (full modal)
+    const handleEuclideanApply = useCallback(({ targetDrum, targetLane, pulses: p, steps: s, rotation: r, velocity: vel, applyPerBar, pattern: pat }) => {
+        if (lockedRows.has(targetDrum)) return;
+        setDrumStates(prev => {
+            const next = cloneDrumStates(prev);
+            if (!next[targetDrum]) return prev;
+            const lane = next[targetDrum].lanes[targetLane];
+            if (!lane) return prev;
+            // Build the full-length boolean pattern
+            // Place one hit at the START of each euclidean step, not filling the whole step
+            const stepsPerBar = 32; // grid resolution per bar
+            const stepWidth = Math.max(1, Math.floor(stepsPerBar / s)); // grid cells per euclidean step
+            let fullPattern;
+            if (applyPerBar) {
+                fullPattern = new Array(totalSteps).fill(false);
+                for (let eucIdx = 0; eucIdx < pat.length; eucIdx++) {
+                    if (!pat[eucIdx]) continue;
+                    const gridPos = eucIdx * stepWidth;
+                    // Place hit at start of each bar
+                    for (let bar = 0; bar < bars; bar++) {
+                        const idx = bar * stepsPerBar + gridPos;
+                        if (idx < totalSteps) fullPattern[idx] = true;
+                    }
+                }
+            } else {
+                const longPat = euclidean(p * bars, s * bars, r);
+                const longStepWidth = Math.max(1, Math.floor(totalSteps / (s * bars)));
+                fullPattern = new Array(totalSteps).fill(false);
+                for (let eucIdx = 0; eucIdx < longPat.length; eucIdx++) {
+                    if (!longPat[eucIdx]) continue;
+                    const idx = eucIdx * longStepWidth;
+                    if (idx < totalSteps) fullPattern[idx] = true;
+                }
+            }
+            lane.pattern = fullPattern;
+            lane.velocity = fullPattern.map(hit => hit ? vel : 100);
+            lane.duration = fullPattern.map(() => 1);
+            next[targetDrum].powered = true;
+            return next;
+        });
+        setShowEuclidean(false);
+    }, [lockedRows, totalSteps, bars]);
+
+    // Euclidean mini-button apply handler (per-lane inline)
+    const handleEuclideanMiniApply = useCallback((drumId, laneId, pat, eucSteps, barsCount) => {
+        if (lockedRows.has(drumId)) return;
+        setDrumStates(prev => {
+            const next = cloneDrumStates(prev);
+            if (!next[drumId] || !next[drumId].lanes[laneId]) return prev;
+            const lane = next[drumId].lanes[laneId];
+            const stepsPerBar = 32;
+            const stepWidth = Math.max(1, Math.floor(stepsPerBar / eucSteps));
+            const fullPattern = new Array(totalSteps).fill(false);
+            const barsTotal = totalSteps / stepsPerBar;
+            for (let eucIdx = 0; eucIdx < pat.length; eucIdx++) {
+                if (!pat[eucIdx]) continue;
+                const gridPos = eucIdx * stepWidth;
+                for (let bar = 0; bar < barsTotal; bar++) {
+                    const idx = bar * stepsPerBar + gridPos;
+                    if (idx < totalSteps) fullPattern[idx] = true;
+                }
+            }
+            lane.pattern = fullPattern;
+            lane.velocity = fullPattern.map(hit => hit ? 80 : 100);
+            lane.duration = fullPattern.map(() => 1);
+            next[drumId].powered = true;
+            return next;
+        });
+    }, [lockedRows, totalSteps]);
 
     const handleDrop = async (e, drumId) => {
         e.preventDefault();
@@ -1509,8 +1664,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
         if (!item || !sampler) return;
 
         try {
-            if (item.handle && item.handle.getFile) {
-                const file = await item.handle.getFile();
+            if (item.handle || item.nativePath) {
+                const file = await getFileFromItem(item);
                 const arrayBuffer = await file.arrayBuffer();
                 const audioBuffer = await sampler.audioContext.decodeAudioData(arrayBuffer);
                 sampler.loadInstrument(drumId, [{ note: (octave + 1) * 12, buffer: audioBuffer, name: file.name }], file.name);
@@ -1642,6 +1797,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     </div>
                 )}
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                    <button onClick={() => setShowEuclidean(true)} title="Euclidean Rhythm Generator" style={{ padding: '10px 24px', background: isDark ? hexToRgba(acSec, 0.05) : '#f0f0f0', border: `1px solid ${acSec}`, borderRadius: '6px', color: acSec, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>EUCLID</button>
                     <button data-tour-id="tour-groove-gen" onClick={generateAllPatterns} title={t('drums.generateGroove')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.05) : '#f0f0f0', border: `1px solid ${ac}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>✦ {t('drums.generateGroove')}</button>
                     {onSuggest && <button onClick={onSuggest} title={t('drums.suggest')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(acSec, 0.05) : '#f0f0f0', border: `1px solid ${acSec}`, borderRadius: '6px', color: acSec, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>💡 {t('drums.suggest')}</button>}
                     <button data-tour-id="tour-global-gen" onClick={onGlobalGenerate} title={t('drums.globalGen')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.15) : ac, border: `1px solid ${ac}`, borderRadius: '6px', color: isDark ? ac : '#fff', fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>✨ {t('drums.globalGen')}</button>
@@ -1784,7 +1940,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                         <div style={{ fontSize: '10px', fontWeight: '900', color: drum.color, letterSpacing: '1px' }}>{drum.name.toUpperCase()}</div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '3px', marginBottom: '8px' }}>
+                                    {/* Row 1: Settings, Solo, Mute, CLR, Power */}
+                                    <div style={{ display: 'flex', gap: '3px', marginBottom: '3px' }}>
                                         <button
                                             onClick={() => setActiveSettingsDrumId(activeSettingsDrumId === drum.id ? null : drum.id)}
                                             style={{
@@ -1846,7 +2003,10 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                 return { ...updated };
                                             });
                                         }} style={{ background: isDark ? '#1a1a1f' : '#eee', border: 'none', borderRadius: '44px', color: isDark ? '#555' : '#888', fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: '0 6px' }}>{t('drums.clr')}</button>
-
+                                        <div onClick={() => togglePower(drum.id)} style={{ width: '12px', height: '12px', borderRadius: '50%', background: drumStates[drum.id].powered ? drum.color : '#333', cursor: 'pointer', alignSelf: 'center', marginLeft: 'auto' }} />
+                                    </div>
+                                    {/* Row 2: Lock, STX, VEL */}
+                                    <div style={{ display: 'flex', gap: '3px', marginBottom: '8px' }}>
                                         <button
                                             onClick={() => toggleRowLock(drum.id)}
                                             style={{
@@ -1864,7 +2024,6 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                             }}
                                             title={lockedRows.has(drum.id) ? t('drums.unlockRow') : t('drums.lockRow')}
                                         >🔒</button>
-
                                         <button
                                             onClick={() => randomizeSound(drum.id)}
                                             style={{ background: isDark ? '#1a1a1f' : '#eee', border: 'none', borderRadius: '4px', color: '#4facfe', fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: '0 6px' }}
@@ -1872,7 +2031,6 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                         >
                                             🎲 {t('drums.stx')}
                                         </button>
-
                                         {drum.id !== 'kick' && (
                                             <button
                                                 onClick={() => randomizeVelocity(drum.id)}
@@ -1882,9 +2040,6 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                 🎲 {t('drums.vel')}
                                             </button>
                                         )}
-
-
-                                        <div onClick={() => togglePower(drum.id)} style={{ width: '12px', height: '12px', borderRadius: '50%', background: drumStates[drum.id].powered ? drum.color : '#333', cursor: 'pointer', alignSelf: 'center', marginLeft: 'auto' }} />
                                     </div>
 
                                     {(drum.id === 'closedHat' || drum.id === 'perc') && (
@@ -1894,10 +2049,24 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                         </div>
                                     )}
                                 </div>
-                                {/* Lane Value Labels (+2, +1, etc) */}
-                                <div style={{ width: '30px', display: 'flex', flexDirection: 'column', gap: '1px', flexShrink: 0, boxSizing: 'border-box' }}>
+                                {/* Lane Value Labels (+2, +1, etc) with mini Euclidean buttons */}
+                                <div style={{ width: '48px', display: 'flex', flexDirection: 'column', gap: '1px', flexShrink: 0, boxSizing: 'border-box' }}>
                                     {lanesDef.map(lane => (
-                                        <div key={lane.id} style={{ fontSize: '8px', fontWeight: 'bold', color: isDark ? '#aaa' : '#666', textAlign: 'center', height: '14px', lineHeight: '14px' }}>{lane.label}</div>
+                                        <div key={lane.id} style={{ display: 'flex', alignItems: 'center', gap: '2px', height: '14px', position: 'relative' }}>
+                                            <div style={{ fontSize: '8px', fontWeight: 'bold', color: isDark ? '#aaa' : '#666', textAlign: 'center', width: '22px', lineHeight: '14px' }}>{lane.label}</div>
+                                            <EuclideanMiniButton
+                                                drumId={drum.id}
+                                                laneId={lane.id}
+                                                totalSteps={totalSteps}
+                                                barsCount={bars}
+                                                lockedRows={lockedRows}
+                                                onApply={handleEuclideanMiniApply}
+                                                theme={theme}
+                                                accentColor={ac}
+                                                isOpen={openEuclideanMini === `${drum.id}:${lane.id}`}
+                                                onToggle={setOpenEuclideanMini}
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                                 {/* Sequence Lanes Grid */}
@@ -1997,8 +2166,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                                     setInsertionPoint({ drumId: drum.id, laneId: lane.id, step });
                                                                     setSelectedDrumId(drum.id);
                                                                 }
-                                                                // Ctrl+Right click = start delete drag
-                                                                if (e.button === 2 && e.ctrlKey) {
+                                                                // Right click = start delete drag
+                                                                if (e.button === 2) {
                                                                     e.stopPropagation();
                                                                     e.preventDefault();
                                                                     setIsDeleteDragging(true);
@@ -2063,10 +2232,16 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                 return (
                                                     <div
                                                         key={`note - ${step} `}
+                                                        onMouseEnter={() => {
+                                                            // Delete drag: erase this note when hovering over it
+                                                            if (isDeleteDragging && deleteDragDrumId === drum.id) {
+                                                                updateNote(drum.id, lane.id, step, false);
+                                                            }
+                                                        }}
                                                         onMouseDown={(e) => {
                                                             e.stopPropagation();
-                                                            // Ctrl+Right click on note = delete + start delete drag
-                                                            if (e.button === 2 && e.ctrlKey) {
+                                                            // Right click on note = delete + start delete drag
+                                                            if (e.button === 2) {
                                                                 e.preventDefault();
                                                                 setIsDeleteDragging(true);
                                                                 setDeleteDragDrumId(drum.id);
@@ -2089,6 +2264,14 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                                 setDragStartX(e.clientX);
                                                                 setLastDragStep(step);
                                                                 dragOriginalDuration.current = duration;
+                                                                // Capture original durations of all selected notes for multi-resize
+                                                                const originals = {};
+                                                                selectedSteps.forEach(key => {
+                                                                    const [dId, lId, s] = key.split(':');
+                                                                    const sIdx = parseInt(s);
+                                                                    originals[key] = { dId, lId, step: sIdx, duration: drumStates[dId]?.lanes[lId]?.duration?.[sIdx] || 1 };
+                                                                });
+                                                                dragSelectedOriginals.current = originals;
                                                                 return;
                                                             }
                                                             if (isLeftEdge) {
@@ -2100,6 +2283,14 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                                 setDragStartX(e.clientX);
                                                                 setLastDragStep(step);
                                                                 dragOriginalDuration.current = duration;
+                                                                // Capture original durations of all selected notes for multi-resize
+                                                                const originalsL = {};
+                                                                selectedSteps.forEach(key => {
+                                                                    const [dId, lId, s] = key.split(':');
+                                                                    const sIdx = parseInt(s);
+                                                                    originalsL[key] = { dId, lId, step: sIdx, duration: drumStates[dId]?.lanes[lId]?.duration?.[sIdx] || 1 };
+                                                                });
+                                                                dragSelectedOriginals.current = originalsL;
                                                                 return;
                                                             }
 
@@ -2356,6 +2547,18 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     onParamChange={handleParamChange}
                     onClose={() => setActiveSettingsDrumId(null)}
                     theme={theme}
+                />
+            )}
+
+            {/* Euclidean Rhythm Panel */}
+            {showEuclidean && (
+                <EuclideanPanel
+                    drumElements={drumElements}
+                    globalBars={bars}
+                    onApply={handleEuclideanApply}
+                    onClose={() => setShowEuclidean(false)}
+                    theme={theme}
+                    accentColors={accentColors}
                 />
             )}
         </div >

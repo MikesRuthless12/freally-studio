@@ -12,7 +12,7 @@ import { countLineSyllables } from './engine/SyllableBalancer';
 import { wordsRhyme, getLastWord, detectRhymePattern } from './engine/RhymeEngine';
 import { formatAsProject, downloadFile } from './engine/ExportFormatter';
 import { useTranslation } from '../i18n/I18nContext.jsx';
-import { preloadPhraseBank, resolveLangCode } from './engine/PhraseLoader';
+import { preloadPhraseBank, resolveLangCode, getAvailableGenres } from './engine/PhraseLoader';
 
 const GENRES = ['Pop', 'Hip Hop', 'Rock', 'Country', 'R&B', 'EDM', 'Indie', 'Folk', 'Metal', 'Jazz', 'K-Pop', 'Latin', 'Gospel'];
 const MOODS = ['Happy', 'Sad', 'Romantic', 'Aggressive', 'Dreamy', 'Dark', 'Epic', 'Hopeful', 'Melancholic'];
@@ -341,6 +341,30 @@ export default function LyricEngineTab({
             preloadPhraseBank(code).catch(() => {});
         }
     }, [lyricLanguage]);
+
+    // Filter genres based on what the selected language actually supports
+    const GENRE_KEY_TO_NAME = useMemo(() => ({
+        pop: 'Pop', hiphop: 'Hip Hop', rock: 'Rock', country: 'Country',
+        rnb: 'R&B', edm: 'EDM', indie: 'Indie', folk: 'Folk',
+        metal: 'Metal', jazz: 'Jazz', kpop: 'K-Pop', latin: 'Latin', gospel: 'Gospel',
+    }), []);
+    const filteredGenres = useMemo(() => {
+        const code = NAME_TO_LANG_CODE[lyricLanguage];
+        const available = getAvailableGenres(code);
+        if (!available) return GENRES; // English or no locale loaded — show all
+        // Map available genre keys back to display names, preserving order
+        return GENRES.filter(g => {
+            const key = g.toLowerCase().replace(/[\s-]/g, '');
+            return available.includes(key);
+        });
+    }, [lyricLanguage, GENRE_KEY_TO_NAME]);
+
+    // Reset genre to first available if current genre is not in the filtered list
+    useEffect(() => {
+        if (filteredGenres.length > 0 && !filteredGenres.includes(genre)) {
+            setGenre(filteredGenres[0]);
+        }
+    }, [filteredGenres, genre]);
 
     // Auto-regenerate lyrics when language changes (if song already exists)
     const prevLyricLangRef = useRef(lyricLanguage);
@@ -722,7 +746,7 @@ export default function LyricEngineTab({
                         {t('lyricEngine.songSettings')}
                     </div>
 
-                    <LESelect label={t('lyricEngine.genre')} value={genre} onChange={setGenre} options={GENRES} {...themeProps} />
+                    <LESelect label={t('lyricEngine.genre')} value={genre} onChange={setGenre} options={filteredGenres} {...themeProps} />
                     <LESelect label={t('lyricEngine.mood')} value={mood} onChange={setMood} options={MOODS} {...themeProps} />
                     <LESelect label={t('lyricEngine.key')} value={songKey} onChange={setSongKey} options={KEYS} {...themeProps} />
                     <LESelect label={t('lyricEngine.scale')} value={scale} onChange={setScale} options={SCALES} {...themeProps} />

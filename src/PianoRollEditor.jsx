@@ -727,8 +727,8 @@ const PianoRollEditor = ({
 
             draggingNote.selectionOffsets.forEach(offset => {
                 const newTimeRaw = offset.originalTime + timeDelta;
-                // Clamp time to stay within [0, bars * 4 - duration]
-                const maxTime = (bars * 4) - offset.originalDuration;
+                // Clamp time to stay within [0, totalSteps - duration]
+                const maxTime = (bars * 32) - offset.originalDuration;
                 const newTime = Math.max(0, Math.min(Math.round(newTimeRaw / snapInterval) * snapInterval, maxTime));
 
                 let newNote = offset.originalNote + noteDelta;
@@ -899,7 +899,7 @@ const PianoRollEditor = ({
                     const minTime = Math.min(...clipboard.map(n => n.time));
                     const pasteTime = insertionPoint ? insertionPoint.time : 0;
                     const pasteNoteOffset = insertionPoint ? (insertionPoint.note - clipboard[0].note) : 0;
-                    const newNotes = clipboard.map(n => ({ ...n, time: n.time - minTime + pasteTime, note: Math.max(MIN_NOTE, Math.min(MAX_NOTE, n.note + pasteNoteOffset)) })).filter(n => n.time < bars * 4);
+                    const newNotes = clipboard.map(n => ({ ...n, time: n.time - minTime + pasteTime, note: Math.max(MIN_NOTE, Math.min(MAX_NOTE, n.note + pasteNoteOffset)) })).filter(n => n.time < bars * 32);
                     onPatternChange([...pattern, ...newNotes]);
                 }
                 return;

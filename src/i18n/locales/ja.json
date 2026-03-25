@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "サンプルを検索...",
   "browser.removeFolderConfirm": "このフォルダとすべてのサンプルを削除しますか？",
   "browser.removeFolderLibraryConfirm": "このフォルダとすべてのサンプルをライブラリから削除しますか？",
+  "browser.cannotAddRootDrive": "ルートドライブは追加できません。ドライブ内のフォルダを選択してください。",
+  "browser.cannotScanRootDrive": "ルートドライブはスキャンできません",
   "browser.searchPresets": "プリセット検索...",
   "preset.enterName": "プリセット名を入力",
   "preset.optionalDesc": "説明（任意）",

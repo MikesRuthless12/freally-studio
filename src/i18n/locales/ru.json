@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Поиск сэмплов...",
   "browser.removeFolderConfirm": "Удалить эту папку и все сэмплы?",
   "browser.removeFolderLibraryConfirm": "Удалить папку и все сэмплы из библиотеки?",
+  "browser.cannotAddRootDrive": "Невозможно добавить корневой диск. Пожалуйста, выберите папку внутри диска.",
+  "browser.cannotScanRootDrive": "Невозможно сканировать корневые диски",
   "browser.searchPresets": "Поиск пресетов...",
   "preset.enterName": "Введите имя пресета",
   "preset.optionalDesc": "Необязательное описание",

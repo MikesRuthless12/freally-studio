@@ -1665,6 +1665,8 @@
   "browser.searchSamples": "Sample ara...",
   "browser.removeFolderConfirm": "Bu klasör ve tüm sample'lar kaldırılsın mı?",
   "browser.removeFolderLibraryConfirm": "Bu klasör ve sample'lar kütüphaneden kaldırılsın mı?",
+  "browser.cannotAddRootDrive": "Kök sürücü eklenemiyor. Lütfen sürücü içindeki bir klasörü seçin.",
+  "browser.cannotScanRootDrive": "Kök sürücüler taranamaz",
   "browser.searchPresets": "Preset ara...",
   "preset.enterName": "Preset adı girin",
   "preset.optionalDesc": "İsteğe bağlı açıklama",

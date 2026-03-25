@@ -14,6 +14,7 @@ import { AudioAnalyzer } from './AudioAnalyzer';
 import { interpolateAutomation, addAutomationPoint, removeAutomationPoint, moveAutomationPoint } from './automationUtils';
 import { loopAllPatterns } from './patternUtils';
 import { useTranslation } from './i18n/I18nContext.jsx';
+import { getFileFromItem } from './getFileFromItem.js';
 
 const SECTION_TYPES = [
     { value: 'intro', label: 'Intro', i18nKey: 'arrange.intro' },
@@ -775,7 +776,7 @@ export default function ArrangementTimeline({
     trackOrder,
     onReorderTrack,
     onMoveTrackToIndex,
-    onBounceMidiTrack, selectedFolder, accentColors,
+    onBounceMidiTrack, onBounceToGenerators, selectedFolder, accentColors,
     onUndoAudio,
     onRedoAudio,
     vst3Plugins = [],
@@ -834,6 +835,8 @@ export default function ArrangementTimeline({
     trackAutomation = {},
     onSetTrackAutomation,
     setGlobalBars,
+    globalBars: globalBarsFromParent,
+    setGlobalResolution,
     globalRepeat,
     setGlobalRepeat,
     globalBarsOptions = [4, 8, 16, 32, 64],
@@ -920,6 +923,8 @@ export default function ArrangementTimeline({
 
     // Audio clip context menu & stem separation state
     const [audioClipContextMenu, setAudioClipContextMenu] = useState(null); // { x, y, clip, trackId, sectionId, clipColor }
+    const [gridContextMenu, setGridContextMenu] = useState(null); // { x, y }
+    const [timelineGridRes, setTimelineGridRes] = useState('1bar'); // grid resolution for timeline
     const [stemSepModal, setStemSepModal] = useState(null); // { mode: 'audio'|'midi', clip, trackId, sectionId }
     const [stemProcessing, setStemProcessing] = useState(false);
     const [stemProgress, setStemProgress] = useState(0);
@@ -1475,6 +1480,22 @@ export default function ArrangementTimeline({
         if (!globalIsPlaying && !isRecording) return null;
         return (globalAbsoluteStep / 32) * pixelsPerBar;
     }, [globalIsPlaying, globalAbsoluteStep, totalBars, pixelsPerBar, isRecording]);
+
+    // Scroll to beginning when playback stops
+    const prevIsPlayingRef = useRef(globalIsPlaying);
+    useEffect(() => {
+        const wasPlaying = prevIsPlayingRef.current;
+        prevIsPlayingRef.current = globalIsPlaying;
+        if (wasPlaying && !globalIsPlaying && !isRecording) {
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollLeft = 0;
+            }
+            if (headerScrollRef.current) {
+                headerScrollRef.current.scrollLeft = 0;
+            }
+            setScrollLeft(0);
+        }
+    }, [globalIsPlaying, isRecording]);
 
     // Insertion cursor — shown when NOT playing, at audioInsertionBar position
     const insertionCursorPx = useMemo(() => {
@@ -3063,7 +3084,7 @@ export default function ArrangementTimeline({
                 const tempo = globalTempo;
                 let idx = 0;
                 for (const stemType of stems) {
-                    const pattern = analyzer.extractMIDI(clip.buffer, tempo, stemType);
+                    const pattern = await analyzer.extractMIDI(clip.buffer, tempo, stemType);
                     const hasData = pattern && (Array.isArray(pattern) ? pattern.length > 0 : Object.keys(pattern).length > 0);
                     if (hasData && onAddMidiTrack) {
                         const newTrackId = onAddMidiTrack(`${clip.name || 'Clip'} - ${stemType}`);
@@ -3914,6 +3935,10 @@ export default function ArrangementTimeline({
                         <div
                             style={{ width: `${totalWidth}px`, height: '100%', position: 'relative', cursor: 'ns-resize' }}
                             onMouseDown={handleRulerMouseDown}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                setGridContextMenu({ x: e.clientX, y: e.clientY });
+                            }}
                             onClick={(e) => {
                                 // Only process click if it wasn't a drag
                                 if (rulerDragRef.current?.wasDrag) return;
@@ -4312,9 +4337,12 @@ export default function ArrangementTimeline({
                                 </div>
                             )}
 
-                            {/* Bar gridlines — continuous, no section dividers */}
+                            {/* Bar gridlines + subdivision lines based on grid resolution */}
                             {(() => {
                                 const lines = [];
+                                // Subdivision count per bar based on grid resolution
+                                // globalResolution: 4=quarter, 8=eighth, 16=sixteenth, 32=thirty-second
+                                const subsPerBar = globalResolution || 4;
                                 for (let b = 0; b < totalBars; b++) {
                                     const x = b * pixelsPerBar;
                                     const isEvery4 = b % 4 === 0;
@@ -4328,6 +4356,23 @@ export default function ArrangementTimeline({
                                             zIndex: 5, pointerEvents: 'none'
                                         }} />
                                     );
+                                    // Subdivision lines within bar (show if >= 2px spacing)
+                                    if (subsPerBar > 1 && pixelsPerBar / subsPerBar >= 2) {
+                                        for (let s = 1; s < subsPerBar; s++) {
+                                            const sx = x + (s / subsPerBar) * pixelsPerBar;
+                                            const isBeat = subsPerBar >= 4 && s % (subsPerBar / 4) === 0;
+                                            lines.push(
+                                                <div key={`sub-${b}-${s}`} style={{
+                                                    position: 'absolute', left: `${sx}px`, top: 0, bottom: 0,
+                                                    width: '1px',
+                                                    background: isDark
+                                                        ? (isBeat ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)')
+                                                        : (isBeat ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.025)'),
+                                                    zIndex: 5, pointerEvents: 'none'
+                                                }} />
+                                            );
+                                        }
+                                    }
                                 }
                                 return lines;
                             })()}
@@ -4850,7 +4895,7 @@ export default function ArrangementTimeline({
                                                                         const fiCpY = clipH * (0.5 - fadeInCurveVal * 0.5);
                                                                         const fiMidY = 0.25 * clipH + 0.5 * fiCpY + 0.25 * 0;
                                                                         const foMidX = clipW - fadeOutPx * 0.5;
-                                                                        const foCpY = clipH * (0.5 + fadeOutCurveVal * 0.5);
+                                                                        const foCpY = clipH * (0.5 - fadeOutCurveVal * 0.5);
                                                                         const foMidY = 0.25 * 0 + 0.5 * foCpY + 0.25 * clipH;
                                                                         return (
                                                                             <>
@@ -6038,15 +6083,20 @@ export default function ArrangementTimeline({
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
                                                                         e.dataTransfer.setDragImage(e.currentTarget, e.clientX - elRect.left, e.clientY - elRect.top);
-                                                                        // Build drum pattern SVG for ghost
+                                                                        // Build drum pattern SVG for ghost — piano-roll style
                                                                         let dlSvg = null;
                                                                         if (laneData && laneData.lanes) {
-                                                                            const dRects = Object.values(laneData.lanes).flatMap((lane, li) =>
-                                                                                (lane.pattern || []).map((hit, si) =>
-                                                                                    hit && si < clipSteps ? `<rect x="${si}" y="0" width="1" height="0.9" fill="${cc}" opacity="0.7"/>` : ''
-                                                                                )
+                                                                            const dlLanes = Object.values(laneData.lanes);
+                                                                            const dlLaneCount = dlLanes.length || 1;
+                                                                            const dRects = dlLanes.flatMap((lane, li) =>
+                                                                                (lane.pattern || []).map((hit, si) => {
+                                                                                    if (!hit || si >= clipSteps) return '';
+                                                                                    const dur = Math.max(1, lane.duration?.[si] || 1);
+                                                                                    const w = Math.min(dur, clipSteps - si);
+                                                                                    return `<rect x="${si}" y="${li}" width="${w}" height="0.85" fill="${cc}" opacity="0.7" rx="0.2"/>`;
+                                                                                })
                                                                             ).join('');
-                                                                            dlSvg = `<svg viewBox="0 0 ${clipSteps} 1" preserveAspectRatio="none" style="width:100%;height:100%">${dRects}</svg>`;
+                                                                            dlSvg = `<svg viewBox="0 0 ${clipSteps} ${dlLaneCount}" preserveAspectRatio="none" style="width:100%;height:100%">${dRects}</svg>`;
                                                                         }
                                                                         setDraggingClipBetweenTracks({
                                                                             clip, sourceDrumId: row.drumId, sourceRowId: row.id,
@@ -6152,17 +6202,26 @@ export default function ArrangementTimeline({
                                                                     <div style={{ position: 'absolute', top: 0, left: '3px', fontSize: '8px', fontWeight: 600, color: cc, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: clipW - 6, pointerEvents: 'none', lineHeight: '12px' }}>
                                                                         {clip.name || row.label || row.drumId}
                                                                     </div>
-                                                                    {/* Mini pattern preview */}
-                                                                    {laneData && laneData.lanes && (
-                                                                        <svg style={{ position: 'absolute', left: 0, top: '12px', width: clipW, height: Math.max(1, cellH - 14), pointerEvents: 'none' }}
-                                                                            viewBox={`0 0 ${clipSteps} 1`} preserveAspectRatio="none">
-                                                                            {Object.values(laneData.lanes).map((lane, li) =>
-                                                                                lane.pattern ? lane.pattern.map((hit, si) => hit && si < clipSteps ? (
-                                                                                    <rect key={`${li}-${si}`} x={si} y={0} width={1} height={0.9} fill={cc} opacity={0.7} />
-                                                                                ) : null) : null
-                                                                            )}
-                                                                        </svg>
-                                                                    )}
+                                                                    {/* Mini pattern preview — piano-roll style with lanes and durations */}
+                                                                    {laneData && laneData.lanes && (() => {
+                                                                        const lanes = Object.values(laneData.lanes);
+                                                                        const laneCount = lanes.length || 1;
+                                                                        return (
+                                                                            <svg style={{ position: 'absolute', left: 0, top: '12px', width: clipW, height: Math.max(1, cellH - 14), pointerEvents: 'none' }}
+                                                                                viewBox={`0 0 ${clipSteps} ${laneCount}`} preserveAspectRatio="none">
+                                                                                {lanes.map((lane, li) =>
+                                                                                    lane.pattern ? lane.pattern.map((hit, si) => {
+                                                                                        if (!hit || si >= clipSteps) return null;
+                                                                                        const dur = Math.max(1, lane.duration?.[si] || 1);
+                                                                                        const w = Math.min(dur, clipSteps - si);
+                                                                                        return (
+                                                                                            <rect key={`${li}-${si}`} x={si} y={li} width={w} height={0.85} fill={cc} opacity={0.7} rx={0.2} />
+                                                                                        );
+                                                                                    }) : null
+                                                                                )}
+                                                                            </svg>
+                                                                        );
+                                                                    })()}
                                                                     {/* Left resize handle */}
                                                                     <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px', cursor: 'ew-resize', background: 'transparent', zIndex: 6 }}
                                                                         onMouseEnter={(e) => { e.currentTarget.style.background = `${cc}44`; }}
@@ -6595,7 +6654,7 @@ export default function ArrangementTimeline({
                                                                             const fiCpY = clipH * (0.5 - fadeInCurveVal * 0.5);
                                                                             const fiMidY = 0.25 * clipH + 0.5 * fiCpY + 0.25 * 0; // P0=(0,clipH), CP, P2=(fadePx,0)
                                                                             const foMidX = clipW - fadeOutPx * 0.5;
-                                                                            const foCpY = clipH * (0.5 + fadeOutCurveVal * 0.5);
+                                                                            const foCpY = clipH * (0.5 - fadeOutCurveVal * 0.5);
                                                                             const foMidY = 0.25 * 0 + 0.5 * foCpY + 0.25 * clipH; // P0=(fadeStart,0), CP, P2=(w,clipH)
                                                                             return (
                                                                                 <>
@@ -7028,6 +7087,81 @@ export default function ArrangementTimeline({
             )}
 
             {/* Audio Clip Context Menu */}
+            {/* Grid Resolution Context Menu */}
+            {gridContextMenu && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: Math.min(gridContextMenu.x, window.innerWidth - 180),
+                        top: Math.min(gridContextMenu.y, window.innerHeight - 340),
+                        background: isDark ? '#1a1a22' : '#fff',
+                        border: `1px solid ${isDark ? '#333' : '#ddd'}`,
+                        borderRadius: '8px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                        zIndex: 2147483647,
+                        padding: '6px 0',
+                        minWidth: '160px',
+                        fontSize: '11px'
+                    }}
+                    onMouseLeave={() => setGridContextMenu(null)}
+                >
+                    {/* Global Bars */}
+                    <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                        Global Bars
+                    </div>
+                    {[4, 8, 16, 32, 64].map(b => (
+                        <div
+                            key={`bars-${b}`}
+                            onClick={() => { if (setGlobalBars) setGlobalBars(b); setGridContextMenu(null); }}
+                            style={{
+                                padding: '5px 14px', cursor: 'pointer', color: isDark ? '#ddd' : '#333',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                background: globalBarsFromParent === b ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = globalBarsFromParent === b ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'}
+                        >
+                            <span style={{ width: '14px', textAlign: 'center', color: accentColors?.accent || '#ff6b6b' }}>
+                                {globalBarsFromParent === b ? '✓' : ''}
+                            </span>
+                            {b} Bars
+                        </div>
+                    ))}
+                    {/* Grid Resolution */}
+                    <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '4px 0' }} />
+                    <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                        Grid
+                    </div>
+                    {[
+                        { label: '1/4', res: 4 },
+                        { label: '1/8', res: 8 },
+                        { label: '1/16', res: 16 },
+                        { label: '1/32', res: 32 },
+                    ].map(opt => (
+                        <div
+                            key={opt.res}
+                            onClick={() => {
+                                if (setGlobalResolution) setGlobalResolution(opt.res);
+                                setTimelineGridRes(opt.res);
+                                setGridContextMenu(null);
+                            }}
+                            style={{
+                                padding: '5px 14px', cursor: 'pointer', color: isDark ? '#ddd' : '#333',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                background: globalResolution === opt.res ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = globalResolution === opt.res ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'}
+                        >
+                            <span style={{ width: '14px', textAlign: 'center', color: accentColors?.accent || '#ff6b6b' }}>
+                                {globalResolution === opt.res ? '✓' : ''}
+                            </span>
+                            {opt.label}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {audioClipContextMenu && (
                 <div
                     style={{
@@ -7177,10 +7311,12 @@ export default function ArrangementTimeline({
                         setStemSepModal({ mode: 'audio', clip: audioClipContextMenu.clip, trackId: audioClipContextMenu.trackId, sectionId: audioClipContextMenu.sectionId });
                         setAudioClipContextMenu(null);
                     }} />
-                    <CtxItem label={t('arrange.extractMidiStems')} isDark={isDark} onClick={() => {
-                        setStemSepModal({ mode: 'midi', clip: audioClipContextMenu.clip, trackId: audioClipContextMenu.trackId, sectionId: audioClipContextMenu.sectionId });
-                        setAudioClipContextMenu(null);
-                    }} />
+                    {onBounceToGenerators && (
+                        <CtxItem label={t('arrange.bounceToGenerators')} isDark={isDark} onClick={() => {
+                            onBounceToGenerators(audioClipContextMenu.clip);
+                            setAudioClipContextMenu(null);
+                        }} />
+                    )}
                     {/* MIDI clip: Loop to bar count */}
                     {audioClipContextMenu.isMidiClip && onUpdateMidiClip && (() => {
                         const c = audioClipContextMenu.clip;
@@ -7857,7 +7993,7 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
                                     const audioFiles = await collectAudioFiles(selectedFolder);
                                     if (audioFiles.length === 0) return alert(t('common.noAudioFiles'));
                                     const pick = audioFiles[Math.floor(Math.random() * audioFiles.length)];
-                                    const file = await pick.handle.getFile();
+                                    const file = await getFileFromItem(pick);
                                     const sampleName = pick.name.replace(/\.[^.]+$/, '');
                                     const instrumentId = `midi_rand_${row.trackId}_${Date.now()}`;
                                     await sampler.loadInstrumentFromFiles(instrumentId, [file], sampleName);

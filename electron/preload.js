@@ -32,6 +32,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         mkdir: (dirPath, options) => ipcRenderer.invoke('fs:mkdir', dirPath, options),
     },
 
+    // Scanned folders persistence
+    folders: {
+        save: (folderPaths) => ipcRenderer.invoke('folders:save', folderPaths),
+        load: () => ipcRenderer.invoke('folders:load'),
+        scan: (dirPath) => ipcRenderer.invoke('folders:scan', dirPath),
+    },
+
     // Shell operations
     shell: {
         openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),

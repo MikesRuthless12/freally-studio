@@ -112,6 +112,9 @@ const WavLoomAppComplete = () => {
     // Core instances
     const samplerRef = useRef(new SamplerEngine());
     window.__samplerRef = samplerRef.current; // Expose for idle diagnostics
+    window.__diagRecording = AudioRecorder.runDiagnostic; // Expose recording diagnostic
+    window.__diagMic = AudioRecorder.runMicDiagnostic; // Expose mic input diagnostic
+    window.__diagPipeline = AudioRecorder.runPipelineDiagnostic; // Expose full pipeline diagnostic
     const exporterRef = useRef(null);
     const presetManagerRef = useRef(new PresetManager());
     const midiInputRef = useRef(new MIDIInput());
@@ -239,7 +242,8 @@ const WavLoomAppComplete = () => {
             const name = (typeof customName === 'string' && customName) ? customName : getNextTrackName(prev, 'Audio');
             const color = AUDIO_TRACK_COLORS[prev.length % AUDIO_TRACK_COLORS.length];
             if (samplerRef.current) samplerRef.current.addTrackBus(id);
-            setTrackMix(prevMix => ({ ...prevMix, [id]: { volume: 0.5, pan: 0 } }));
+            const defaultVolume = trackType === 'vocal' ? 1.0 : 0.5;
+            setTrackMix(prevMix => ({ ...prevMix, [id]: { volume: defaultVolume, pan: 0 } }));
             const newTrack = { id, name, color, clips: [], trackType };
             if (afterTrackId) {
                 const idx = prev.findIndex(t => t.id === afterTrackId);
@@ -256,6 +260,19 @@ const WavLoomAppComplete = () => {
     }, []);
 
     const removeAudioTrack = useCallback((trackId) => {
+        // Clean up solo/mute state so deleting a soloed track doesn't mute everything
+        setGlobalSolos(prev => {
+            if (!prev.has(trackId)) return prev;
+            const next = new Set(prev);
+            next.delete(trackId);
+            return next;
+        });
+        setGlobalMutes(prev => {
+            if (!prev.has(trackId)) return prev;
+            const next = new Set(prev);
+            next.delete(trackId);
+            return next;
+        });
         setAudioTracks(prev => {
             if (samplerRef.current) samplerRef.current.removeTrackBus(trackId);
             if (effectsManagerRef.current) effectsManagerRef.current.removeTrackChain(trackId);
@@ -1439,9 +1456,15 @@ const WavLoomAppComplete = () => {
     // Keep isRecordingRef in sync for rAF tick loop access (avoids stale closures)
     useEffect(() => {
         isRecordingRef.current = isRecording;
-        // Activate hot-swap during recording (count-in clicks need a live context)
-        if (isRecording && samplerRef.current?.setAudioActive) {
-            samplerRef.current.setAudioActive(true);
+        // Keep audio active during recording (count-in clicks need a live context)
+        // but suppress hot-swap to prevent recording disruption
+        if (samplerRef.current) {
+            if (isRecording) {
+                samplerRef.current.setAudioActive(true);
+                samplerRef.current.setAudioClipsPlaying(true); // suppress hot-swap
+            } else {
+                samplerRef.current.setAudioClipsPlaying(false);
+            }
         }
     }, [isRecording]);
 
@@ -1586,6 +1609,13 @@ const WavLoomAppComplete = () => {
                 clearTimeout(loopRecordingRef.current.timerId);
             }
             loopRecordingRef.current = null;
+
+            // Route input monitor through the recording track's effects chain
+            // so the user hears their voice through LoomSauce, Reverb, etc.
+            const trackBus = samplerRef.current?.trackBuses?.[targetTrackId];
+            if (trackBus) {
+                recorderRef.current.setMonitorTrackBus(trackBus);
+            }
 
             await recorderRef.current.startRecording({
                 tempo: globalTempo,
@@ -2095,6 +2125,28 @@ const WavLoomAppComplete = () => {
     const [globalSolos, setGlobalSolos] = useState(new Set());
     const globalSolosRef = useRef(globalSolos);
     useEffect(() => { globalSolosRef.current = globalSolos; }, [globalSolos]);
+
+    // Track arming — live mic monitoring through track effects
+    const [armedTrackId, setArmedTrackId] = useState(null);
+    const toggleArmTrack = useCallback(async (trackId) => {
+        const sampler = samplerRef.current;
+        if (!sampler) return;
+        if (sampler.armedTrackId === trackId) {
+            sampler.disarmTrack();
+            setArmedTrackId(null);
+        } else {
+            const ok = await sampler.armTrack(trackId);
+            setArmedTrackId(ok ? trackId : null);
+        }
+    }, []);
+
+    // Disarm when recording starts (recording handles its own monitoring)
+    useEffect(() => {
+        if (isRecording && armedTrackId) {
+            samplerRef.current?.disarmTrack();
+            setArmedTrackId(null);
+        }
+    }, [isRecording, armedTrackId]);
 
     const updateGlobalSolo = useCallback((id, isSolo, isCtrl) => {
         setGlobalSolos(prev => {
@@ -2813,6 +2865,10 @@ const WavLoomAppComplete = () => {
         if (samplerRef.current?.setAudioActive) {
             samplerRef.current.setAudioActive(globalIsPlaying || isRecording || isCountingIn);
         }
+        // Clear audio-clips-playing flag when playback stops
+        if (!globalIsPlaying && samplerRef.current?.setAudioClipsPlaying) {
+            samplerRef.current.setAudioClipsPlaying(false);
+        }
 
         // Sync native transport clock (drives VST3 plugin transport state)
         console.log(`[Transport] isPlaying=${globalIsPlaying}, tempo=${globalTempo}, bars=${globalBars}`);
@@ -3047,6 +3103,9 @@ const WavLoomAppComplete = () => {
                 activeAudioClipSources.current.push(result);
             });
         });
+        // Hot-swap runs during playback (prevents Realtek degradation).
+        // Old clips keep playing on fading-out context while new clips
+        // are scheduled on the fading-in context (crossfade).
     }, [globalTempo]);
 
     const prevGlobalStepRef = useRef(-1); // Track previous global step for loop-back detection
@@ -3097,13 +3156,23 @@ const WavLoomAppComplete = () => {
                 ctx.resume();
             }
 
-            // Detect AudioContext hot-swap: if the context changed, the old
-            // AudioBufferSourceNodes for audio clips are dead (connected to
-            // the old context's graph). Re-schedule them on the new context.
+            // Detect AudioContext hot-swap: if the context changed, fade out
+            // old clips quickly then schedule new ones on the new context.
+            // NOT letting them overlap — overlapping causes phasing/vibrato.
             if (ctx && ctx !== lastAudioCtx) {
-                // Stop old sources on the OLD context
+                // Fade out old sources over 50ms to avoid click, then stop
                 activeAudioClipSources.current.forEach(entry => {
-                    try { if (entry.source) entry.source.stop(0); } catch (_) {}
+                    try {
+                        if (entry.gainNode && entry.source) {
+                            const oldCtx = entry.source.context;
+                            if (oldCtx && oldCtx.state !== 'closed') {
+                                const now = oldCtx.currentTime;
+                                entry.gainNode.gain.setValueAtTime(entry.gainNode.gain.value, now);
+                                entry.gainNode.gain.linearRampToValueAtTime(0, now + 0.05);
+                                entry.source.stop(now + 0.06);
+                            }
+                        }
+                    } catch (_) {}
                 });
                 activeAudioClipSources.current = [];
                 lastAudioCtx = ctx;
@@ -7980,6 +8049,8 @@ const WavLoomAppComplete = () => {
                                         setGlobalMutes={setGlobalMutes}
                                         globalSolos={globalSolos}
                                         updateGlobalSolo={updateGlobalSolo}
+                                        armedTrackId={armedTrackId}
+                                        onToggleArmTrack={toggleArmTrack}
                                         sampler={samplerRef.current}
                                         masterVolume={masterVolume}
                                         setMasterVolume={setMasterVolume}

@@ -128,26 +128,23 @@ class RecordingProcessor extends AudioWorkletProcessor {
         if (this._recording && inputChannel.length > 0) {
             const blockSize = inputChannel.length; // typically 128 (render quantum)
 
-            // Gap detection: check if the audio thread skipped process() calls.
-            // `currentFrame` is a read-only property of AudioWorkletGlobalScope
-            // that tracks the ever-increasing sample frame count. If it jumps by
-            // more than one block size, blocks were dropped (audio thread underrun).
+            // Gap tracking: log dropped blocks for diagnostics but do NOT
+            // insert silence. Inserting silence caused recording dropouts
+            // when the audio thread was busy with playback. A slightly
+            // compressed recording (missing a few ms) sounds far better
+            // than one filled with silence gaps.
             if (this._lastFrame >= 0) {
                 const expectedFrame = this._lastFrame + blockSize;
                 const gap = currentFrame - expectedFrame;
                 if (gap > 0) {
-                    // Audio thread dropped blocks — insert silence to maintain
-                    // wall-clock synchronization. Without this, the recording
-                    // compresses and plays back too fast.
                     this._gapSamples += gap;
                     this._gapCount++;
-                    this._sampleCount += gap;
-                    this._writeSilence(gap);
                 }
             }
             this._lastFrame = currentFrame;
 
-            // Count real audio samples and write them to the batch
+            // Write raw samples — no processing, no gain, no distortion.
+            // Post-recording normalization handles level consistency.
             this._sampleCount += blockSize;
             this._writeAudio(inputChannel, 0, blockSize);
         }

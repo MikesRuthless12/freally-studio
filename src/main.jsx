@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import WavLoomApp from './WavLoomAppComplete.jsx'
+import SplashScreen from './SplashScreen.jsx'
+import { loadSettings } from './SettingsModal.jsx'
 import { I18nProvider } from './i18n/I18nContext.jsx'
 import './index.css'
 import { installElectronFsPolyfill } from './electronFsPolyfill.js'
@@ -60,10 +62,23 @@ setInterval(() => {
     console.log(`%c[IDLE DIAG @ ${mins}min]`, 'color: #ff0; font-weight: bold;', '\n' + diag.join('\n'));
 }, 120000);
 
+function AppRoot() {
+    const [showSplash, setShowSplash] = useState(() => !loadSettings().skipIntro);
+
+    return (
+        <>
+            {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
+            {!showSplash && (
+                <I18nProvider>
+                    <WavLoomApp />
+                </I18nProvider>
+            )}
+        </>
+    );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <I18nProvider>
-            <WavLoomApp />
-        </I18nProvider>
+        <AppRoot />
     </React.StrictMode>,
 )

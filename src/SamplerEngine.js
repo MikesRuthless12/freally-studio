@@ -9,16 +9,22 @@ import { applyAutoTune } from './core/music-intelligence/SampleMatchEngine.js';
 export class SamplerEngine {
     constructor() {
         if (!window.sharedAnalysisCtx) {
-            // 'playback' latencyHint tells the browser to use larger audio
-            // buffers (~50 ms vs ~10 ms default).  This greatly reduces buffer
-            // underrun risk on laptops / slower hardware at the cost of a tiny
-            // increase in output latency — an acceptable trade-off for a DAW
-            // that schedules notes ahead of time.
             const Ctx = window.AudioContext || window.webkitAudioContext;
-            // 'playback' hint tells the browser to use the largest available buffer
-            // size — maximizes driver stability on Realtek and avoids underruns.
-            // Matches system sample rate (48 kHz) to avoid resampling overhead.
-            let ctxOptions = { latencyHint: 'playback', sampleRate: 48000 };
+
+            // Auto-detect system native sample rate by creating a temporary context
+            // with no sampleRate specified — the browser picks the hardware default.
+            if (!window._wavloomNativeSampleRate) {
+                try {
+                    const probe = new Ctx();
+                    window._wavloomNativeSampleRate = probe.sampleRate;
+                    probe.close().catch(() => {});
+                } catch (_) {
+                    window._wavloomNativeSampleRate = 48000; // fallback
+                }
+            }
+
+            // Use detected native rate as default, user setting overrides
+            let ctxOptions = { latencyHint: 'playback', sampleRate: window._wavloomNativeSampleRate };
             try {
                 const raw = localStorage.getItem('wavloom_settings');
                 if (raw) {
@@ -90,6 +96,7 @@ export class SamplerEngine {
         this._resetInterval = null;
         this._resetEnabled = false;
         this._audioActive = false; // true when playback or recording is active
+        this._audioClipsPlaying = false; // true when audio clips are playing (suppresses hot-swap)
         this._idleSuspendTimer = null; // suspends context after one-off previews
 
         // VST3 instrument instances per track (trackId → VST3InstrumentNode)
@@ -521,6 +528,85 @@ export class SamplerEngine {
         };
 
         return { source, gainNode: clipGain };
+    }
+
+    /**
+     * Arm a track for live mic monitoring through its effects chain.
+     * Routes getUserMedia mic input → track bus (with effects) → speakers.
+     * Record dry, monitor wet — just like Ableton.
+     * @param {string} trackId — the track to arm
+     * @returns {Promise<boolean>} true if armed successfully
+     */
+    async armTrack(trackId) {
+        // Disarm any currently armed track first
+        this.disarmTrack();
+
+        const bus = this.trackBuses[trackId];
+        if (!bus) return false;
+
+        try {
+            // Read device settings
+            let deviceId = undefined;
+            try {
+                const raw = localStorage.getItem('wavloom_settings');
+                if (raw) {
+                    const s = JSON.parse(raw);
+                    if (s.audioInputDeviceId) deviceId = { exact: s.audioInputDeviceId };
+                }
+            } catch (_) {}
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false,
+                    googAutoGainControl: false,
+                    googAutoGainControl2: false,
+                    googNoiseSuppression: false,
+                    googHighpassFilter: false,
+                    googTypingNoiseDetection: false,
+                    ...(deviceId && { deviceId })
+                }
+            });
+
+            const ctx = this.audioContext;
+            if (!ctx || ctx.state === 'closed') { stream.getTracks().forEach(t => t.stop()); return false; }
+            if (ctx.state === 'suspended') await ctx.resume();
+
+            const source = ctx.createMediaStreamSource(stream);
+            const gain = ctx.createGain();
+            gain.gain.value = 0.8;
+            source.connect(gain);
+            gain.connect(bus.gainNode); // Routes through track effects chain → master → speakers
+
+            this._armState = { trackId, stream, source, gain };
+            this._audioClipsPlaying = true; // Suppress hot-swap while armed
+            console.log(`[SamplerEngine] Track ${trackId} armed — live monitoring through effects`);
+            return true;
+        } catch (e) {
+            console.warn('[SamplerEngine] Failed to arm track:', e);
+            return false;
+        }
+    }
+
+    /**
+     * Disarm the currently armed track — stop mic monitoring.
+     */
+    disarmTrack() {
+        if (!this._armState) return;
+        const { stream, source, gain, trackId } = this._armState;
+        try { source.disconnect(); } catch (_) {}
+        try { gain.disconnect(); } catch (_) {}
+        stream.getTracks().forEach(t => t.stop());
+        this._armState = null;
+        this._audioClipsPlaying = false;
+        console.log(`[SamplerEngine] Track ${trackId} disarmed`);
+    }
+
+    /** @returns {string|null} the currently armed track ID */
+    get armedTrackId() {
+        return this._armState?.trackId || null;
     }
 
     /**
@@ -1611,24 +1697,32 @@ export class SamplerEngine {
      * will leak nodes and memory.  Runs every 5 seconds.
      */
     /**
-     * Proactively hot-swap the AudioContext every 11 seconds to work around
-     * Realtek driver bug that kills audio output after ~15-20 seconds.
+     * Proactively hot-swap the AudioContext to work around Realtek driver bug
+     * that kills audio output after sustained playback (~30-60s).
      * Seamless: old voices ring out on old context while new notes use new context.
+     * Skipped when audio clips are playing to avoid disrupting vocal/arrangement playback.
      */
     _startProactiveReset() {
         if (this._resetInterval) return;
-        // Swap every 4 seconds — Realtek driver degrades (static/silence) around
-        // 10-15 seconds, so swapping at 4s prevents audible artifacts.
-        // Generator notes are fire-and-forget (short duration), so in-flight notes
-        // on the old context finish naturally within the 2s grace period.
-        // Swap every 6 seconds to prevent Realtek driver degradation.
-        // Generator polling loops detect context changes and re-trigger
-        // sustaining notes (chords, melody, bass, long 808s) seamlessly.
+        // Swap every 30 seconds — Realtek driver degrades (static/silence) around
+        // 30-60 seconds. 30s minimizes disruption to arrangement playback while
+        // still preventing driver degradation on most Realtek hardware.
+        // Skip entirely when audio clips are actively playing (vocal recordings,
+        // arrangement clips) to avoid any audible artifacts.
         this._resetInterval = setInterval(() => {
+            // Don't hot-swap during recording or arm monitoring — the input
+            // monitor runs on the main context and swapping it causes clicks
+            if (this._audioClipsPlaying) return;
             if (this._audioActive || (this.audioContext && this.audioContext.state === 'running')) {
                 this._hotSwapAudioContext();
             }
-        }, 6000);
+        }, 30000);
+    }
+
+    /** Set whether audio clips (vocals, arrangement) are currently playing.
+     *  When true, hot-swap is suppressed to prevent playback artifacts. */
+    setAudioClipsPlaying(playing) {
+        this._audioClipsPlaying = playing;
     }
 
     /** Call when audio activity starts/stops (playback, recording, count-in clicks) */
@@ -1725,9 +1819,9 @@ export class SamplerEngine {
         const oldCtx = this.audioContext;
         const oldMasterGain = this.masterGain;
 
-        // Create fresh context with user settings
+        // Create fresh context with user settings (default to detected native rate)
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        let ctxOptions = { latencyHint: 'playback', sampleRate: 48000 };
+        let ctxOptions = { latencyHint: 'playback', sampleRate: window._wavloomNativeSampleRate || 48000 };
         try {
             const raw = localStorage.getItem('wavloom_settings');
             if (raw) {
@@ -1750,9 +1844,9 @@ export class SamplerEngine {
         } catch (_) { /* old context may already be closing */ }
 
         // Build new minimal master chain (with soft limiter)
-        // Start at the same gain level — notes have their own ADSR envelopes
+        // Start at 0 gain and fade in over 150ms for a smooth crossfade with the old context
         const newMasterGain = newCtx.createGain();
-        newMasterGain.gain.value = savedGain;
+        newMasterGain.gain.value = 0;
         const newLimiter = this._createSoftLimiter(newCtx);
         newMasterGain.connect(newLimiter);
         newLimiter.connect(newCtx.destination);
@@ -1821,8 +1915,12 @@ export class SamplerEngine {
         // expire via onended callbacks. New notes use the new context.
         // The cleanup timer (_startCleanupTimer) handles stale entries.
 
-        // Resume new context — master gain is already at savedGain
+        // Resume new context and fade in master gain for smooth crossfade
+        // Old context fades out over 1.5s, new fades in over 100ms — quick handoff
         newCtx.resume();
+        const fadeInStart = newCtx.currentTime;
+        newMasterGain.gain.setValueAtTime(0, fadeInStart);
+        newMasterGain.gain.linearRampToValueAtTime(savedGain, fadeInStart + 0.1);
 
         // Restart keepalive tone on new context
         if (this._audioActive) this._startKeepaliveTone();
@@ -1947,7 +2045,7 @@ export class SamplerEngine {
         // 2. Build the NEW context and full audio graph FIRST (while old
         //    context is still running). This minimizes the silent gap.
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        let ctxOptions = { latencyHint: 'playback', sampleRate: 48000 };
+        let ctxOptions = { latencyHint: 'playback', sampleRate: window._wavloomNativeSampleRate || 48000 };
         try {
             const raw = localStorage.getItem('wavloom_settings');
             if (raw) {

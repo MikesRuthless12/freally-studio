@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         log: (...args) => ipcRenderer.send('debug:log', ...args),
     },
 
+    // Splash screen
+    splash: {
+        done: () => ipcRenderer.send('splash:done'),
+    },
+
     // Window controls
     window: {
         minimize: () => ipcRenderer.send('window:minimize'),

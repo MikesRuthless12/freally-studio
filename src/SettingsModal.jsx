@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { isElectron } from './electronBridge.js';
 import { ACCENT_THEMES, SOLID_ACCENT_KEYS, GRADIENT_ACCENT_KEYS } from './accentThemes.js';
 import { useTranslation } from './i18n/I18nContext.jsx';
@@ -17,7 +17,9 @@ const DEFAULT_SETTINGS = {
     vst3CustomPaths: ['', '', ''],
     // Audio
     latencyHint: 'playback',    // 'interactive' | 'balanced' | 'playback'
-    sampleRate: 44100,          // AudioContext sample rate (requires reload)
+    sampleRate: 0,              // 0 = auto-detect system native rate (requires reload)
+    audioInputDeviceId: '',     // '' = system default
+    audioOutputDeviceId: '',    // '' = system default
     // Theme
     uiBrightness: 100,          // 50-150%
     gridLineIntensity: 100,     // 0-100%
@@ -30,6 +32,11 @@ const DEFAULT_SETTINGS = {
     autoOpenPluginWindows: true,
     // Vocal
     autoAnalyzeVocalOnRecord: false,
+    recordingEchoCancellation: false,
+    recordingNoiseSuppression: false,
+    recordingInputMonitor: false,
+    // Splash
+    skipIntro: false,
 };
 
 export function loadSettings() {
@@ -91,7 +98,10 @@ export function applyTooltipSetting(enabled) {
     }
 }
 
+const NATIVE_RATE = window._wavloomNativeSampleRate || 48000;
+
 const SAMPLE_RATES = [
+    { label: `Auto (${NATIVE_RATE.toLocaleString()} Hz)`, value: 0 },
     { label: '22,050 Hz', value: 22050 },
     { label: '44,100 Hz', value: 44100 },
     { label: '48,000 Hz', value: 48000 },
@@ -194,10 +204,28 @@ export function SettingsModal({
     const [hoveredSection, setHoveredSection] = useState(null);
     const [testToneActive, setTestToneActive] = useState(false);
     const [hoveredAccent, setHoveredAccent] = useState(null);
+    const [audioInputDevices, setAudioInputDevices] = useState([]);
+    const [audioOutputDevices, setAudioOutputDevices] = useState([]);
+    const [micTestActive, setMicTestActive] = useState(false);
+    const [micLevel, setMicLevel] = useState(0);
+    const micTestRef = useRef(null); // { stream, ctx, analyser, animId }
     const modalRef = useRef(null);
     const testToneRef = useRef(null);
     const handleCloseRef = useRef(null);
     const inElectron = isElectron();
+
+    // Enumerate audio devices
+    const enumerateAudioDevices = useCallback(async () => {
+        try {
+            // Request mic permission first so device labels are populated
+            await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            setAudioInputDevices(devices.filter(d => d.kind === 'audioinput'));
+            setAudioOutputDevices(devices.filter(d => d.kind === 'audiooutput'));
+        } catch (e) {
+            console.warn('[Settings] Failed to enumerate audio devices:', e);
+        }
+    }, []);
 
     // Reset draft when modal opens
     useEffect(() => {
@@ -205,6 +233,7 @@ export function SettingsModal({
             setDraft(loadSettings());
             setVst3ScanStatus('');
             setActiveSection('general');
+            enumerateAudioDevices();
             if (inElectron && window.electronAPI?.vst3) {
                 window.electronAPI.vst3.getCustomPaths().then(paths => {
                     const p = Array.isArray(paths) ? paths : ['', '', ''];
@@ -212,10 +241,11 @@ export function SettingsModal({
                 }).catch(() => {});
             }
         } else {
-            // Stop test tone when modal closes
+            // Stop test tone and mic test when modal closes
             stopTestTone();
+            stopMicTest();
         }
-    }, [isOpen, inElectron]);
+    }, [isOpen, inElectron, enumerateAudioDevices]);
 
     // Close on Escape
     useEffect(() => {
@@ -225,9 +255,9 @@ export function SettingsModal({
         return () => window.removeEventListener('keydown', handler);
     }, [isOpen, onClose]);
 
-    // Cleanup test tone on unmount
+    // Cleanup test tone and mic test on unmount
     useEffect(() => {
-        return () => stopTestTone();
+        return () => { stopTestTone(); stopMicTest(); };
     }, []);
 
     // Auto-save settings to localStorage on every draft change
@@ -272,6 +302,70 @@ export function SettingsModal({
             testToneRef.current = null;
         }
         setTestToneActive(false);
+    }
+
+    async function startMicTest() {
+        if (micTestRef.current) return;
+        try {
+            const deviceId = draft.audioInputDeviceId || undefined;
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: !!draft.recordingEchoCancellation,
+                    noiseSuppression: !!draft.recordingNoiseSuppression,
+                    ...(deviceId && { deviceId: { exact: deviceId } })
+                }
+            });
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            const ctx = new Ctx();
+            // AudioContext starts suspended in Chromium — must resume before audio will play
+            if (ctx.state === 'suspended') await ctx.resume();
+
+            // Route output to the selected output device
+            if (draft.audioOutputDeviceId && ctx.setSinkId) {
+                try { await ctx.setSinkId(draft.audioOutputDeviceId); } catch (_) {}
+            }
+
+            const source = ctx.createMediaStreamSource(stream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+            const dataArray = new Float32Array(analyser.fftSize);
+
+            // Always route mic to speakers during test so user can hear themselves
+            const monitorGain = ctx.createGain();
+            monitorGain.gain.value = draft.recordingInputMonitor ? 0.8 : 0;
+            source.connect(monitorGain);
+            monitorGain.connect(ctx.destination);
+
+            const tick = () => {
+                analyser.getFloatTimeDomainData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+                const rms = Math.sqrt(sum / dataArray.length);
+                setMicLevel(Math.min(100, rms * 400));
+                if (micTestRef.current) micTestRef.current.animId = requestAnimationFrame(tick);
+            };
+            micTestRef.current = { stream, ctx, source, analyser, monitorGain, animId: requestAnimationFrame(tick) };
+            setMicTestActive(true);
+        } catch (e) {
+            console.warn('[Settings] Mic test error:', e);
+        }
+    }
+
+    function stopMicTest() {
+        if (micTestRef.current) {
+            cancelAnimationFrame(micTestRef.current.animId);
+            micTestRef.current.stream.getTracks().forEach(t => t.stop());
+            micTestRef.current.source.disconnect();
+            if (micTestRef.current.monitorGain) {
+                try { micTestRef.current.monitorGain.disconnect(); } catch (_) {}
+            }
+            try { micTestRef.current.ctx.close(); } catch (_) {}
+            micTestRef.current = null;
+        }
+        setMicTestActive(false);
+        setMicLevel(0);
     }
 
     if (!isOpen) return null;
@@ -428,12 +522,19 @@ export function SettingsModal({
                 </div>
                 <input type="checkbox" checked={draft.showCursorLabels} onChange={(e) => update('showCursorLabels', e.target.checked)} style={checkboxStyle} />
             </div>
-            <div style={lastRowStyle}>
+            <div style={rowStyle}>
                 <div>
                     <div style={labelStyle}>{t('settings.followPlayhead')}</div>
                     <div style={descStyle}>{t('settings.followPlayheadDesc')}</div>
                 </div>
                 <input type="checkbox" checked={draft.followPlayhead} onChange={(e) => update('followPlayhead', e.target.checked)} style={checkboxStyle} />
+            </div>
+            <div style={lastRowStyle}>
+                <div>
+                    <div style={labelStyle}>{t('settings.skipIntro')}</div>
+                    <div style={descStyle}>{t('settings.skipIntroDesc')}</div>
+                </div>
+                <input type="checkbox" checked={draft.skipIntro} onChange={(e) => update('skipIntro', e.target.checked)} style={checkboxStyle} />
             </div>
         </div>
     );
@@ -445,6 +546,73 @@ export function SettingsModal({
         return (
             <div>
                 <div style={sectionTitleStyle}>{t('settings.audio')}</div>
+
+                <SubSectionTitle isDark={isDark}>{t('settings.devices')}</SubSectionTitle>
+
+                <div style={rowStyle}>
+                    <div>
+                        <div style={labelStyle}>{t('settings.inputDevice')}</div>
+                        <div style={descStyle}>{t('settings.inputDeviceDesc')}</div>
+                    </div>
+                    <select
+                        value={draft.audioInputDeviceId}
+                        onChange={(e) => update('audioInputDeviceId', e.target.value)}
+                        style={{ ...selectStyle, maxWidth: '220px' }}
+                    >
+                        <option value="" style={optionStyle}>{t('settings.systemDefault')}</option>
+                        {audioInputDevices.map(d => (
+                            <option key={d.deviceId} value={d.deviceId} style={optionStyle}>
+                                {d.label || `${t('settings.microphone')} (${d.deviceId.slice(0, 8)}...)`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div style={rowStyle}>
+                    <div>
+                        <div style={labelStyle}>{t('settings.testMic')}</div>
+                        <div style={descStyle}>{t('settings.testMicDesc')}</div>
+                        {micTestActive && (
+                            <div style={{
+                                marginTop: '6px', width: '180px', height: '8px',
+                                borderRadius: '4px', background: isDark ? '#222' : '#ddd',
+                                overflow: 'hidden', position: 'relative',
+                            }}>
+                                <div style={{
+                                    width: `${micLevel}%`, height: '100%',
+                                    borderRadius: '4px',
+                                    background: micLevel > 80 ? '#ef4444' : micLevel > 50 ? '#facc15' : '#4ade80',
+                                    transition: 'width 0.05s, background 0.15s',
+                                }} />
+                            </div>
+                        )}
+                    </div>
+                    <ToggleSwitch
+                        value={micTestActive}
+                        onChange={() => micTestActive ? stopMicTest() : startMicTest()}
+                        accentColor={ac}
+                        isDark={isDark}
+                    />
+                </div>
+
+                <div style={rowStyle}>
+                    <div>
+                        <div style={labelStyle}>{t('settings.outputDevice')}</div>
+                        <div style={descStyle}>{t('settings.outputDeviceDesc')}</div>
+                    </div>
+                    <select
+                        value={draft.audioOutputDeviceId}
+                        onChange={(e) => update('audioOutputDeviceId', e.target.value)}
+                        style={{ ...selectStyle, maxWidth: '220px' }}
+                    >
+                        <option value="" style={optionStyle}>{t('settings.systemDefault')}</option>
+                        {audioOutputDevices.map(d => (
+                            <option key={d.deviceId} value={d.deviceId} style={optionStyle}>
+                                {d.label || `${t('settings.speaker')} (${d.deviceId.slice(0, 8)}...)`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <SubSectionTitle isDark={isDark}>{t('settings.audioEngine')}</SubSectionTitle>
 
@@ -700,7 +868,7 @@ export function SettingsModal({
 
             <SubSectionTitle isDark={isDark}>{t('settings.recording')}</SubSectionTitle>
 
-            <div style={lastRowStyle}>
+            <div style={rowStyle}>
                 <div>
                     <div style={labelStyle}>{t('settings.autoAnalyzeVocal')}</div>
                     <div style={descStyle}>{t('settings.autoAnalyzeVocalDesc')}</div>
@@ -708,6 +876,42 @@ export function SettingsModal({
                 <ToggleSwitch
                     value={draft.autoAnalyzeVocalOnRecord}
                     onChange={() => update('autoAnalyzeVocalOnRecord', !draft.autoAnalyzeVocalOnRecord)}
+                    accentColor={ac}
+                    isDark={isDark}
+                />
+            </div>
+            <div style={rowStyle}>
+                <div>
+                    <div style={labelStyle}>{t('settings.echoCancellation')}</div>
+                    <div style={descStyle}>{t('settings.echoCancellationDesc')}</div>
+                </div>
+                <ToggleSwitch
+                    value={draft.recordingEchoCancellation}
+                    onChange={() => update('recordingEchoCancellation', !draft.recordingEchoCancellation)}
+                    accentColor={ac}
+                    isDark={isDark}
+                />
+            </div>
+            <div style={rowStyle}>
+                <div>
+                    <div style={labelStyle}>{t('settings.noiseSuppression')}</div>
+                    <div style={descStyle}>{t('settings.noiseSuppressionDesc')}</div>
+                </div>
+                <ToggleSwitch
+                    value={draft.recordingNoiseSuppression}
+                    onChange={() => update('recordingNoiseSuppression', !draft.recordingNoiseSuppression)}
+                    accentColor={ac}
+                    isDark={isDark}
+                />
+            </div>
+            <div style={lastRowStyle}>
+                <div>
+                    <div style={labelStyle}>{t('settings.inputMonitor')}</div>
+                    <div style={descStyle}>{t('settings.inputMonitorDesc')}</div>
+                </div>
+                <ToggleSwitch
+                    value={draft.recordingInputMonitor}
+                    onChange={() => update('recordingInputMonitor', !draft.recordingInputMonitor)}
                     accentColor={ac}
                     isDark={isDark}
                 />

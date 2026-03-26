@@ -737,6 +737,8 @@ export default function ArrangementTimeline({
     setGlobalMutes,
     globalSolos = new Set(),
     updateGlobalSolo,
+    armedTrackId = null,
+    onToggleArmTrack,
     globalIsPlaying,
     globalCurrentStep,
     globalAbsoluteStep = 0,
@@ -1348,6 +1350,26 @@ export default function ArrangementTimeline({
             }
         }
     }, [isRecording, recordingTrackId, trackRows]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Scroll to very bottom when a new audio/vocal track is added
+    const prevAudioCountRef = useRef(audioTracks.length);
+    useEffect(() => {
+        if (audioTracks.length > prevAudioCountRef.current) {
+            // New track was added — scroll to bottom after render
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const container = scrollContainerRef.current;
+                    if (container) {
+                        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                        if (labelScrollRef.current) {
+                            labelScrollRef.current.scrollTop = container.scrollHeight;
+                        }
+                    }
+                });
+            });
+        }
+        prevAudioCountRef.current = audioTracks.length;
+    }, [audioTracks.length]);
 
     // Delete key: remove selected MIDI/audio track (capture phase to fire before inline editors)
     useEffect(() => {
@@ -3284,6 +3306,18 @@ export default function ArrangementTimeline({
                                 if (newId) setSelectedRow(`audio-${newId}`);
                             }} />
                     )}
+                    {onAddAudioTrack && (
+                        <ActionBtn label={t('arrange.addVocal')} color="#e74c3c" isDark={isDark} disabled={addCooldown || audioTracks.length >= 100}
+                            onClick={() => {
+                                if (addCooldownRef.current || audioTracks.length >= 100) return;
+                                addCooldownRef.current = true;
+                                setAddCooldown(true);
+                                // Count existing vocal tracks for naming
+                                const vocalCount = audioTracks.filter(t => t.trackType === 'vocal').length;
+                                const newId = onAddAudioTrack(`Vocal ${vocalCount + 1}`, null, 'vocal');
+                                if (newId) setSelectedRow(`audio-${newId}`);
+                            }} />
+                    )}
                     {onAddMidiTrack && (
                         <ActionBtn label={t('arrange.addMidi')} color="#c56cf0" isDark={isDark} disabled={addCooldown || midiTracks.length >= 100}
                             onClick={() => {
@@ -3813,6 +3847,27 @@ export default function ArrangementTimeline({
                                                                     lineHeight: 1
                                                                 }}
                                                             >A</div>
+                                                        );
+                                                    })()}
+                                                    {/* Arm button — vocal/audio tracks only: live mic monitoring through effects */}
+                                                    {row.type === 'audio' && !row.isCollapsed && onToggleArmTrack && (() => {
+                                                        const isArmed = armedTrackId === row.trackId;
+                                                        return (
+                                                            <div
+                                                                onClick={(e) => { e.stopPropagation(); onToggleArmTrack(row.trackId); }}
+                                                                title={isArmed ? 'Disarm track' : 'Arm track — live mic monitoring through effects'}
+                                                                style={{
+                                                                    width: '20px', height: '20px',
+                                                                    borderRadius: '50%',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                    fontSize: '10px', fontWeight: '800', cursor: 'pointer',
+                                                                    background: isArmed ? '#e74c3c' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+                                                                    color: isArmed ? '#fff' : (isDark ? '#888' : '#999'),
+                                                                    border: isArmed ? '2px solid #ff6b6b' : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                                                                    lineHeight: 1,
+                                                                    animation: isArmed ? 'pulse 1.5s infinite' : 'none',
+                                                                }}
+                                                            >{isArmed ? '●' : '○'}</div>
                                                         );
                                                     })()}
                                                     {/* Automation parameter selector — visible when automation lane is open */}

@@ -60,6 +60,297 @@ export class AudioRecorder {
         // Throttle onProgress to ~30Hz to prevent excessive React re-renders
         this._lastProgressTime = 0;
         this._progressIntervalMs = 33; // ~30Hz
+        // Input monitoring — routes mic to speakers so user can hear themselves
+        this._monitorSource = null;
+        this._monitorGain = null;
+        this._monitorTrackBus = null; // Track bus for effected monitoring
+    }
+
+    /**
+     * Set the track bus for input monitoring through effects.
+     * Call before startRecording() to route mic through the track's effects chain.
+     * @param {{ gainNode: GainNode }} trackBus — from SamplerEngine.trackBuses[trackId]
+     */
+    setMonitorTrackBus(trackBus) {
+        this._monitorTrackBus = trackBus;
+    }
+
+    /**
+     * DIAGNOSTIC: Send a constant oscillator through the full recording pipeline
+     * for 30 seconds and log RMS levels every second. Isolates whether the fade
+     * is in our code (oscillator will fade) or the mic hardware (oscillator stays flat).
+     *
+     * Call from console: window.__diagRecording()
+     */
+    static async runDiagnostic() {
+        console.log('%c[DIAG] Starting 30s oscillator recording diagnostic...', 'color: #0f0; font-weight: bold');
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        await ctx.resume();
+        console.log(`[DIAG] AudioContext: state=${ctx.state}, sampleRate=${ctx.sampleRate}`);
+
+        // Create constant oscillator at 440Hz, gain=0.5
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = 440;
+        const oscGain = ctx.createGain();
+        oscGain.gain.value = 0.5;
+        osc.connect(oscGain);
+
+        // Route through MediaStreamDestination → MediaStreamSource (same path as mic)
+        const streamDest = ctx.createMediaStreamDestination();
+        oscGain.connect(streamDest);
+        const streamSource = ctx.createMediaStreamSource(streamDest.stream);
+
+        // Analyser to measure level
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        streamSource.connect(analyser);
+        const data = new Float32Array(analyser.fftSize);
+
+        // Also test: direct oscillator through analyser (no stream round-trip)
+        const directAnalyser = ctx.createAnalyser();
+        directAnalyser.fftSize = 2048;
+        oscGain.connect(directAnalyser);
+        const directData = new Float32Array(directAnalyser.fftSize);
+
+        osc.start();
+
+        const results = [];
+        let elapsed = 0;
+        const interval = setInterval(() => {
+            elapsed++;
+            // Stream path RMS
+            analyser.getFloatTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+            const streamRms = Math.sqrt(sum / data.length);
+
+            // Direct path RMS
+            directAnalyser.getFloatTimeDomainData(directData);
+            let dSum = 0;
+            for (let i = 0; i < directData.length; i++) dSum += directData[i] * directData[i];
+            const directRms = Math.sqrt(dSum / directData.length);
+
+            const entry = { sec: elapsed, streamRms: streamRms.toFixed(4), directRms: directRms.toFixed(4), ctxState: ctx.state };
+            results.push(entry);
+            const streamBar = '█'.repeat(Math.round(streamRms * 100));
+            const directBar = '█'.repeat(Math.round(directRms * 100));
+            console.log(`[DIAG ${elapsed}s] stream=${streamRms.toFixed(4)} ${streamBar} | direct=${directRms.toFixed(4)} ${directBar} | ctx=${ctx.state}`);
+
+            if (elapsed >= 30) {
+                clearInterval(interval);
+                osc.stop();
+                osc.disconnect();
+                oscGain.disconnect();
+                streamSource.disconnect();
+                ctx.close().catch(() => {});
+                console.log('%c[DIAG] Complete! Results:', 'color: #0f0; font-weight: bold');
+                console.table(results);
+                const firstRms = parseFloat(results[0].streamRms);
+                const lastRms = parseFloat(results[results.length - 1].streamRms);
+                const decay = ((1 - lastRms / firstRms) * 100).toFixed(1);
+                console.log(`%c[DIAG] Stream decay: ${decay}% (${firstRms.toFixed(4)} → ${lastRms.toFixed(4)})`,
+                    `color: ${Math.abs(parseFloat(decay)) < 5 ? '#0f0' : '#f00'}; font-weight: bold`);
+                const dFirstRms = parseFloat(results[0].directRms);
+                const dLastRms = parseFloat(results[results.length - 1].directRms);
+                const dDecay = ((1 - dLastRms / dFirstRms) * 100).toFixed(1);
+                console.log(`%c[DIAG] Direct decay: ${dDecay}% (${dFirstRms.toFixed(4)} → ${dLastRms.toFixed(4)})`,
+                    `color: ${Math.abs(parseFloat(dDecay)) < 5 ? '#0f0' : '#f00'}; font-weight: bold`);
+            }
+        }, 1000);
+
+        return 'Diagnostic running for 30s — watch console output';
+    }
+
+    /**
+     * DIAGNOSTIC 2: Test actual microphone input for 30 seconds.
+     * Measures RMS from getUserMedia to see if the mic signal fades.
+     * Call from console: window.__diagMic()
+     */
+    static async runMicDiagnostic() {
+        console.log('%c[MIC DIAG] Starting 30s mic input diagnostic...', 'color: #ff0; font-weight: bold');
+        console.log('[MIC DIAG] Make a constant sound into your mic for 30 seconds');
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                channelCount: 1,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                googAutoGainControl: false,
+                googAutoGainControl2: false,
+                googNoiseSuppression: false,
+                googHighpassFilter: false,
+            }
+        });
+
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        await ctx.resume();
+        console.log(`[MIC DIAG] AudioContext: sampleRate=${ctx.sampleRate}, state=${ctx.state}`);
+
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        const data = new Float32Array(analyser.fftSize);
+
+        const results = [];
+        let elapsed = 0;
+        const interval = setInterval(() => {
+            elapsed++;
+            analyser.getFloatTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+            const rms = Math.sqrt(sum / data.length);
+            const peak = Math.max(...data.map(Math.abs));
+
+            results.push({ sec: elapsed, rms: rms.toFixed(4), peak: peak.toFixed(4), ctxState: ctx.state });
+            const bar = '█'.repeat(Math.round(rms * 200));
+            console.log(`[MIC DIAG ${elapsed}s] rms=${rms.toFixed(4)} peak=${peak.toFixed(4)} ${bar}`);
+
+            if (elapsed >= 30) {
+                clearInterval(interval);
+                stream.getTracks().forEach(t => t.stop());
+                source.disconnect();
+                ctx.close().catch(() => {});
+                console.log('%c[MIC DIAG] Complete! Results:', 'color: #ff0; font-weight: bold');
+                console.table(results);
+                const firstRms = parseFloat(results[0].rms);
+                const lastRms = parseFloat(results[results.length - 1].rms);
+                const decay = firstRms > 0 ? ((1 - lastRms / firstRms) * 100).toFixed(1) : 'N/A';
+                console.log(`%c[MIC DIAG] Mic decay: ${decay}% (${firstRms.toFixed(4)} → ${lastRms.toFixed(4)})`,
+                    `color: ${Math.abs(parseFloat(decay)) < 10 ? '#0f0' : '#f00'}; font-weight: bold`);
+            }
+        }, 1000);
+
+        return 'Mic diagnostic running for 30s — make constant sound into mic and watch console';
+    }
+
+    /**
+     * DIAGNOSTIC 3: Feed a constant oscillator through the FULL AudioRecorder
+     * pipeline (worklet + post-processing) for 20 seconds, then analyze the
+     * output buffer segment by segment.
+     *
+     * Call from console: window.__diagPipeline()
+     */
+    static async runPipelineDiagnostic() {
+        console.log('%c[PIPELINE DIAG] Starting 20s oscillator-through-recorder test...', 'color: #0ff; font-weight: bold');
+
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        await ctx.resume();
+
+        // Create oscillator → MediaStreamDestination (fake mic)
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = 440;
+        const oscGain = ctx.createGain();
+        oscGain.gain.value = 0.4; // ~-8 dB, typical vocal level
+        osc.connect(oscGain);
+        const streamDest = ctx.createMediaStreamDestination();
+        oscGain.connect(streamDest);
+        osc.start();
+
+        // Create AudioRecorder with a real AudioContext getter
+        const recorder = new AudioRecorder(() => ctx);
+
+        // Override the getUserMedia to use our fake stream
+        recorder.stream = streamDest.stream;
+
+        // Manually set up the recording context and nodes (same as init() but skip getUserMedia)
+        const recCtx = new Ctx();
+        await recCtx.resume();
+        recorder._recordingContext = recCtx;
+        recorder.sampleRate = recCtx.sampleRate;
+        recorder.sourceNode = recCtx.createMediaStreamSource(streamDest.stream);
+        recorder.analyserNode = recCtx.createAnalyser();
+        recorder.analyserNode.fftSize = 2048;
+        recorder.analyserNode.smoothingTimeConstant = 0.8;
+        recorder._analyserData = new Float32Array(recorder.analyserNode.fftSize);
+        recorder.sourceNode.connect(recorder.analyserNode);
+
+        // Load worklet
+        try {
+            await recCtx.audioWorklet.addModule('recording-processor.js');
+            recorder._useWorklet = true;
+            recorder._workletReady = true;
+        } catch (e) {
+            recorder._useWorklet = false;
+            console.warn('[PIPELINE DIAG] Worklet not available, using ScriptProcessor');
+        }
+
+        console.log(`[PIPELINE DIAG] Recording context: sampleRate=${recCtx.sampleRate}, state=${recCtx.state}`);
+        console.log('[PIPELINE DIAG] Recording for 20 seconds...');
+
+        // Start recording (no count-in)
+        await recorder.startRecording({ tempo: 120, countInBars: 0 });
+
+        // Log RMS every second during recording
+        let elapsed = 0;
+        const logInterval = setInterval(() => {
+            elapsed++;
+            const level = recorder.getInputLevel();
+            const bar = '█'.repeat(Math.round(level * 200));
+            console.log(`[PIPELINE DIAG ${elapsed}s] inputRMS=${level.toFixed(4)} ${bar}`);
+        }, 1000);
+
+        // Stop after 20 seconds
+        setTimeout(async () => {
+            clearInterval(logInterval);
+            const result = await recorder.stopRecording();
+            osc.stop();
+            osc.disconnect();
+            ctx.close().catch(() => {});
+            recCtx.close().catch(() => {});
+
+            if (!result || !result.audioBuffer) {
+                console.log('%c[PIPELINE DIAG] FAILED — no audio buffer returned', 'color: #f00; font-weight: bold');
+                return;
+            }
+
+            const buffer = result.audioBuffer;
+            const data = buffer.getChannelData(0);
+            const totalSamples = data.length;
+            const sr = buffer.sampleRate;
+            console.log(`[PIPELINE DIAG] Buffer: ${totalSamples} samples, ${(totalSamples/sr).toFixed(2)}s, ${sr}Hz`);
+
+            // Analyze in 1-second segments
+            const segSize = sr; // 1 second
+            const numSegs = Math.floor(totalSamples / segSize);
+            const results = [];
+
+            for (let s = 0; s < numSegs; s++) {
+                const start = s * segSize;
+                const end = start + segSize;
+                let sum = 0, peak = 0;
+                for (let i = start; i < end; i++) {
+                    sum += data[i] * data[i];
+                    const abs = Math.abs(data[i]);
+                    if (abs > peak) peak = abs;
+                }
+                const rms = Math.sqrt(sum / segSize);
+                results.push({ sec: s + 1, rms: rms.toFixed(4), peak: peak.toFixed(4) });
+            }
+
+            console.log('%c[PIPELINE DIAG] Output buffer analysis (per-second segments):', 'color: #0ff; font-weight: bold');
+            console.table(results);
+
+            const firstRms = parseFloat(results[0].rms);
+            const lastRms = parseFloat(results[results.length - 1].rms);
+            const decay = firstRms > 0 ? ((1 - lastRms / firstRms) * 100).toFixed(1) : 'N/A';
+            console.log(`%c[PIPELINE DIAG] Pipeline decay: ${decay}% (${firstRms.toFixed(4)} → ${lastRms.toFixed(4)})`,
+                `color: ${Math.abs(parseFloat(decay)) < 5 ? '#0f0' : '#f00'}; font-weight: bold`);
+
+            if (Math.abs(parseFloat(decay)) < 5) {
+                console.log('%c[PIPELINE DIAG] PASS — recording pipeline is clean. Issue is mic hardware.', 'color: #0f0; font-weight: bold');
+            } else {
+                console.log('%c[PIPELINE DIAG] FAIL — recording pipeline is modifying levels!', 'color: #f00; font-weight: bold');
+            }
+        }, 20000);
+
+        return 'Pipeline diagnostic running for 20s — watch console...';
     }
 
     /**
@@ -98,26 +389,46 @@ export class AudioRecorder {
     async init() {
         if (this.stream) return; // Already initialized
 
+        // Read recording audio processing settings from localStorage
+        let echoCancellation = false;
+        let noiseSuppression = false;
+        let deviceId = undefined;
+        try {
+            const raw = localStorage.getItem('wavloom_settings');
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.recordingEchoCancellation !== undefined) echoCancellation = s.recordingEchoCancellation;
+                if (s.recordingNoiseSuppression !== undefined) noiseSuppression = s.recordingNoiseSuppression;
+                if (s.audioInputDeviceId) deviceId = { exact: s.audioInputDeviceId };
+            }
+        } catch (_) {}
+
         this.stream = await navigator.mediaDevices.getUserMedia({
             audio: {
-                sampleRate: 44100,
                 channelCount: 1,
-                echoCancellation: false,
-                noiseSuppression: false,
-                autoGainControl: false
+                echoCancellation,
+                noiseSuppression,
+                autoGainControl: false,
+                // Chrome-specific constraints to aggressively disable all
+                // automatic audio processing that causes gain decay over time
+                googAutoGainControl: false,
+                googAutoGainControl2: false,
+                googNoiseSuppression: false,
+                googHighpassFilter: false,
+                googTypingNoiseDetection: false,
+                ...(deviceId && { deviceId })
             }
         });
 
         // Ensure main context (for count-in clicks) is running
         if (this.audioContext.state === 'suspended') await this.audioContext.resume();
 
-        // Create a DEDICATED AudioContext for recording.
-        // Each AudioContext gets its own audio rendering thread in Chrome.
-        // This isolates recording from the main context's synth/effects graph,
-        // guaranteeing 100% sample capture regardless of playback complexity.
+        // Create a DEDICATED AudioContext for recording at the system's native
+        // sample rate. Avoiding forced resampling prevents level fluctuations
+        // and dropouts on Realtek hardware.
         if (!this._recordingContext || this._recordingContext.state === 'closed') {
             const Ctx = window.AudioContext || window.webkitAudioContext;
-            this._recordingContext = new Ctx({ sampleRate: 44100 });
+            this._recordingContext = new Ctx(); // native sample rate (usually 48000)
             this._workletReady = false; // Need to reload worklet on new context
         }
 
@@ -369,6 +680,29 @@ export class AudioRecorder {
             this.processorNode.connect(recCtx.destination);
         }
 
+        // Input monitoring — route mic through track effects chain if available,
+        // otherwise direct to speakers. This lets users hear their voice through
+        // LoomSauce, Reverb, etc. in real-time while recording (monitor wet, record dry).
+        try {
+            const raw = localStorage.getItem('wavloom_settings');
+            const settings = raw ? JSON.parse(raw) : {};
+            if (settings.recordingInputMonitor) {
+                const mainCtx = this._audioCtxGetter ? this._audioCtxGetter() : this.audioContext;
+                if (mainCtx && mainCtx.state !== 'closed') {
+                    this._monitorSource = mainCtx.createMediaStreamSource(this.stream);
+                    this._monitorGain = mainCtx.createGain();
+                    this._monitorGain.gain.value = 0.8;
+                    this._monitorSource.connect(this._monitorGain);
+                    // Route through track effects chain if provided
+                    if (this._monitorTrackBus && this._monitorTrackBus.gainNode) {
+                        this._monitorGain.connect(this._monitorTrackBus.gainNode);
+                    } else {
+                        this._monitorGain.connect(mainCtx.destination);
+                    }
+                }
+            }
+        } catch (_) {}
+
         if (onRecordingStart) onRecordingStart();
     }
 
@@ -390,6 +724,16 @@ export class AudioRecorder {
         }
 
         this.recording = false;
+
+        // Disconnect input monitor
+        if (this._monitorSource) {
+            try { this._monitorSource.disconnect(); } catch (_) {}
+            this._monitorSource = null;
+        }
+        if (this._monitorGain) {
+            try { this._monitorGain.disconnect(); } catch (_) {}
+            this._monitorGain = null;
+        }
 
         // Disconnect processor
         if (this.processorNode) {
@@ -459,7 +803,67 @@ export class AudioRecorder {
         const liveCtx = this._audioCtxGetter ? this._audioCtxGetter() : this.audioContext;
         const bufCtx = this._recordingContext || liveCtx;
         const audioBuffer = bufCtx.createBuffer(1, totalLength, this.sampleRate);
-        audioBuffer.getChannelData(0).set(merged);
+        const channelData = audioBuffer.getChannelData(0);
+        channelData.set(merged);
+
+        // Post-recording leveling: counteracts Chromium's mic AGC decay by
+        // analyzing RMS in ~1s segments and applying per-segment gain to
+        // maintain consistent volume. Uses MEDIAN RMS as target so the loud
+        // beginning is reduced and the quiet end is boosted — meeting in the middle.
+        const segmentSize = Math.floor(this.sampleRate * 1.0); // 1 second segments
+        const numSegments = Math.ceil(totalLength / segmentSize);
+        if (numSegments >= 3) {
+            // 1. Compute RMS per segment
+            const segRms = [];
+            for (let s = 0; s < numSegments; s++) {
+                const start = s * segmentSize;
+                const end = Math.min(start + segmentSize, totalLength);
+                let sum = 0;
+                for (let i = start; i < end; i++) sum += channelData[i] * channelData[i];
+                segRms.push(Math.sqrt(sum / (end - start)));
+            }
+
+            // 2. Target = median RMS of non-silent segments (robust to outliers)
+            const nonSilent = segRms.filter(r => r > 0.01).sort((a, b) => a - b);
+            if (nonSilent.length >= 2) {
+                const medianIdx = Math.floor(nonSilent.length / 2);
+                const targetRms = nonSilent[medianIdx];
+
+                // 3. Compute per-segment gain — allows BOTH reduction and boost
+                const segGains = segRms.map(rms => {
+                    if (rms < 0.005) return 1.0; // Don't touch silence
+                    const gain = targetRms / rms;
+                    return Math.min(Math.max(gain, 0.25), 4.0); // -12 dB to +12 dB
+                });
+
+                // 4. Apply gain with smooth crossfade between segments
+                const fadeLen = Math.min(4096, Math.floor(segmentSize * 0.15)); // 15% fade
+                for (let s = 0; s < numSegments; s++) {
+                    const start = s * segmentSize;
+                    const end = Math.min(start + segmentSize, totalLength);
+                    const gain = segGains[s];
+                    const nextGain = s < numSegments - 1 ? segGains[s + 1] : gain;
+
+                    for (let i = start; i < end; i++) {
+                        let g = gain;
+                        // Crossfade at segment boundary
+                        const distToEnd = end - i;
+                        if (distToEnd < fadeLen && s < numSegments - 1) {
+                            const t = distToEnd / fadeLen; // 1→0
+                            g = gain * t + nextGain * (1 - t);
+                        }
+                        channelData[i] *= g;
+                        // Soft clip at 0.95 to prevent hard clipping
+                        if (channelData[i] > 0.95) channelData[i] = 0.95;
+                        else if (channelData[i] < -0.95) channelData[i] = -0.95;
+                    }
+                }
+
+                const maxGain = Math.max(...segGains);
+                const minGain = Math.min(...segGains.filter(g => g !== 1.0));
+                console.log(`[AudioRecorder] Leveled: ${numSegments} segments, target RMS ${targetRms.toFixed(4)}, gain range ${minGain.toFixed(2)}x–${maxGain.toFixed(2)}x`);
+            }
+        }
 
         // Reset merged buffer for next recording
         this._mergedLength = 0;

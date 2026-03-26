@@ -60,7 +60,15 @@ app.commandLine.appendSwitch('force-wave-audio');
 // Keep the audio service in the renderer process instead of a separate
 // sandboxed process. Removes IPC round-trips between Web Audio and the
 // OS audio output — less jitter on Realtek drivers.
-app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess');
+// Also disable WebRTC audio processing which applies AGC/noise suppression
+// at the engine level regardless of getUserMedia constraints.
+app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess,WebRtcApmInAudioService');
+
+// Disable Chromium's built-in audio processing pipeline for mic input.
+// This prevents automatic gain control, noise suppression, and echo
+// cancellation from being applied at the engine level — critical for
+// DAW-quality recording where raw mic signal is required.
+app.commandLine.appendSwitch('disable-audio-input-processing');
 
 // Allow self-signed certs from Vite's dev HTTPS server in dev mode
 if (!app.isPackaged) {
@@ -85,8 +93,8 @@ function createWindow() {
         minWidth: 1024,
         minHeight: 700,
         frame: false,
+        transparent: true,
         icon: path.join(__dirname, '..', 'src', 'images', 'wavloom_app_icon.png'),
-        backgroundColor: '#0a0a0f',
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -95,6 +103,14 @@ function createWindow() {
             sandbox: false,
             webSecurity: true,
         },
+    });
+
+    // When splash video finishes, disable transparency so the app renders normally.
+    // Transparent windows have performance overhead, so we only use it during splash.
+    ipcMain.once('splash:done', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.setBackgroundColor('#0a0a0f');
+        }
     });
 
     // Restore maximized state if it was saved

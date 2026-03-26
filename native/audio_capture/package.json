@@ -1,0 +1,16 @@
+{
+  "name": "wavloom-audio-capture",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install": "echo Run: npm run build to compile the native addon",
+    "build": "node build-addon.js",
+    "build:debug": "node build-addon.js --debug",
+    "rebuild": "node build-addon.js",
+    "clean": "cmake-js clean"
+  },
+  "dependencies": {
+    "cmake-js": "^7.3.0",
+    "node-addon-api": "^8.0.0"
+  }
+}

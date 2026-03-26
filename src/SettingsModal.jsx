@@ -30,6 +30,10 @@ const DEFAULT_SETTINGS = {
     multiplePluginWindows: true,
     autoHidePluginWindows: true,
     autoOpenPluginWindows: true,
+    // Native Audio Capture (Electron / WASAPI)
+    useNativeCapture: true,         // default ON in Electron
+    captureBufferSize: 256,         // samples: 64, 128, 256, 512, 1024
+    captureSampleRate: 48000,       // Hz: 44100, 48000, 88200, 96000
     // Vocal
     autoAnalyzeVocalOnRecord: false,
     recordingEchoCancellation: false,
@@ -108,6 +112,21 @@ const SAMPLE_RATES = [
     { label: '88,200 Hz', value: 88200 },
     { label: '96,000 Hz', value: 96000 },
     { label: '192,000 Hz', value: 192000 },
+];
+
+const CAPTURE_BUFFER_SIZES = [
+    { label: '64 samples', value: 64 },
+    { label: '128 samples', value: 128 },
+    { label: '256 samples', value: 256 },
+    { label: '512 samples', value: 512 },
+    { label: '1024 samples', value: 1024 },
+];
+
+const CAPTURE_SAMPLE_RATES = [
+    { label: '44,100 Hz', value: 44100 },
+    { label: '48,000 Hz', value: 48000 },
+    { label: '88,200 Hz', value: 88200 },
+    { label: '96,000 Hz', value: 96000 },
 ];
 
 function getDefaultVst3Paths() {
@@ -206,26 +225,48 @@ export function SettingsModal({
     const [hoveredAccent, setHoveredAccent] = useState(null);
     const [audioInputDevices, setAudioInputDevices] = useState([]);
     const [audioOutputDevices, setAudioOutputDevices] = useState([]);
+    const [nativeInputDevices, setNativeInputDevices] = useState([]);
+    const [nativeCaptureAvailable, setNativeCaptureAvailable] = useState(false);
     const [micTestActive, setMicTestActive] = useState(false);
     const [micLevel, setMicLevel] = useState(0);
-    const micTestRef = useRef(null); // { stream, ctx, analyser, animId }
+    const micTestRef = useRef(null); // { stream, ctx, analyser, animId } or { nativePolling }
     const modalRef = useRef(null);
     const testToneRef = useRef(null);
     const handleCloseRef = useRef(null);
     const inElectron = isElectron();
 
-    // Enumerate audio devices
+    // Check native audio capture availability
+    useEffect(() => {
+        if (inElectron && window.electronAPI?.audioCapture) {
+            window.electronAPI.audioCapture.isAvailable().then(avail => {
+                setNativeCaptureAvailable(avail);
+            }).catch(() => setNativeCaptureAvailable(false));
+        }
+    }, [inElectron]);
+
+    // Enumerate audio devices (browser + native)
     const enumerateAudioDevices = useCallback(async () => {
         try {
-            // Request mic permission first so device labels are populated
+            // Browser devices (always enumerate for output + fallback input)
             await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
             const devices = await navigator.mediaDevices.enumerateDevices();
             setAudioInputDevices(devices.filter(d => d.kind === 'audioinput'));
             setAudioOutputDevices(devices.filter(d => d.kind === 'audiooutput'));
         } catch (e) {
-            console.warn('[Settings] Failed to enumerate audio devices:', e);
+            console.warn('[Settings] Failed to enumerate browser audio devices:', e);
         }
-    }, []);
+        // Native WASAPI devices
+        if (inElectron && window.electronAPI?.audioCapture) {
+            try {
+                const result = await window.electronAPI.audioCapture.listDevices();
+                if (result.devices && result.devices.length > 0) {
+                    setNativeInputDevices(result.devices);
+                }
+            } catch (e) {
+                console.warn('[Settings] Failed to enumerate native audio devices:', e);
+            }
+        }
+    }, [inElectron]);
 
     // Reset draft when modal opens
     useEffect(() => {
@@ -246,6 +287,14 @@ export function SettingsModal({
             stopMicTest();
         }
     }, [isOpen, inElectron, enumerateAudioDevices]);
+
+    // Device hot-plug: re-enumerate when USB mic plugged/unplugged
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleDeviceChange = () => enumerateAudioDevices();
+        navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+        return () => navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+    }, [isOpen, enumerateAudioDevices]);
 
     // Close on Escape
     useEffect(() => {
@@ -306,62 +355,98 @@ export function SettingsModal({
 
     async function startMicTest() {
         if (micTestRef.current) return;
-        try {
-            const deviceId = draft.audioInputDeviceId || undefined;
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    channelCount: 1,
-                    echoCancellation: !!draft.recordingEchoCancellation,
-                    noiseSuppression: !!draft.recordingNoiseSuppression,
-                    ...(deviceId && { deviceId: { exact: deviceId } })
+
+        const useNative = draft.useNativeCapture && nativeCaptureAvailable && inElectron;
+
+        if (useNative) {
+            // Native WASAPI VU meter — start capture then poll getLevel()
+            try {
+                const api = window.electronAPI.audioCapture;
+                const result = await api.start(
+                    draft.audioInputDeviceId || '',
+                    draft.captureSampleRate || 48000,
+                    1
+                );
+                if (result.error) {
+                    console.warn('[Settings] Native mic test start error:', result.error);
+                    return;
                 }
-            });
-            const Ctx = window.AudioContext || window.webkitAudioContext;
-            const ctx = new Ctx();
-            // AudioContext starts suspended in Chromium — must resume before audio will play
-            if (ctx.state === 'suspended') await ctx.resume();
-
-            // Route output to the selected output device
-            if (draft.audioOutputDeviceId && ctx.setSinkId) {
-                try { await ctx.setSinkId(draft.audioOutputDeviceId); } catch (_) {}
+                const pollId = setInterval(async () => {
+                    try {
+                        const level = await api.getLevel();
+                        setMicLevel(Math.min(100, (level || 0) * 400));
+                    } catch (_) {}
+                }, 50);
+                micTestRef.current = { nativePolling: pollId };
+                setMicTestActive(true);
+            } catch (e) {
+                console.warn('[Settings] Native mic test error:', e);
             }
+        } else {
+            // Browser MediaDevices VU meter
+            try {
+                const deviceId = draft.audioInputDeviceId || undefined;
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        echoCancellation: !!draft.recordingEchoCancellation,
+                        noiseSuppression: !!draft.recordingNoiseSuppression,
+                        ...(deviceId && { deviceId: { exact: deviceId } })
+                    }
+                });
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new Ctx();
+                if (ctx.state === 'suspended') await ctx.resume();
 
-            const source = ctx.createMediaStreamSource(stream);
-            const analyser = ctx.createAnalyser();
-            analyser.fftSize = 256;
-            source.connect(analyser);
-            const dataArray = new Float32Array(analyser.fftSize);
+                if (draft.audioOutputDeviceId && ctx.setSinkId) {
+                    try { await ctx.setSinkId(draft.audioOutputDeviceId); } catch (_) {}
+                }
 
-            // Always route mic to speakers during test so user can hear themselves
-            const monitorGain = ctx.createGain();
-            monitorGain.gain.value = draft.recordingInputMonitor ? 0.8 : 0;
-            source.connect(monitorGain);
-            monitorGain.connect(ctx.destination);
+                const source = ctx.createMediaStreamSource(stream);
+                const analyser = ctx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+                const dataArray = new Float32Array(analyser.fftSize);
 
-            const tick = () => {
-                analyser.getFloatTimeDomainData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
-                const rms = Math.sqrt(sum / dataArray.length);
-                setMicLevel(Math.min(100, rms * 400));
-                if (micTestRef.current) micTestRef.current.animId = requestAnimationFrame(tick);
-            };
-            micTestRef.current = { stream, ctx, source, analyser, monitorGain, animId: requestAnimationFrame(tick) };
-            setMicTestActive(true);
-        } catch (e) {
-            console.warn('[Settings] Mic test error:', e);
+                const monitorGain = ctx.createGain();
+                monitorGain.gain.value = draft.recordingInputMonitor ? 0.8 : 0;
+                source.connect(monitorGain);
+                monitorGain.connect(ctx.destination);
+
+                const tick = () => {
+                    analyser.getFloatTimeDomainData(dataArray);
+                    let sum = 0;
+                    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+                    const rms = Math.sqrt(sum / dataArray.length);
+                    setMicLevel(Math.min(100, rms * 400));
+                    if (micTestRef.current) micTestRef.current.animId = requestAnimationFrame(tick);
+                };
+                micTestRef.current = { stream, ctx, source, analyser, monitorGain, animId: requestAnimationFrame(tick) };
+                setMicTestActive(true);
+            } catch (e) {
+                console.warn('[Settings] Mic test error:', e);
+            }
         }
     }
 
     function stopMicTest() {
         if (micTestRef.current) {
-            cancelAnimationFrame(micTestRef.current.animId);
-            micTestRef.current.stream.getTracks().forEach(t => t.stop());
-            micTestRef.current.source.disconnect();
-            if (micTestRef.current.monitorGain) {
-                try { micTestRef.current.monitorGain.disconnect(); } catch (_) {}
+            if (micTestRef.current.nativePolling) {
+                // Native capture VU — stop polling and stop capture
+                clearInterval(micTestRef.current.nativePolling);
+                if (window.electronAPI?.audioCapture) {
+                    window.electronAPI.audioCapture.stop().catch(() => {});
+                }
+            } else {
+                // Browser VU — clean up Web Audio nodes
+                cancelAnimationFrame(micTestRef.current.animId);
+                micTestRef.current.stream.getTracks().forEach(t => t.stop());
+                micTestRef.current.source.disconnect();
+                if (micTestRef.current.monitorGain) {
+                    try { micTestRef.current.monitorGain.disconnect(); } catch (_) {}
+                }
+                try { micTestRef.current.ctx.close(); } catch (_) {}
             }
-            try { micTestRef.current.ctx.close(); } catch (_) {}
             micTestRef.current = null;
         }
         setMicTestActive(false);
@@ -543,11 +628,40 @@ export function SettingsModal({
         const latencyColor = overallLatency < 20 ? '#4ade80' : overallLatency < 50 ? '#facc15' : '#ef4444';
         const latencyBarWidth = Math.min(100, (overallLatency / 100) * 100);
 
+        const useNative = draft.useNativeCapture && nativeCaptureAvailable && inElectron;
+        // Derive input device list based on capture mode
+        const inputDeviceList = useNative ? nativeInputDevices : audioInputDevices;
+        // Compute capture latency from buffer size and sample rate
+        const captureLatencyMs = draft.captureBufferSize && draft.captureSampleRate
+            ? Math.round((draft.captureBufferSize / draft.captureSampleRate) * 1000 * 100) / 100
+            : null;
+
         return (
             <div>
                 <div style={sectionTitleStyle}>{t('settings.audio')}</div>
 
                 <SubSectionTitle isDark={isDark}>{t('settings.devices')}</SubSectionTitle>
+
+                {/* Native Audio Capture toggle — only visible in Electron */}
+                {inElectron && (
+                    <div style={rowStyle}>
+                        <div>
+                            <div style={labelStyle}>{t('settings.useNativeCapture')}</div>
+                            <div style={descStyle}>{t('settings.useNativeCaptureDesc')}</div>
+                        </div>
+                        <ToggleSwitch
+                            value={draft.useNativeCapture}
+                            onChange={() => {
+                                // Stop any active mic test when toggling
+                                if (micTestActive) stopMicTest();
+                                update('useNativeCapture', !draft.useNativeCapture);
+                            }}
+                            accentColor={ac}
+                            isDark={isDark}
+                            disabled={!nativeCaptureAvailable}
+                        />
+                    </div>
+                )}
 
                 <div style={rowStyle}>
                     <div>
@@ -560,11 +674,18 @@ export function SettingsModal({
                         style={{ ...selectStyle, maxWidth: '220px' }}
                     >
                         <option value="" style={optionStyle}>{t('settings.systemDefault')}</option>
-                        {audioInputDevices.map(d => (
-                            <option key={d.deviceId} value={d.deviceId} style={optionStyle}>
-                                {d.label || `${t('settings.microphone')} (${d.deviceId.slice(0, 8)}...)`}
-                            </option>
-                        ))}
+                        {useNative
+                            ? inputDeviceList.map((d, i) => (
+                                <option key={d.id || i} value={d.id || ''} style={optionStyle}>
+                                    {d.name || `${t('settings.microphone')} ${i + 1}`}
+                                </option>
+                            ))
+                            : inputDeviceList.map(d => (
+                                <option key={d.deviceId} value={d.deviceId} style={optionStyle}>
+                                    {d.label || `${t('settings.microphone')} (${d.deviceId.slice(0, 8)}...)`}
+                                </option>
+                            ))
+                        }
                     </select>
                 </div>
 
@@ -613,6 +734,50 @@ export function SettingsModal({
                         ))}
                     </select>
                 </div>
+
+                {/* Native capture settings — buffer size, sample rate, latency */}
+                {useNative && (
+                    <>
+                        <div style={rowStyle}>
+                            <div>
+                                <div style={labelStyle}>{t('settings.captureBufferSize')}</div>
+                                <div style={descStyle}>{t('settings.captureBufferSizeDesc')}</div>
+                            </div>
+                            <select
+                                value={draft.captureBufferSize}
+                                onChange={(e) => update('captureBufferSize', Number(e.target.value))}
+                                style={selectStyle}
+                            >
+                                {CAPTURE_BUFFER_SIZES.map(b => (
+                                    <option key={b.value} value={b.value} style={optionStyle}>{b.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={rowStyle}>
+                            <div>
+                                <div style={labelStyle}>{t('settings.captureSampleRate')}</div>
+                                <div style={descStyle}>{t('settings.captureSampleRateDesc')}</div>
+                            </div>
+                            <select
+                                value={draft.captureSampleRate}
+                                onChange={(e) => update('captureSampleRate', Number(e.target.value))}
+                                style={selectStyle}
+                            >
+                                {CAPTURE_SAMPLE_RATES.map(sr => (
+                                    <option key={sr.value} value={sr.value} style={optionStyle}>{sr.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={rowStyle}>
+                            <div style={labelStyle}>{t('settings.captureLatency')}</div>
+                            <span style={readonlyValueStyle}>
+                                {captureLatencyMs !== null ? `${captureLatencyMs} ms` : '--'}
+                            </span>
+                        </div>
+                    </>
+                )}
 
                 <SubSectionTitle isDark={isDark}>{t('settings.audioEngine')}</SubSectionTitle>
 

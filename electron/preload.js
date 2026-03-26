@@ -111,6 +111,35 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
     },
 
+    // Audio capture (native WASAPI addon)
+    audioCapture: {
+        isAvailable: () => ipcRenderer.invoke('audio-capture:isAvailable'),
+        listDevices: () => ipcRenderer.invoke('audio-capture:list-devices'),
+        start: (deviceId, sampleRate, channels) => ipcRenderer.invoke('audio-capture:start', deviceId, sampleRate, channels),
+        stop: () => ipcRenderer.invoke('audio-capture:stop'),
+        getLevel: () => ipcRenderer.invoke('audio-capture:level'),
+        isCapturing: () => ipcRenderer.invoke('audio-capture:isCapturing'),
+        // Ring buffer: the preload creates the SharedArrayBuffers in its own
+        // JS world (avoiding contextBridge clone failures), sends TypedArray
+        // views to main via IPC, and returns the raw SABs to the renderer so
+        // it can share them with the AudioWorklet.
+        createRingBuffer: async (capacity, channels, sampleRate) => {
+            const stateBuffer = new SharedArrayBuffer(32);
+            const dataBuffer = new SharedArrayBuffer(capacity * 4);
+            const stateView = new Int32Array(stateBuffer);
+            const dataView = new Float32Array(dataBuffer);
+            const result = await ipcRenderer.invoke(
+                'audio-capture:attach-ring-buffer',
+                stateView, dataView, capacity, channels, sampleRate
+            );
+            if (result && result.error) {
+                return { stateBuffer: null, dataBuffer: null, error: result.error };
+            }
+            return { stateBuffer, dataBuffer, error: null };
+        },
+        detachRingBuffer: () => ipcRenderer.invoke('audio-capture:detach-ring-buffer'),
+    },
+
     // Transport clock (native high-res playback sync)
     transport: {
         play: () => ipcRenderer.send('transport:play'),

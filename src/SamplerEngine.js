@@ -532,8 +532,14 @@ export class SamplerEngine {
 
     /**
      * Arm a track for live mic monitoring through its effects chain.
-     * Routes getUserMedia mic input → track bus (with effects) → speakers.
      * Record dry, monitor wet — just like Ableton.
+     *
+     * In Electron: uses native WASAPI capture → SharedArrayBuffer ring buffer →
+     * capture-ring-reader AudioWorklet → track bus. The native capture stays
+     * running when recording starts, giving zero-latency arm-to-record transition.
+     *
+     * In browser: falls back to getUserMedia → MediaStreamSource → track bus.
+     *
      * @param {string} trackId — the track to arm
      * @returns {Promise<boolean>} true if armed successfully
      */
@@ -544,17 +550,34 @@ export class SamplerEngine {
         const bus = this.trackBuses[trackId];
         if (!bus) return false;
 
+        // Read device settings
+        let deviceId = undefined;
         try {
-            // Read device settings
-            let deviceId = undefined;
-            try {
-                const raw = localStorage.getItem('wavloom_settings');
-                if (raw) {
-                    const s = JSON.parse(raw);
-                    if (s.audioInputDeviceId) deviceId = { exact: s.audioInputDeviceId };
-                }
-            } catch (_) {}
+            const raw = localStorage.getItem('wavloom_settings');
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.audioInputDeviceId) deviceId = s.audioInputDeviceId;
+            }
+        } catch (_) {}
 
+        // ---- Try native WASAPI capture (Electron only) ----
+        const api = window.electronAPI?.audioCapture;
+        if (api) {
+            let available = false;
+            try { available = await api.isAvailable(); } catch (_) {}
+
+            if (available) {
+                try {
+                    const armed = await this._armNativeCapture(trackId, bus, api, deviceId);
+                    if (armed) return true;
+                } catch (err) {
+                    console.warn('[SamplerEngine] Native arm failed, falling back to getUserMedia:', err);
+                }
+            }
+        }
+
+        // ---- Fallback: getUserMedia ----
+        try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     channelCount: 1,
@@ -566,7 +589,7 @@ export class SamplerEngine {
                     googNoiseSuppression: false,
                     googHighpassFilter: false,
                     googTypingNoiseDetection: false,
-                    ...(deviceId && { deviceId })
+                    ...(deviceId && { deviceId: { exact: deviceId } })
                 }
             });
 
@@ -578,11 +601,11 @@ export class SamplerEngine {
             const gain = ctx.createGain();
             gain.gain.value = 0.8;
             source.connect(gain);
-            gain.connect(bus.gainNode); // Routes through track effects chain → master → speakers
+            gain.connect(bus.gainNode);
 
-            this._armState = { trackId, stream, source, gain };
-            this._audioClipsPlaying = true; // Suppress hot-swap while armed
-            console.log(`[SamplerEngine] Track ${trackId} armed — live monitoring through effects`);
+            this._armState = { trackId, stream, source, gain, native: false };
+            this._audioClipsPlaying = true;
+            console.log(`[SamplerEngine] Track ${trackId} armed (getUserMedia) — live monitoring through effects`);
             return true;
         } catch (e) {
             console.warn('[SamplerEngine] Failed to arm track:', e);
@@ -591,14 +614,118 @@ export class SamplerEngine {
     }
 
     /**
+     * Arm via native WASAPI capture: starts capture, creates ring buffer worklet
+     * on a dedicated AudioContext, and bridges audio to the track bus on the main
+     * context for monitoring.
+     *
+     * @returns {Promise<boolean>} true on success
+     */
+    async _armNativeCapture(trackId, bus, api, deviceId) {
+        const mainCtx = this.audioContext;
+        if (!mainCtx || mainCtx.state === 'closed') return false;
+        if (mainCtx.state === 'suspended') await mainCtx.resume();
+
+        const sr = mainCtx.sampleRate;
+        const channels = 1;
+
+        // Create SharedArrayBuffers via the preload (avoids contextBridge clone
+        // failures) and attach them to the native addon in one call.
+        const capacity = sr * channels * 2;
+        const ringResult = await api.createRingBuffer(capacity, channels, sr);
+        if (ringResult.error) throw new Error(ringResult.error);
+        const { stateBuffer, dataBuffer } = ringResult;
+
+        // Start WASAPI capture
+        const startResult = await api.start(deviceId || '', sr, channels);
+        if (startResult && startResult.error) {
+            await api.detachRingBuffer();
+            throw new Error(startResult.error);
+        }
+
+        // Create a dedicated AudioContext for the ring reader worklet.
+        // This drives the worklet's process() loop independently of the main context.
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const armCtx = new Ctx({ sampleRate: sr });
+        await armCtx.resume();
+
+        // Load capture-ring-reader worklet
+        await armCtx.audioWorklet.addModule('worklets/capture-ring-reader.js');
+
+        // Create the ring reader worklet (no audio input — reads from SAB)
+        const workletNode = new AudioWorkletNode(armCtx, 'capture-ring-reader', {
+            numberOfInputs: 0,
+            numberOfOutputs: 1,
+            outputChannelCount: [1],
+            channelCount: 1
+        });
+
+        // Send SharedArrayBuffers to the worklet
+        workletNode.port.postMessage({
+            type: 'attach',
+            stateBuffer,
+            dataBuffer
+        });
+
+        // Bridge audio from armCtx → mainCtx via MediaStream.
+        // armCtx worklet → MediaStreamDestination → mainCtx MediaStreamSource → track bus
+        const streamDest = armCtx.createMediaStreamDestination();
+        workletNode.connect(streamDest);
+        workletNode.connect(armCtx.destination); // keep process() alive
+
+        const bridgeSource = mainCtx.createMediaStreamSource(streamDest.stream);
+        const monitorGain = mainCtx.createGain();
+        monitorGain.gain.value = 0.8;
+        bridgeSource.connect(monitorGain);
+        monitorGain.connect(bus.gainNode);
+
+        this._armState = {
+            trackId,
+            native: true,
+            armCtx,
+            workletNode,
+            streamDest,
+            bridgeSource,
+            monitorGain,
+            stateBuffer,
+            dataBuffer,
+            capacity
+        };
+        this._audioClipsPlaying = true;
+        console.log(`[SamplerEngine] Track ${trackId} armed (native WASAPI) — live monitoring through effects`);
+        return true;
+    }
+
+    /**
      * Disarm the currently armed track — stop mic monitoring.
      */
     disarmTrack() {
         if (!this._armState) return;
-        const { stream, source, gain, trackId } = this._armState;
-        try { source.disconnect(); } catch (_) {}
-        try { gain.disconnect(); } catch (_) {}
-        stream.getTracks().forEach(t => t.stop());
+        const st = this._armState;
+        const trackId = st.trackId;
+
+        if (st.native) {
+            // Native path: disconnect worklet, stop capture, close arm context
+            try { st.workletNode.port.postMessage({ type: 'detach' }); } catch (_) {}
+            try { st.workletNode.disconnect(); } catch (_) {}
+            try { st.bridgeSource.disconnect(); } catch (_) {}
+            try { st.monitorGain.disconnect(); } catch (_) {}
+            // Stop native capture and detach ring buffer
+            const api = window.electronAPI?.audioCapture;
+            if (api) {
+                api.stop().catch(() => {});
+                api.detachRingBuffer().catch(() => {});
+            }
+            // Close the dedicated arm context
+            if (st.armCtx && st.armCtx.state !== 'closed') {
+                st.armCtx.close().catch(() => {});
+            }
+        } else {
+            // getUserMedia path
+            try { st.source.disconnect(); } catch (_) {}
+            try { st.gain.disconnect(); } catch (_) {}
+            st.stream.getTracks().forEach(t => t.stop());
+        }
+
         this._armState = null;
         this._audioClipsPlaying = false;
         console.log(`[SamplerEngine] Track ${trackId} disarmed`);
@@ -607,6 +734,22 @@ export class SamplerEngine {
     /** @returns {string|null} the currently armed track ID */
     get armedTrackId() {
         return this._armState?.trackId || null;
+    }
+
+    /**
+     * Transfer the native arm state to an AudioRecorder for recording.
+     * The capture keeps running — the recorder just attaches its recording
+     * worklet to the already-active ring buffer.
+     *
+     * @returns {object|null} the arm state if native, or null
+     */
+    takeNativeArmState() {
+        if (!this._armState || !this._armState.native) return null;
+        const state = this._armState;
+        // Clear arm state without stopping capture — recorder takes ownership
+        this._armState = null;
+        this._audioClipsPlaying = false;
+        return state;
     }
 
     /**

@@ -1598,8 +1598,10 @@ const WavLoomAppComplete = () => {
                 recorderRef.current = new AudioRecorder(() => samplerRef.current?.audioContext);
             }
             // Always call init() — it's a no-op if already initialized, but
-            // handles the case where a previous init() failed (no stream)
-            await recorderRef.current.init();
+            // handles the case where a previous init() failed (no stream).
+            // Pass the sampler so init() can take ownership of a running native
+            // arm capture (zero-latency arm-to-record transition).
+            await recorderRef.current.init(samplerRef.current);
 
             setIsCountingIn(true);
             setCountInBeat(null);
@@ -2140,10 +2142,17 @@ const WavLoomAppComplete = () => {
         }
     }, []);
 
-    // Disarm when recording starts (recording handles its own monitoring)
+    // When recording starts:
+    // - getUserMedia arm: disarm it (recording creates its own monitoring)
+    // - Native arm: takeNativeArmState() already transferred ownership to the
+    //   recorder in init(), so _armState is null. Just clear the React state.
     useEffect(() => {
         if (isRecording && armedTrackId) {
-            samplerRef.current?.disarmTrack();
+            const sampler = samplerRef.current;
+            if (sampler && sampler._armState && !sampler._armState.native) {
+                sampler.disarmTrack();
+            }
+            // Clear React state — either we disarmed or the recorder took ownership
             setArmedTrackId(null);
         }
     }, [isRecording, armedTrackId]);
@@ -2969,6 +2978,13 @@ const WavLoomAppComplete = () => {
         const tracks = audioTracksRef.current;
         if (!tracks || tracks.length === 0) return;
         const ctx = sampler.audioContext;
+
+        // Suppress AudioContext hot-swap while audio clips are playing —
+        // native WASAPI capture doesn't use the AudioContext, so the only
+        // reason to hot-swap is the Realtek driver workaround, but swapping
+        // during clip playback causes clicks.
+        const hasClips = tracks.some(t => t.clips && t.clips.length > 0);
+        if (hasClips) sampler.setAudioClipsPlaying(true);
 
         // Idempotent: stop all existing audio clip sources before scheduling new ones.
         // This prevents duplicate source nodes when called multiple times per tick

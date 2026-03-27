@@ -11,7 +11,7 @@ import { loopMelodicPattern } from './patternUtils';
 import { useTranslation } from './i18n/I18nContext.jsx';
 
 const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, theme, globalKey, globalScale, globalTempo, globalBars, globalResolution, globalKey_Theory, globalScale_Theory, globalIsPlaying, globalCurrentStep, globalCurrentStepRef, globalIsPlayingRef, globalContinuousProgress, globalPlayStartTime, globalMood, globalGenre, globalOctave, setGlobalOctave, onPatternChange, onStatusChange, onInstrumentLoad, onSampleLoadingChange, externalPattern, globalSolos, updateGlobalSolo, isAnythingSoloed, globalMutes, setGlobalMutes, onGlobalGenerate, onSuggest, onAddToArrangement, isGenerated, setIsGenerated, onExportClick, onLoadClick, onNewProject, onLoadSlicedInstrument, accentColors, confirmBeforeClear, setGlobalBars, globalRepeat, setGlobalRepeat,
-    onClipGenerated, editingClipId, clipPlaybackActive }, ref) => {
+    onClipGenerated, editingClipId, clipPlaybackActive, onMidiDrop }, ref) => {
     const { t } = useTranslation();
     const ac = accentColors?.accent || '#ff6b6b';
     const acSec = accentColors?.secondary || '#ff9f43';
@@ -176,10 +176,8 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                 let notes = draggedItem.midiNotes;
                 let tpb = draggedItem.ticksPerBeat || 480;
 
-                // Parse on-demand if notes not pre-parsed (Browser.jsx path)
                 if (!notes || notes.length === 0) {
-                    let file;
-                    file = await getFileFromItem(draggedItem);
+                    const file = await getFileFromItem(draggedItem);
                     if (file) {
                         const parser = new MIDIParser();
                         const midiData = await parser.loadMIDIFile(file);
@@ -188,31 +186,19 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                             notes = [...notes, ...parser.eventsToNotes(track.events)];
                         });
                         tpb = midiData.ticksPerBeat || 480;
-                        // Cache for future use
                         draggedItem.midiNotes = notes;
                         draggedItem.ticksPerBeat = tpb;
                     }
                 }
 
-                if (notes && notes.length > 0) {
-                    const ticksPerStep = tpb / 8;
-                    const newPattern = notes.map(n => ({
-                        time: Math.floor(n.startTick / ticksPerStep),
-                        duration: Math.max(1, Math.floor(n.duration / ticksPerStep)),
-                        note: n.note,
-                        velocity: n.velocity / 127
-                    })).filter(n => n.time < globalBars * 32);
-
-                    setChordPattern(newPattern);
-                    if (setIsGenerated) setIsGenerated(true);
-                    if (onPatternChange) onPatternChange(newPattern);
-                    console.log('[Chords] Loaded MIDI pattern from drop:', newPattern.length, 'notes');
+                if (notes && notes.length > 0 && onMidiDrop) {
+                    onMidiDrop(notes, tpb);
                     return;
                 }
             } catch (err) { console.error('[Chords] MIDI drop error:', err); }
         }
 
-        // Check for MIDI file from external drag (native file)
+        // Check for external MIDI file drag (native file)
         let file = null;
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             file = e.dataTransfer.files[0];
@@ -224,19 +210,10 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                     midiData.tracks.forEach(track => {
                         allNotes = [...allNotes, ...parser.eventsToNotes(track.events)];
                     });
-                    const ticksPerStep = (midiData.ticksPerBeat || 480) / 8;
-                    const newPattern = allNotes.map(n => ({
-                        time: Math.floor(n.startTick / ticksPerStep),
-                        duration: Math.max(1, Math.floor(n.duration / ticksPerStep)),
-                        note: n.note,
-                        velocity: n.velocity / 127
-                    })).filter(n => n.time < globalBars * 32);
-
-                    setChordPattern(newPattern);
-                    if (setIsGenerated) setIsGenerated(true);
-                    if (onPatternChange) onPatternChange(newPattern);
-                    console.log('[Chords] Loaded external MIDI:', newPattern.length, 'notes');
-                    return;
+                    if (allNotes.length > 0 && onMidiDrop) {
+                        onMidiDrop(allNotes, midiData.ticksPerBeat || 480);
+                        return;
+                    }
                 } catch (err) { console.error('[Chords] External MIDI parse error:', err); }
             }
         } else if (draggedItem && (draggedItem.handle || draggedItem.nativePath)) {

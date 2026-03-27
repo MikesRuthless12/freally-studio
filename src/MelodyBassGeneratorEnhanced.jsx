@@ -53,7 +53,7 @@ const filterMidiPatternByType = (pattern, type) => {
 };
 
 const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, theme, globalKey, globalScale, globalTempo, globalBars, globalResolution, globalIsPlaying, globalCurrentStep, globalCurrentStepRef, globalIsPlayingRef, globalContinuousProgress, globalPlayStartTime, globalMood, globalGenre, globalOctave, setGlobalOctave, type, onPatternChange, onStatusChange, onInstrumentLoad, onSampleLoadingChange, externalPattern, chordPatternData, globalSolos, updateGlobalSolo, isAnythingSoloed, globalMutes, setGlobalMutes, onGlobalGenerate, onAddToArrangement, isGenerated, setIsGenerated, onExportClick, onLoadClick, onNewProject, onSuggest, onLoadSlicedInstrument, accentColors, confirmBeforeClear, setGlobalBars, globalRepeat, setGlobalRepeat,
-    onClipGenerated, editingClipId, clipPlaybackActive }, ref) => {
+    onClipGenerated, editingClipId, clipPlaybackActive, onMidiDrop }, ref) => {
     const { t } = useTranslation();
     const ac = accentColors?.accent || '#ff6b6b';
     const acSec = accentColors?.secondary || '#ff9f43';
@@ -217,10 +217,8 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                 let notes = draggedItem.midiNotes;
                 let tpb = draggedItem.ticksPerBeat || 480;
 
-                // Parse on-demand if notes not pre-parsed (Browser.jsx path)
                 if (!notes || notes.length === 0) {
-                    let file;
-                    file = await getFileFromItem(draggedItem);
+                    const file = await getFileFromItem(draggedItem);
                     if (file) {
                         const parser = new MIDIParser();
                         const midiData = await parser.loadMIDIFile(file);
@@ -234,20 +232,8 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                     }
                 }
 
-                if (notes && notes.length > 0) {
-                    const ticksPerStep = tpb / 8;
-                    const newPattern = notes.map(n => ({
-                        time: Math.floor(n.startTick / ticksPerStep),
-                        duration: Math.max(1, Math.floor(n.duration / ticksPerStep)),
-                        note: n.note,
-                        velocity: 1.0 // Force 100% velocity for consistent solid color in UI
-                    })).filter(n => n.time < globalBars * 32);
-
-                    const filteredPattern = filterMidiPatternByType(newPattern, type);
-                    setPattern(filteredPattern);
-                    if (setIsGenerated) setIsGenerated(true);
-                    if (onPatternChange) onPatternChange(filteredPattern);
-                    console.log(`[${type}] Loaded MIDI pattern from drop:`, filteredPattern.length, 'notes');
+                if (notes && notes.length > 0 && onMidiDrop) {
+                    onMidiDrop(notes, tpb);
                     return;
                 }
             } catch (err) { console.error(`[${type}] MIDI drop error:`, err); }
@@ -265,19 +251,10 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                     midiData.tracks.forEach(track => {
                         allNotes = [...allNotes, ...parser.eventsToNotes(track.events)];
                     });
-                    const ticksPerStep = (midiData.ticksPerBeat || 480) / 8;
-                    const newPattern = allNotes.map(n => ({
-                        time: Math.floor(n.startTick / ticksPerStep),
-                        duration: Math.max(1, Math.floor(n.duration / ticksPerStep)),
-                        note: n.note,
-                        velocity: 1.0 // Force 100% velocity for consistent solid color in UI
-                    })).filter(n => n.time < globalBars * 32);
-
-                    const filteredPattern = filterMidiPatternByType(newPattern, type);
-                    setPattern(filteredPattern);
-                    if (setIsGenerated) setIsGenerated(true);
-                    if (onPatternChange) onPatternChange(filteredPattern);
-                    return;
+                    if (allNotes.length > 0 && onMidiDrop) {
+                        onMidiDrop(allNotes, midiData.ticksPerBeat || 480);
+                        return;
+                    }
                 } catch (err) { console.error(`[${type}] External MIDI parse error:`, err); }
             }
         } else if (draggedItem && (draggedItem.handle || draggedItem.nativePath)) {

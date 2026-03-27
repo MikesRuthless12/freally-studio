@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
-export function GoogleAuth({ onLogin, isDark, isHost, accentColor }) {
+export function GoogleAuth({ onLogin, isDark, isHost, accentColor, hasPeers, currentProfile }) {
     const [profile, setProfile] = useState(null);
+
+    // Reset to sign-in view when external profile is cleared (e.g. host disconnect)
+    useEffect(() => {
+        if (currentProfile && !currentProfile.name?.trim() && profile) {
+            setProfile(null);
+        }
+    }, [currentProfile]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [showGuestInput, setShowGuestInput] = useState(false);
     const [guestName, setGuestName] = useState('');
@@ -9,7 +17,7 @@ export function GoogleAuth({ onLogin, isDark, isHost, accentColor }) {
     const ac = accentColor || '#39ff14';
 
     const handleGuestSignIn = () => {
-        const name = guestName.trim() || 'Guest';
+        const name = (guestName.trim() || 'Guest').slice(0, 20);
         const userProfile = { name, email: `${name.toLowerCase().replace(/\s+/g, '')}@local` };
         setProfile(userProfile);
         setShowGuestInput(false);
@@ -21,7 +29,8 @@ export function GoogleAuth({ onLogin, isDark, isHost, accentColor }) {
     useEffect(() => {
         if (!dropdownOpen) return;
         const handleClickOutside = (e) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)
+                && !(dropdownRef.current._portalEl && dropdownRef.current._portalEl.contains(e.target))) {
                 setDropdownOpen(false);
             }
         };
@@ -32,14 +41,14 @@ export function GoogleAuth({ onLogin, isDark, isHost, accentColor }) {
     const handleLogout = () => {
         setProfile(null);
         setDropdownOpen(false);
-        if (onLogin) onLogin({ name: 'Anonymous', email: '' });
+        if (onLogin) onLogin({ name: '', email: '' });
     };
 
     const handleSwitchName = () => {
         setProfile(null);
         setDropdownOpen(false);
         setShowGuestInput(true);
-        if (onLogin) onLogin({ name: 'Anonymous', email: '' });
+        if (onLogin) onLogin({ name: '', email: '' });
     };
 
     // Not signed in
@@ -80,7 +89,8 @@ export function GoogleAuth({ onLogin, isDark, isHost, accentColor }) {
                         <input
                             autoFocus
                             value={guestName}
-                            onChange={e => setGuestName(e.target.value)}
+                            maxLength={20}
+                            onChange={e => setGuestName(e.target.value.slice(0, 20))}
                             onKeyDown={e => { if (e.key === 'Enter') handleGuestSignIn(); if (e.key === 'Escape') setShowGuestInput(false); }}
                             placeholder="Display name"
                             style={{
@@ -160,92 +170,104 @@ export function GoogleAuth({ onLogin, isDark, isHost, accentColor }) {
                 )}
             </button>
 
-            {/* Dropdown menu */}
-            {dropdownOpen && (
-                <div style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    right: 0,
-                    minWidth: '180px',
-                    background: isDark ? 'rgba(25, 25, 30, 0.98)' : '#fff',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0'}`,
-                    borderRadius: '10px',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-                    backdropFilter: 'blur(20px)',
-                    zIndex: 2000,
-                    overflow: 'hidden'
-                }}>
-                    {/* Profile info */}
-                    <div style={{
-                        padding: '12px 14px',
-                        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#eee'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                    }}>
+            {/* Dropdown menu — rendered via portal so it escapes stacking context */}
+            {dropdownOpen && (() => {
+                const rect = dropdownRef.current?.getBoundingClientRect();
+                const top = rect ? rect.bottom + 6 : 50;
+                const right = rect ? window.innerWidth - rect.right : 0;
+                return createPortal(
+                    <div
+                        ref={el => {
+                            // Also include portal in outside-click detection
+                            if (el) dropdownRef.current._portalEl = el;
+                        }}
+                        style={{
+                            position: 'fixed',
+                            top,
+                            right,
+                            minWidth: '180px',
+                            background: isDark ? 'rgba(25, 25, 30, 0.98)' : '#fff',
+                            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0'}`,
+                            borderRadius: '10px',
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+                            backdropFilter: 'blur(20px)',
+                            zIndex: 2147483646,
+                            overflow: 'hidden'
+                        }}
+                    >
+                        {/* Profile info */}
                         <div style={{
-                            width: '32px', height: '32px', borderRadius: '50%',
-                            background: isDark ? '#333' : '#ddd',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '14px', fontWeight: 'bold', color: isDark ? '#aaa' : '#666'
-                        }}>
-                            {(profile.name || '?')[0].toUpperCase()}
-                        </div>
-                        <span style={{
-                            fontSize: '12px', fontWeight: 'bold',
-                            color: isDark ? '#fff' : '#333',
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                        }}>{profile.name}</span>
-                    </div>
-
-                    {/* Change name */}
-                    <button
-                        onClick={handleSwitchName}
-                        style={{
-                            width: '100%',
-                            padding: '10px 14px',
-                            background: 'none',
-                            border: 'none',
+                            padding: '12px 14px',
                             borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#eee'}`,
-                            color: isDark ? '#ccc' : '#444',
-                            fontSize: '11px',
-                            cursor: 'pointer',
-                            textAlign: 'left',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            transition: 'background 0.15s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                    >
-                        Change name
-                    </button>
+                            gap: '10px'
+                        }}>
+                            <div style={{
+                                width: '32px', height: '32px', borderRadius: '50%',
+                                background: isDark ? '#333' : '#ddd',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '14px', fontWeight: 'bold', color: isDark ? '#aaa' : '#666'
+                            }}>
+                                {(profile.name || '?')[0].toUpperCase()}
+                            </div>
+                            <span style={{
+                                fontSize: '12px', fontWeight: 'bold',
+                                color: isDark ? '#fff' : '#333',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                            }}>{profile.name}</span>
+                        </div>
 
-                    {/* Sign out */}
-                    <button
-                        onClick={handleLogout}
-                        style={{
-                            width: '100%',
-                            padding: '10px 14px',
-                            background: 'none',
-                            border: 'none',
-                            color: '#ff4b4b',
-                            fontSize: '11px',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            transition: 'background 0.15s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,75,75,0.08)' : 'rgba(255,75,75,0.05)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                    >
-                        Sign out
-                    </button>
-                </div>
-            )}
+                        {/* Change name */}
+                        <button
+                            onClick={handleSwitchName}
+                            style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                background: 'none',
+                                border: 'none',
+                                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#eee'}`,
+                                color: isDark ? '#ccc' : '#444',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                        >
+                            Change name
+                        </button>
+
+                        {/* Sign out — disconnects from session and stops cursor tracking */}
+                        <button
+                            onClick={handleLogout}
+                            style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                background: 'none',
+                                border: 'none',
+                                color: '#ff4b4b',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,75,75,0.08)' : 'rgba(255,75,75,0.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                        >
+                            {hasPeers ? 'Disconnect & Sign out' : 'Sign out'}
+                        </button>
+                    </div>,
+                    document.body
+                );
+            })()}
         </div>
     );
 }

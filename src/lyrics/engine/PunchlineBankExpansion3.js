@@ -406,10 +406,10 @@ export const PUNCHLINE_PHRASES_EXPANSION3 = {
         all: [
             "the food chain rearranged i'm the top of the chain",
             "the migraine they get when i dominate the lane",
-            "the membrane the campaign running through my brain",
+            "the membrane - the campaign - running through my brain",
             "the supply chain disrupted by my reign",
             "i make it look mundane but it's a hurricane",
-            "the explain the complain the entertain",
+            "the cellophane - the candy cane - the paper plane",
             "the windowpane reflecting the champagne",
             "the cellophane the candy cane the paper plane",
             "the Great Dane of the rap terrain",

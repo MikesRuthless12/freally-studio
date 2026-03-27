@@ -582,7 +582,7 @@ export const GENRE_BANKS_EXPANSION = {
         verses: [
             'singing from the deepest part of me',
             'soul music setting spirits free',
-            'the melody is all i need to be',
+            'the melody - is all i need to be',
             'feel the rhythm running through the key',
             'my heart is open can you see',
             'the notes are flowing like the sea',

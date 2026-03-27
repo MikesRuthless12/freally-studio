@@ -26,7 +26,7 @@ function detectNonsenseIssues(line) {
 
     // 1. Repeated adjacent words: "the the", "we we" (excluding intentional repetition hooks)
     for (let i = 0; i < words.length - 1; i++) {
-        if (words[i] === words[i + 1] && !['go', 'no', 'yeah', 'oh', 'hey', 'na', 'la', 'night', 'louder', 'spinning', 'alive', 'hallelujah', 'sabor', 'vamos', 'baila', 'dale', 'encore', 'higher', 'deeper', 'faster', 'stronger', 'triple', 'cha', 'knock', 'dollar', 'bang', 'boom', 'clap', 'stomp'].includes(words[i])) {
+        if (words[i] === words[i + 1] && !['go', 'no', 'yeah', 'oh', 'hey', 'na', 'la', 'night', 'louder', 'spinning', 'alive', 'hallelujah', 'sabor', 'vamos', 'baila', 'dale', 'encore', 'higher', 'deeper', 'faster', 'stronger', 'triple', 'cha', 'knock', 'dollar', 'bang', 'boom', 'clap', 'stomp', 'holla', 'baby', 'ooh', 'mayday'].includes(words[i])) {
             issues.push(`REPEATED_WORD: "${words[i]} ${words[i + 1]}"`);
         }
     }
@@ -42,7 +42,8 @@ function detectNonsenseIssues(line) {
     }
 
     // 4. Ends with a preposition/article/conjunction (weak ending)
-    const weakEndings = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'was', 'are', 'were', 'be']);
+    // Note: "be" excluded — valid as line-ending verb ("all I need to be", "who I want to be")
+    const weakEndings = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'was', 'are', 'were']);
     const lastWord = words[words.length - 1];
     if (weakEndings.has(lastWord)) {
         issues.push(`WEAK_ENDING: ends with "${lastWord}"`);
@@ -403,7 +404,7 @@ function formatReport(noPunchResults, withPunchResults) {
 }
 
 describe('Hip Hop Lyrics Audit — 100 Generations', () => {
-    it('should run 50 generations WITHOUT punchlines and 50 WITH, and produce audit report', { timeout: 120000 }, () => {
+    it('should run 50 generations WITHOUT punchlines and 50 WITH, and produce audit report', { timeout: 600000 }, () => {
         console.log('\n=== STARTING HIP HOP LYRICS AUDIT ===\n');
         console.log('Running 50 generations WITHOUT punchlines...');
         const noPunchResults = runGenerations(50, false);

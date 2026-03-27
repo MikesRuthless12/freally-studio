@@ -2,6 +2,11 @@ appId: com.havocsoftware.wavloom
 productName: WavLoom Studio
 copyright: Copyright (c) Havoc Software
 
+protocols:
+  - name: WavLoom Collab
+    schemes:
+      - wavloom
+
 directories:
   buildResources: build
   output: release
@@ -44,6 +49,7 @@ mac:
     - target: dmg
       arch: [x64, arm64]
   icon: src/images/wavloom_app_icon.png
+  category: public.app-category.music
 
 linux:
   target:
@@ -52,6 +58,11 @@ linux:
     - target: deb
       arch: [x64]
   icon: src/images/wavloom_app_icon.png
+  category: AudioVideo
+  mimeTypes:
+    - x-scheme-handler/wavloom
+  desktop:
+    MimeType: x-scheme-handler/wavloom
 
 nsis:
   oneClick: false

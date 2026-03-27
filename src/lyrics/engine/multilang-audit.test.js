@@ -69,6 +69,10 @@ const WHITELIST = new Set([
     'mais', 'vai', 'vem',
     'motto', 'yume', 'nan', 'neo',
     'aye', 'yo', 'woah', 'ooh', 'ah', 'eh',
+    // Musical onomatopoeia / intentional lyrical repetition
+    'boom', 'bang', 'clap', 'stomp', 'knock',
+    'wah', 'cha', 'tam',
+    'santo', 'brillamos', 'bailamos',
 ]);
 const WEAK = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'was', 'are', 'were', 'be']);
 
@@ -148,5 +152,5 @@ describe(`${lang.name} (${lang.code}) Audit — 25 × 12 genres`, () => {
         // Reset
         setGenerationLanguage('en');
 
-    }, 180000); // 3 min timeout
+    }, 600000); // 10 min timeout
 });

@@ -9,6 +9,10 @@ export function getOrCreateRoom() {
 }
 
 export function createInviteLink(roomId) {
+    // In Electron, use wavloom:// protocol so the link opens the desktop app
+    if (window.electronAPI?.isElectron) {
+        return `wavloom://join?room=${encodeURIComponent(roomId)}`;
+    }
     const url = new URL(window.location.href);
     url.searchParams.set('room', roomId);
     return url.toString();

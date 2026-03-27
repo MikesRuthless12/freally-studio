@@ -5,6 +5,7 @@ const os = require('os');
 const { TransportClock } = require('./transportClock');
 const { VST3Scanner } = require('./vst3Scanner');
 const { loadNativeAddon, getAddon, registerIPC: registerVST3HostIPC } = require('./vst3HostBridge');
+const { loadNativeAddon: loadAudioCaptureAddon, registerIPC: registerAudioCaptureIPC } = require('./audioCaptureBridge');
 
 // Suppress EPIPE errors on stdout/stderr (harmless — occurs when pipe closes during shutdown)
 process.stdout?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });
@@ -28,16 +29,51 @@ function saveSettings(data) {
     } catch (_) {}
 }
 
+// Register wavloom:// protocol for deep-link collab invites
+if (process.defaultApp) {
+    // Dev mode: register with path to electron executable + script
+    if (process.argv.length >= 2) {
+        app.setAsDefaultProtocolClient('wavloom', process.execPath, [path.resolve(process.argv[1])]);
+    }
+} else {
+    app.setAsDefaultProtocolClient('wavloom');
+}
+
+// Extract room param from a wavloom:// URL
+function extractRoomFromUrl(url) {
+    if (!url || !url.startsWith('wavloom://')) return null;
+    try {
+        // wavloom://join?room=abc123 → abc123
+        const parsed = new URL(url.replace('wavloom://', 'https://wavloom/'));
+        return parsed.searchParams.get('room') || null;
+    } catch { return null; }
+}
+
+// Pending deep-link room (set before window is ready)
+let pendingDeepLinkRoom = null;
+
+// Check if launched with a wavloom:// URL (Windows/Linux pass it as argv)
+const deepLinkArg = process.argv.find(a => a.startsWith('wavloom://'));
+if (deepLinkArg) {
+    pendingDeepLinkRoom = extractRoomFromUrl(deepLinkArg);
+}
+
 // Single instance lock — prevent multiple copies of the app from running.
-// If a second instance launches, focus the existing window instead.
+// If a second instance launches, focus the existing window and forward the deep link.
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
     app.quit();
 } else {
-    app.on('second-instance', () => {
+    app.on('second-instance', (_event, argv) => {
+        // Forward deep-link room param from second instance
+        const url = argv.find(a => a.startsWith('wavloom://'));
+        const room = url ? extractRoomFromUrl(url) : null;
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
             mainWindow.focus();
+            if (room) {
+                mainWindow.webContents.send('deeplink:room', room);
+            }
         }
     });
 }
@@ -46,28 +82,22 @@ if (!gotLock) {
 // This lets us use same-origin-allow-popups for COOP so Google auth popups work.
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
-// Bypass Chromium's internal audio resampler — sends audio straight to the OS
-// at the native sample rate (48 kHz on most Realtek hardware). Eliminates the
-// resampling loop that causes Realtek drivers to degrade into static after
-// sustained Web Audio playback.
-app.commandLine.appendSwitch('disable-audio-output-resampler');
+// ---- Audio engine flags (platform-aware) ----
 
-// Use the legacy Windows WAVE audio API instead of WASAPI. WAVE is simpler
-// and more tolerant of Realtek driver quirks that cause static/degradation
-// with WASAPI's shared-mode audio session.
-app.commandLine.appendSwitch('force-wave-audio');
+// Windows-only: bypass Chromium's internal audio resampler and use the legacy
+// WAVE API instead of WASAPI. Fixes Realtek driver static/degradation issues.
+if (process.platform === 'win32') {
+    app.commandLine.appendSwitch('disable-audio-output-resampler');
+    app.commandLine.appendSwitch('force-wave-audio');
+}
 
-// Keep the audio service in the renderer process instead of a separate
-// sandboxed process. Removes IPC round-trips between Web Audio and the
-// OS audio output — less jitter on Realtek drivers.
-// Also disable WebRTC audio processing which applies AGC/noise suppression
-// at the engine level regardless of getUserMedia constraints.
+// All platforms: keep the audio service in-process for lower latency,
+// and disable WebRTC audio processing (AGC/noise suppression) for DAW-quality audio.
 app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess,WebRtcApmInAudioService');
 
-// Disable Chromium's built-in audio processing pipeline for mic input.
-// This prevents automatic gain control, noise suppression, and echo
-// cancellation from being applied at the engine level — critical for
-// DAW-quality recording where raw mic signal is required.
+// All platforms: disable Chromium's built-in audio processing pipeline for mic
+// input — prevents automatic gain control, noise suppression, and echo
+// cancellation from being applied at the engine level.
 app.commandLine.appendSwitch('disable-audio-input-processing');
 
 // Allow self-signed certs from Vite's dev HTTPS server in dev mode
@@ -80,10 +110,13 @@ const isDev = !app.isPackaged;
 const transport = new TransportClock();
 let vst3Scanner = null; // Initialized after app.getPath('userData') is available
 let vst3HostLoaded = false;
+let audioCaptureLoaded = false;
 
 function createWindow() {
     const settings = loadSettings();
     const bounds = settings.windowBounds || {};
+
+    const isMac = process.platform === 'darwin';
 
     mainWindow = new BrowserWindow({
         width: bounds.width || 1400,
@@ -92,8 +125,10 @@ function createWindow() {
         y: bounds.y,
         minWidth: 1024,
         minHeight: 700,
-        frame: false,
-        transparent: true,
+        frame: isMac,                                  // macOS: native frame with traffic lights
+        titleBarStyle: isMac ? 'hiddenInset' : undefined, // macOS: hide title but keep traffic lights
+        transparent: !isMac,                            // transparent only on Windows/Linux (splash)
+        trafficLightPosition: isMac ? { x: 12, y: 12 } : undefined,
         icon: path.join(__dirname, '..', 'src', 'images', 'wavloom_app_icon.png'),
         show: false,
         webPreferences: {
@@ -107,11 +142,14 @@ function createWindow() {
 
     // When splash video finishes, disable transparency so the app renders normally.
     // Transparent windows have performance overhead, so we only use it during splash.
-    ipcMain.once('splash:done', () => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.setBackgroundColor('#0a0a0f');
-        }
-    });
+    // macOS doesn't use transparent mode, so skip this.
+    if (!isMac) {
+        ipcMain.once('splash:done', () => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.setBackgroundColor('#0a0a0f');
+            }
+        });
+    }
 
     // Restore maximized state if it was saved
     if (settings.wasMaximized) {
@@ -185,7 +223,30 @@ function createWindow() {
         transport.stop();
         mainWindow = null;
     });
+
+    // Send pending deep-link room once renderer is ready
+    mainWindow.webContents.on('did-finish-load', () => {
+        if (pendingDeepLinkRoom) {
+            mainWindow.webContents.send('deeplink:room', pendingDeepLinkRoom);
+            pendingDeepLinkRoom = null;
+        }
+    });
 }
+
+// macOS: handle wavloom:// URLs via open-url event
+app.on('open-url', (event, url) => {
+    event.preventDefault();
+    const room = extractRoomFromUrl(url);
+    if (room) {
+        if (mainWindow) {
+            mainWindow.webContents.send('deeplink:room', room);
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        } else {
+            pendingDeepLinkRoom = room;
+        }
+    }
+});
 
 // ---- IPC Handlers ----
 
@@ -348,6 +409,47 @@ ipcMain.handle('folders:scan', async (_event, dirPath) => {
     }
 });
 
+// Folder watching — notify renderer when files change in watched directories
+const activeWatchers = new Map(); // path → FSWatcher
+
+ipcMain.handle('folders:watch', (_event, dirPath) => {
+    if (activeWatchers.has(dirPath)) return { error: null }; // Already watching
+    try {
+        let debounce = null;
+        const watcher = fs.watch(dirPath, { recursive: true }, (eventType, filename) => {
+            if (!filename) return;
+            // Only care about audio/midi files
+            if (!/\.(wav|mp3|ogg|flac|aiff|aif|mid|midi)$/i.test(filename)) return;
+            // Debounce to avoid flooding on bulk operations
+            clearTimeout(debounce);
+            debounce = setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('folders:changed', { dirPath, eventType, filename });
+                }
+            }, 500);
+        });
+        activeWatchers.set(dirPath, watcher);
+        return { error: null };
+    } catch (err) {
+        return { error: err.message };
+    }
+});
+
+ipcMain.handle('folders:unwatch', (_event, dirPath) => {
+    const watcher = activeWatchers.get(dirPath);
+    if (watcher) {
+        watcher.close();
+        activeWatchers.delete(dirPath);
+    }
+    return { error: null };
+});
+
+// Clean up all watchers on quit
+app.on('will-quit', () => {
+    activeWatchers.forEach(w => w.close());
+    activeWatchers.clear();
+});
+
 // Shell operations
 ipcMain.handle('shell:openExternal', async (_event, url) => {
     await shell.openExternal(url);
@@ -474,6 +576,10 @@ app.whenReady().then(() => {
     // Initialize VST3 native host addon
     vst3HostLoaded = loadNativeAddon();
     registerVST3HostIPC(ipcMain);
+
+    // Initialize audio capture native addon
+    audioCaptureLoaded = loadAudioCaptureAddon();
+    registerAudioCaptureIPC(ipcMain);
 
     createWindow();
 

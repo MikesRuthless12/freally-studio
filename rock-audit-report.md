@@ -1,6 +1,6 @@
 # ROCK Lyrics Generation Audit Report
 
-Generated: 2026-03-23T07:06:32.183Z
+Generated: 2026-03-26T18:21:27.683Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 8 |
+| Total quality issues | 4 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -31,32 +31,28 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Mood | Lines | Rhyme Pairs | Rhyme Failures | Accuracy | Quality Issues |
 |------|-------|-------------|----------------|----------|----------------|
-| happy | 192 | 84 | 0 | 100.0% | 2 |
-| sad | 176 | 76 | 0 | 100.0% | 0 |
-| romantic | 176 | 76 | 0 | 100.0% | 1 |
-| aggressive | 176 | 72 | 0 | 100.0% | 1 |
+| happy | 192 | 84 | 0 | 100.0% | 0 |
+| sad | 176 | 76 | 0 | 100.0% | 1 |
+| romantic | 176 | 76 | 0 | 100.0% | 0 |
+| aggressive | 176 | 72 | 0 | 100.0% | 0 |
 | dreamy | 176 | 84 | 0 | 100.0% | 1 |
 | dark | 176 | 76 | 0 | 100.0% | 1 |
-| epic | 176 | 76 | 0 | 100.0% | 2 |
-| hopeful | 176 | 72 | 0 | 100.0% | 0 |
+| epic | 176 | 76 | 0 | 100.0% | 0 |
+| hopeful | 176 | 72 | 0 | 100.0% | 1 |
 | melancholic | 176 | 84 | 0 | 100.0% | 0 |
 
 ## Issue Type Breakdown
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 8 |
+| WEAK_ENDING | 4 |
 
-## Weak Ending Examples (8 total, showing up to 25)
+## Weak Ending Examples (4 total, showing up to 25)
 
-- Gen#24 [dark/freeform] Verse 1: `we blaze through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
-- Gen#40 [aggressive/freeform] Verse 2: `i shake through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
-- Gen#48 [romantic/freeform] Verse 2: `we tear through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
-- Gen#52 [epic/freeform] Verse 2: `we burn through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
-- Gen#68 [dreamy/freeform] Verse 1: `i explode through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
-- Gen#88 [epic/freeform] Verse 2: `i pound through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
-- Gen#100 [happy/freeform] Chorus: `the only version of myself - I want to be` — WEAK_ENDING: ends with "be"
-- Gen#100 [happy/freeform] Chorus: `the only version of myself - I want to be` — WEAK_ENDING: ends with "be"
+- Gen#44 [hopeful/freeform] Verse 1: `we roar through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
+- Gen#56 [sad/freeform] Verse 1: `i blaze through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
+- Gen#60 [dark/freeform] Verse 2: `i charge through the speakers - till the walls cave in` — WEAK_ENDING: ends with "in"
+- Gen#86 [dreamy/ABAB] Verse 2: `the only version of myself - I want to be` — WEAK_ENDING: ends with "be"
 
 ---
 
@@ -65,111 +61,111 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the sold out - show the open gate [gate]
-  2. the legends never - met their fate [fate]
-  3. we explode across the stage - in a blaze of light [light]
-  4. the city skyline - burning bright [bright]
+  1. the spotlight - burning through the smoky haze [haze]
+  2. the rebel spirit - and the glory days [days]
+  3. we rage through every fiber - of our being now [now]
+  4. Pink Floyd built a wall - and tore it down [down]
 
 **[Chorus]** (pattern: AABB)
-  1. the stage-dive is dead - long live the legend [legend]
-  2. the road keeps - winding break or bend [bend]
-  3. the annihilation - of the old foundation [foundation]
-  4. somewhere between the chorus - and the crash was revelation [revelation]
+  1. the annihilation - feeds our determination [determination]
+  2. indestructible together - through the devastation [devastation]
+  3. i roar through the darkness - into blinding light [light]
+  4. we obliterated - everything in sight [sight]
 
 **[Verse 2]** (pattern: AABB)
-  1. we shake through every fiber - of our being now [now]
-  2. Pink Floyd built a wall - and tore it down [down]
-  3. the resurrection born from chaos - and from violence [violence]
-  4. we liberated every voice - they tried to silence [silence]
+  1. the engine roaring down - the open road [road]
+  2. the weight we carry - what a load [load]
+  3. we pound from the garage - to the stadium [stadium]
+  4. the engine roared like - a rebel anthem [anthem]
 
 **[Chorus]** (pattern: AABB)
-  1. the stage-dive is dead - long live the legend [legend]
-  2. the road keeps - winding break or bend [bend]
-  3. the annihilation - of the old foundation [foundation]
-  4. somewhere between the chorus - and the crash was revelation [revelation]
+  1. the annihilation - feeds our determination [determination]
+  2. indestructible together - through the devastation [devastation]
+  3. i roar through the darkness - into blinding light [light]
+  4. we obliterated - everything in sight [sight]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. I lost my voice at the bridge - and the crowd sang it for me [me]
-  2. we played our hand - right to the bitter end [end]
-  3. the overdrive kicks in and - sets me free [free]
-  4. the battle scars - are on the mend [mend]
+  1. we explode through every fiber - of our being now [now]
+  2. the rock - and roll comes calling every night [night]
+  3. we turn the whole thing - upside down [down]
+  4. the lighter held - up in the sight [sight]
 
 **[Chorus]** (pattern: ABAB)
-  1. apocalyptic liberation - is the sound [sound]
-  2. i pound across the stage - in a blaze of light [light]
-  3. the empire shaking - and we're losing ground [ground]
-  4. standing tall - against the night [night]
+  1. turn it up and - let it devastate [devastate]
+  2. and when the bridge collapses into the final - chorus it feels like flight [flight]
+  3. we light the fuse - and let the music detonate [detonate]
+  4. we obliterated - everything in sight [sight]
 
 **[Verse 2]** (pattern: ABAB)
-  1. accelerated rhythms of the resurrection song [song]
-  2. the annihilation feeds - the final revolution [revolution]
-  3. the devastation proves we knew - it all along [along]
-  4. deteriorated trust in every institution [institution]
+  1. we crash across the stage - in a blaze of light [light]
+  2. the tide is shifting - and the tables turn [turn]
+  3. the guitar - wails into the night [night]
+  4. We lit the match - and watched it burn [burn]
 
 **[Chorus]** (pattern: ABAB)
-  1. apocalyptic liberation - is the sound [sound]
-  2. i pound across the stage - in a blaze of light [light]
-  3. the empire shaking - and we're losing ground [ground]
-  4. standing tall - against the night [night]
+  1. turn it up and - let it devastate [devastate]
+  2. and when the bridge collapses into the final - chorus it feels like flight [flight]
+  3. we light the fuse - and let the music detonate [detonate]
+  4. we obliterated - everything in sight [sight]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. the rock and roll will - never fall [fall]
-  2. our destiny is - backs against the wall [wall]
-  3. the reverberated anthem - echoing for all [all]
-  4. the crowd is rising - standing tall [tall]
+  1. the kick drum - punches through the concrete floor [floor]
+  2. we played until our fingers bled - and then we played some more [more]
+  3. the amp crackles with the ghosts - of every band before [before]
+  4. we came to break down - every single door [door]
 
 **[Chorus]** (pattern: AAAA)
-  1. we shred we scream - we're still alive [alive]
-  2. this relentless - energy is radioactive [radioactive]
-  3. disintegrated chains that - held us captive [captive]
-  4. High Fidelity ranked our - heartbreaks one through five [five]
+  1. we take the stage we - have no choice [choice]
+  2. the mosh pit raging - and the crowd rejoice [rejoice]
+  3. the amplifier - cranking make some noise [noise]
+  4. I plugged in and the silence - finally had a voice [voice]
 
 **[Verse 2]** (pattern: AAAA)
-  1. we blaze with the fury of a hurricane [hurricane]
-  2. the rock anthem - born again [again]
-  3. the blood and tears were - never not in vain [vain]
-  4. we channel all our anger through the speakers - and the gain [gain]
+  1. the annihilation - of the comfortable illusion [illusion]
+  2. the annihilation feeds - the final revolution [revolution]
+  3. deteriorated trust - in every institution [institution]
+  4. the revolution ends - in beautiful conclusion [conclusion]
 
 **[Chorus]** (pattern: AAAA)
-  1. we shred we scream - we're still alive [alive]
-  2. this relentless - energy is radioactive [radioactive]
-  3. disintegrated chains that - held us captive [captive]
-  4. High Fidelity ranked our - heartbreaks one through five [five]
+  1. we take the stage we - have no choice [choice]
+  2. the mosh pit raging - and the crowd rejoice [rejoice]
+  3. the amplifier - cranking make some noise [noise]
+  4. I plugged in and the silence - finally had a voice [voice]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. the snare crack echoes through the alley - like a gunshot [gunshot]
-  2. we tear through the darkness into blinding light [light]
-  3. the distortion pedal is - my therapist on call [call]
-  4. i crash from the garage to the stadium [stadium]
+  1. We lit the match - and watched it burn [burn]
+  2. the rock anthem - for the brave [brave]
+  3. I traded silence for distortion - years ago [ago]
+  4. Keith Richards lived the life ten cats - would need [need]
 
 **[Chorus]** (pattern: XXXX)
-  1. the liberation - anthem reverberates tonight [tonight]
-  2. indestructible we - own the night [night]
-  3. i shatter across the stage - in a blaze of light [light]
+  1. the amplified truth is all we - have to give tonight [tonight]
+  2. we ate gas station food and played - like kings that night [night]
+  3. i crash through the darkness - into blinding light [light]
   4. indestructible we - are the dynamite [dynamite]
 
 **[Verse 2]** (pattern: XXXX)
-  1. the set list is - just a suggestion when I'm wired [wired]
-  2. I hear the engines - start to roar [roar]
-  3. I jumped off the stage - and the crowd caught me flying [flying]
-  4. I channeled - every rejection into the final solo [solo]
+  1. we ignite till our voices - echo through the ages [ages]
+  2. a cigarette burned down - to the filter tip [tip]
+  3. disintegrated arrogance - begins to tumble [tumble]
+  4. i ignite through the darkness - into blinding light [light]
 
 **[Chorus]** (pattern: XXXX)
-  1. the liberation - anthem reverberates tonight [tonight]
-  2. indestructible we - own the night [night]
-  3. i shatter across the stage - in a blaze of light [light]
+  1. the amplified truth is all we - have to give tonight [tonight]
+  2. we ate gas station food and played - like kings that night [night]
+  3. i crash through the darkness - into blinding light [light]
   4. indestructible we - are the dynamite [dynamite]
 
 ---
@@ -177,28 +173,28 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. we signed the record - deal on the hood of the tour van [van]
-  2. we played for twelve people - like it was twelve thousand [thousand]
-  3. we pound with the fury of a hurricane [hurricane]
-  4. we shed the past - and start again [again]
+  1. the fire burns - wherever we go [go]
+  2. everywhere we go - the people know [know]
+  3. we surge through every fiber - of our being now [now]
+  4. Pink Floyd built a wall - and tore it down [down]
 
 **[Chorus]** (pattern: AABB)
-  1. the resurrection - roaring pandemonium [pandemonium]
-  2. i blaze from the garage - to the stadium [stadium]
-  3. exterminated silence - through the amplifier wall [wall]
-  4. the resurrection answers - every single call [call]
+  1. stand up stand up and - feel the voltage running through [through]
+  2. we roar this is what we were - born to do [do]
+  3. the octave riff pounds - like a fist on a locked door [door]
+  4. the kick drum - punches through the concrete floor [floor]
 
 **[Verse 2]** (pattern: AABB)
-  1. i pound with the fury of a hurricane [hurricane]
-  2. we channel all our anger through the speakers - and the gain [gain]
-  3. the apocalyptic thunder drawing - ever near [near]
-  4. disintegrated everything - they manufactured here [here]
+  1. exterminated - every lie from every fabrication [fabrication]
+  2. obliterated doubt - with pure determination [determination]
+  3. the rebel spirit - and the glory days [days]
+  4. the guitar solo sets - the stage ablaze [ablaze]
 
 **[Chorus]** (pattern: AABB)
-  1. the resurrection - roaring pandemonium [pandemonium]
-  2. i blaze from the garage - to the stadium [stadium]
-  3. exterminated silence - through the amplifier wall [wall]
-  4. the resurrection answers - every single call [call]
+  1. stand up stand up and - feel the voltage running through [through]
+  2. we roar this is what we were - born to do [do]
+  3. the octave riff pounds - like a fist on a locked door [door]
+  4. the kick drum - punches through the concrete floor [floor]
 
 ---
 

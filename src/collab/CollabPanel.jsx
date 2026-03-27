@@ -876,6 +876,13 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
                             { key: 'canEditChords', label: t('collab.permEditChords') },
                             { key: 'canEditMelody', label: t('collab.permEditMelody') },
                             { key: 'canEditBass', label: t('collab.permEditBass') },
+                            { key: 'canEditLyrics', label: t('collab.permEditLyrics') },
+                            { key: 'canEditLyricEngine', label: t('collab.permEditLyricEngine') },
+                            { key: 'canEditBrowser', label: t('collab.permEditBrowser') },
+                            { key: 'canEditMixer', label: t('collab.permEditMixer') },
+                            { key: 'canEditArrange', label: t('collab.permEditArrange') },
+                            { key: 'canEditDrumSynth', label: t('collab.permEditDrumSynth') },
+                            { key: 'canEditInstSynth', label: t('collab.permEditInstSynth') },
                             { key: 'canChangeTempo', label: t('collab.permChangeTempo') },
                             { key: 'canExport', label: t('collab.permExport') },
                         ];

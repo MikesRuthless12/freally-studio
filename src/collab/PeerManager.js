@@ -1,7 +1,7 @@
 import Peer from "peerjs";
 
 export class PeerManager {
-    constructor(myId, onData, onStream, onOpen, onVoiceStream, onRecordingStream) {
+    constructor(myId, onData, onStream, onOpen, onVoiceStream, onRecordingStream, onError) {
         this.myId = myId;
         this.peer = new Peer(myId);
         this.connections = {};
@@ -11,6 +11,7 @@ export class PeerManager {
         this.onVoiceStream = onVoiceStream;
         this.onRecordingStream = onRecordingStream;
         this.onOpen = onOpen;
+        this.onError = onError;
         this.intendedConnections = new Set(); // Peer IDs we want to stay connected to
         this.reconnectTimeout = null;
         this.retryCount = 0;
@@ -54,8 +55,10 @@ export class PeerManager {
 
         this.peer.on("error", err => {
             console.error("PeerJS Error:", err);
-            // Some errors are fatal and require reconnection
-            if (err.type === 'server-error' || err.type === 'network' || err.type === 'disconnected') {
+            if (err.type === 'peer-unavailable') {
+                // The peer we tried to connect to doesn't exist (host left / session expired)
+                if (this.onError) this.onError('peer-unavailable', err);
+            } else if (err.type === 'server-error' || err.type === 'network' || err.type === 'disconnected') {
                 this.attemptReconnect();
             }
         });

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useTranslation } from "../i18n/I18nContext";
 import { PeerManager } from "./PeerManager";
 import { MSG } from "./PeerProtocol";
 import { getOrCreateRoom } from "./Room";
@@ -39,17 +40,23 @@ function audioBufferToWavBuffer(audioBuffer) {
 }
 
 export function useCollaboration() {
+    const { t } = useTranslation();
     const myIdRef = useRef(null);
     const peerRef = useRef(null);
     const [myId, setMyId] = useState(null);
-    const [userProfile, setUserProfile] = useState({ name: 'Anonymous', email: '' });
+    const [userProfile, setUserProfile] = useState({ name: '', email: '' });
 
     const [room] = useState(getOrCreateRoom());
     const [peers, setPeers] = useState({}); // { id: { profile: {...} } }
     const [tabOwners, setTabOwners] = useState(defaultOwners);
     const [freeForAll, setFreeForAll] = useState(false);
-    // Per-peer permissions: { peerId: { canEditDrums, canEditChords, canEditMelody, canEditBass, canChangeTempo, canExport } }
-    const DEFAULT_PERMISSIONS = { canEditDrums: true, canEditChords: true, canEditMelody: true, canEditBass: true, canChangeTempo: true, canExport: true };
+    // Per-peer permissions for all delegable tabs + global actions
+    const DEFAULT_PERMISSIONS = {
+        canEditDrums: true, canEditChords: true, canEditMelody: true, canEditBass: true,
+        canEditLyrics: true, canEditLyricEngine: true, canEditBrowser: true,
+        canEditMixer: true, canEditArrange: true, canEditDrumSynth: true, canEditInstSynth: true,
+        canChangeTempo: true, canExport: true
+    };
     const [peerPermissions, setPeerPermissions] = useState({});
     const peerPermissionsRef = useRef({});
     const [screens, setScreens] = useState([]);
@@ -250,6 +257,18 @@ export function useCollaboration() {
                     delete next[data.id];
                     return next;
                 });
+                break;
+
+            case MSG.HOST_DISCONNECT:
+                // Host has left — disconnect everyone
+                if (addToastRef.current) {
+                    addToastRef.current(t('collab.hostEndedSession'), 'warning', 5000);
+                }
+                setMousePositions({});
+                setPeers({});
+                setIsCollapsed(true);
+                // Trigger re-init by clearing profile (useEffect cleanup will destroy peer)
+                setUserProfile({ name: '', email: '' });
                 break;
 
             case MSG.TAB_ASSIGN:
@@ -610,26 +629,38 @@ export function useCollaboration() {
         const handleOpen = (id) => {
             peerRef.current.broadcast({ type: MSG.JOIN, id, profile: userProfile });
         };
-        peerRef.current = new PeerManager(id, handleData, handleStream, handleOpen, handleVoiceStream, handleRecordingStream);
+        const handlePeerError = (type) => {
+            if (type === 'peer-unavailable' && !isHost) {
+                // Host's session no longer exists
+                if (addToastRef.current) {
+                    addToastRef.current(t('collab.sessionExpired'), 'error', 8000);
+                }
+                setMousePositions({});
+                setPeers({});
+                setIsCollapsed(true);
+            }
+        };
+        peerRef.current = new PeerManager(id, handleData, handleStream, handleOpen, handleVoiceStream, handleRecordingStream, handlePeerError);
 
         let mouseThrottleTimer = null;
         const handleGlobalMouseMove = (e) => {
             if (mouseThrottleTimer || !peerRef.current) return;
-            // Don't track mouse until user is signed in
             const prof = userProfileRef.current;
-            if (!prof.email) return;
-            // Don't track if no peers are connected (solo session)
-            const conns = peerRef.current.connections;
-            if (!conns || Object.keys(conns).length === 0) return;
+            // Don't track cursor until user has set a display name
+            if (!prof.name || !prof.name.trim()) return;
             mouseThrottleTimer = setTimeout(() => { mouseThrottleTimer = null; }, 16); // ~60fps throttle
-            const displayName = prof.email.split('@')[0];
-            peerRef.current.broadcast({
-                type: MSG.MOUSE_MOVE,
-                x: e.clientX,
-                y: e.clientY,
-                name: displayName
-            });
-            // Also track own cursor so local user sees what others see
+            const displayName = prof.name;
+            // Broadcast to peers only if connections exist
+            const conns = peerRef.current.connections;
+            if (conns && Object.keys(conns).length > 0) {
+                peerRef.current.broadcast({
+                    type: MSG.MOUSE_MOVE,
+                    x: e.clientX,
+                    y: e.clientY,
+                    name: displayName
+                });
+            }
+            // Always track own cursor so user can verify their name/color
             setMousePositions(prev => ({
                 ...prev,
                 [myIdRef.current]: {
@@ -717,6 +748,13 @@ export function useCollaboration() {
             clearInterval(pingInterval);
             if (voiceLevelRafRef.current) cancelAnimationFrame(voiceLevelRafRef.current);
             if (testIntervalRef.current) clearInterval(testIntervalRef.current);
+            // Remove own cursor entry so name changes don't leave stale cursors
+            const oldId = id;
+            setMousePositions(prev => {
+                const next = { ...prev };
+                delete next[oldId];
+                return next;
+            });
             // Clean up voice engine
             if (voiceEngineRef.current) {
                 voiceEngineRef.current.dispose();
@@ -829,18 +867,32 @@ export function useCollaboration() {
     };
 
     const loginWithGoogle = (profile) => {
-        setUserProfile(profile);
-        // Clear own cursor when signing out (no email = not authenticated)
-        if (!profile.email && myIdRef.current) {
+        const isSigningOut = !profile.name || !profile.name.trim();
+        if (isSigningOut) {
+            // If host, tell all peers the session is ending; otherwise just leave
+            if (peerRef.current && myIdRef.current) {
+                if (isHost) {
+                    peerRef.current.broadcast({ type: MSG.HOST_DISCONNECT });
+                }
+                peerRef.current.broadcast({ type: MSG.LEAVE, id: myIdRef.current });
+            }
+            setMousePositions({});
+            setPeers({});
+            setIsCollapsed(true);
+        } else {
+            // Clear only own cursor entries (old names) — keep remote peers
             setMousePositions(prev => {
-                const next = { ...prev };
-                delete next[myIdRef.current];
+                const next = {};
+                for (const [id, pos] of Object.entries(prev)) {
+                    if (!pos.name?.endsWith('(you)')) next[id] = pos;
+                }
                 return next;
             });
+            if (peerRef.current) {
+                peerRef.current.broadcast({ type: MSG.HOST_SYNC, profile });
+            }
         }
-        if (peerRef.current) {
-            peerRef.current.broadcast({ type: MSG.HOST_SYNC, profile });
-        }
+        setUserProfile(profile);
     };
 
     const startAudioShare = (audioCtx, masterGain) => {

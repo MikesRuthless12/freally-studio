@@ -868,14 +868,15 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                 drumElements.forEach(drum => {
                     const instrument = sampler.instruments.get(drum.id);
                     if (instrument && instrument.samples.size > 0) {
-                        const sampleEntry = instrument.samples.values().next().value;
-                        if (sampleEntry && sampleEntry.buffer) {
+                        // instrument.samples is Map<noteNumber, AudioBuffer>
+                        const audioBuffer = instrument.samples.values().next().value;
+                        if (audioBuffer) {
                             // Initialize if slot state missing
                             if (!next[drum.id]) next[drum.id] = { lanes: {}, powered: true };
 
                             next[drum.id].sample = {
-                                name: instrument.name || sampleEntry.name || `${drum.id.toUpperCase()} Loaded`,
-                                buffer: sampleEntry.buffer
+                                name: instrument.name || `${drum.id.toUpperCase()} Loaded`,
+                                buffer: audioBuffer  // AudioBuffer, not audioBuffer.buffer
                             };
                             next[drum.id].powered = true;
                         }

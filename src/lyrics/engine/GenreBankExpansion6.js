@@ -138,7 +138,7 @@ export const GENRE_BANKS_EXPANSION6 = {
             'Megan Thee Stallion - Hot Girl Summer all year',
             'Nicki Minaj the queen put on the crown',
             'Tupac said Only God Can Judge Me now',
-            'Biggie said It Was All A Dream and it was',
+            'Biggie said It Was All A Dream - now we living supreme',
             'Missy Elliott - Flipped It And Reversed It',
             'Lauryn Hill told me Everything Is Everything',
             'Andre 3000 said what\'s Cooler Than Cool',

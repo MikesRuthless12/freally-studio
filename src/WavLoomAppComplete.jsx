@@ -51,8 +51,9 @@ import { useTranslation } from './i18n/I18nContext.jsx';
 import { formatMixFilename, formatStemFilename, formatArrangementFilename, formatStemsZipFilename } from './filenameUtils';
 import { ACCENT_THEMES, SOLID_ACCENT_KEYS, GRADIENT_ACCENT_KEYS, DEFAULT_ACCENT_THEME, getAccentTheme, hexToRgba } from './accentThemes';
 import WindowControls from './WindowControls';
+import MenuToolbar, { addRecentProject } from './MenuToolbar';
 import CpuMeter from './CpuMeter';
-import { isElectron } from './electronBridge';
+import { isElectron, getPlatform } from './electronBridge';
 const DrumSynthStudio = lazy(() => import('./DrumSynthStudio'));
 const InstrumentSynthStudio = lazy(() => import('./InstrumentSynthStudio'));
 const LyricsTab = lazy(() => import('./lyrics/LyricsTab'));
@@ -1412,19 +1413,38 @@ const WavLoomAppComplete = () => {
     }, []);
 
     // Auto-save: check for existing autosave on mount
+    const [autosavePath, setAutosavePath] = useState(null);
     useEffect(() => {
-        try {
-            const raw = localStorage.getItem('wavloom_autosave');
-            if (raw) {
-                const data = JSON.parse(raw);
-                if (data.timestamp && (Date.now() - data.timestamp) < 24 * 60 * 60 * 1000) {
-                    setAutosaveTimestamp(data.timestamp);
-                    setShowAutosaveBanner(true);
-                } else {
-                    localStorage.removeItem('wavloom_autosave');
+        (async () => {
+            try {
+                // Check for .wlz autosave in userData (Electron)
+                if (window.electronAPI?.app?.getPath && window.electronAPI?.fs?.exists) {
+                    const userDataDir = await window.electronAPI.app.getPath('userData');
+                    const wlzPath = userDataDir + '/wavloom-autosave.wlz';
+                    const exists = await window.electronAPI.fs.exists(wlzPath);
+                    if (exists) {
+                        const stat = await window.electronAPI.fs.stat(wlzPath);
+                        if (stat && !stat.error && stat.modifiedMs && (Date.now() - stat.modifiedMs) < 7 * 24 * 60 * 60 * 1000) {
+                            setAutosavePath(wlzPath);
+                            setAutosaveTimestamp(stat.modifiedMs);
+                            setShowAutosaveBanner(true);
+                            return;
+                        }
+                    }
                 }
-            }
-        } catch (e) { console.warn('[AutoSave] Failed to read autosave:', e); }
+                // Fallback: check localStorage (legacy / browser mode)
+                const raw = localStorage.getItem('wavloom_autosave');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    if (data.timestamp && (Date.now() - data.timestamp) < 24 * 60 * 60 * 1000) {
+                        setAutosaveTimestamp(data.timestamp);
+                        setShowAutosaveBanner(true);
+                    } else {
+                        localStorage.removeItem('wavloom_autosave');
+                    }
+                }
+            } catch (e) { console.warn('[AutoSave] Failed to read autosave:', e); }
+        })();
     }, []);
 
     // BPM extraction helper
@@ -1869,10 +1889,26 @@ const WavLoomAppComplete = () => {
     const collab = useCollaboration();
     const hasCollabPeers = Object.keys(collab.peers).length > 0;
     const { toasts, addToast, removeToast } = useToast();
-    const isAuthenticated = collab.userProfile.email && collab.userProfile.email !== '';
+    const isAuthenticated = !!(collab.userProfile.name && collab.userProfile.name.trim());
 
     // Apply settings on mount
     useEffect(() => { applyTooltipSetting(appSettings.showTooltips); }, []);
+
+    // Handle deep-link collab invites (wavloom://join?room=xxx)
+    useEffect(() => {
+        if (!window.electronAPI?.deeplink?.onRoom) return;
+        window.electronAPI.deeplink.onRoom((room) => {
+            if (!room) return;
+            // If already on this room, just focus
+            const currentRoom = new URLSearchParams(window.location.search).get('room');
+            if (currentRoom === room) return;
+            // Navigate to the room by adding ?room= param and reloading
+            const url = new URL(window.location.href);
+            url.searchParams.set('room', room);
+            window.location.href = url.toString();
+        });
+        return () => window.electronAPI.deeplink.removeRoomListener();
+    }, []);
 
     // Aggressive teardown on page unload to prevent "Page Unresponsive"
     // during hard refresh. Kill all audio contexts, intervals, and timers.
@@ -3776,6 +3812,13 @@ const WavLoomAppComplete = () => {
                 return;
             }
 
+            // Open Project
+            if ((e.ctrlKey || e.metaKey) && (e.code === 'KeyO' || e.key === 'o')) {
+                e.preventDefault();
+                document.getElementById('project-load-input')?.click();
+                return;
+            }
+
             // Drum Synthesis Studio: Ctrl+Shift+Alt+G (quick toggle)
             if (e.ctrlKey && e.shiftKey && e.altKey && e.code === 'KeyG') {
                 e.preventDefault();
@@ -4098,6 +4141,69 @@ const WavLoomAppComplete = () => {
             console.error('[GenerateFromFolder] Generation failed:', err);
         }
     };
+
+    /**
+     * Handle MIDI file dropped onto any generator — split by role and load all three
+     */
+    const handleMidiDropToGenerators = useCallback((notes, tpb) => {
+        if (!notes || notes.length === 0) return;
+        const ticksPerStep = tpb / 8;
+        const allStepNotes = notes.map(n => ({
+            time: Math.floor(n.startTick / ticksPerStep),
+            duration: Math.max(1, Math.floor(n.duration / ticksPerStep)),
+            note: n.note,
+            velocity: n.velocity / 127
+        })).filter(n => n.time < globalBars * 32);
+
+        // Split by role using the same logic as MIDIParser.splitByRole
+        const stepGroups = {};
+        allStepNotes.forEach(n => {
+            const t = Math.round(n.time);
+            if (!stepGroups[t]) stepGroups[t] = [];
+            stepGroups[t].push(n);
+        });
+
+        const melody = [], bass = [], chords = [];
+        Object.values(stepGroups).forEach(group => {
+            group.sort((a, b) => a.note - b.note);
+            const unique = [];
+            const seen = new Set();
+            group.forEach(n => { if (!seen.has(n.note)) { unique.push(n); seen.add(n.note); } });
+
+            const bassNote = unique[0];
+            const isBassRange = bassNote.note < 55;
+            const highNotes = unique.filter(n => n.note >= 48);
+            const melNote = highNotes.length > 0 ? highNotes[highNotes.length - 1] : null;
+
+            if (isBassRange) {
+                bass.push(bassNote);
+                unique.slice(1).forEach(n => { if (n !== melNote) chords.push(n); });
+            } else {
+                unique.forEach(n => { if (n !== melNote) chords.push(n); });
+            }
+            if (melNote) melody.push(melNote);
+        });
+
+        // Load into all three generators
+        if (melody.length > 0 && melodyRef.current?.loadState) {
+            melodyRef.current.loadState(melody);
+            setPatterns(prev => ({ ...prev, melody }));
+            setIsGenerated(prev => ({ ...prev, melody: true }));
+        }
+        if (chords.length > 0 && chordsRef.current?.loadState) {
+            chordsRef.current.loadState(chords);
+            setPatterns(prev => ({ ...prev, chords }));
+            setIsGenerated(prev => ({ ...prev, chords: true }));
+        }
+        if (bass.length > 0 && bassRef.current?.loadState) {
+            bassRef.current.loadState(bass);
+            setPatterns(prev => ({ ...prev, bass }));
+            setIsGenerated(prev => ({ ...prev, bass: true }));
+        }
+
+        // Extract metadata from filename if available
+        console.log(`[MidiDrop] Split into melody=${melody.length}, chords=${chords.length}, bass=${bass.length} notes`);
+    }, [globalBars]);
 
     /**
      * Handle MIDI extraction from audio file
@@ -5975,101 +6081,193 @@ const WavLoomAppComplete = () => {
     const [exportTimeEstimate, setExportTimeEstimate] = useState(null);
     const [exportSizeEstimate, setExportSizeEstimate] = useState(null);
 
-    // Auto-save: periodic save (interval from settings)
+    // Auto-save: periodic save as .wlz (Electron) or localStorage (browser)
+    const autosaveBusyRef = useRef(false);
     useEffect(() => {
         if (!appSettings.autoSaveEnabled) return;
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
+            if (autosaveBusyRef.current) return; // Skip if previous save still running
+            autosaveBusyRef.current = true;
             try {
-                const snapshot = JSON.stringify({
-                    projectName,
-                    globalSettings: {
-                        tempo: globalTempo,
-                        key: globalKey,
-                        scale: globalScale,
-                        bars: globalBars,
-                        genre: globalGenre,
-                        mood: globalMood
-                    },
-                    patterns,
-                    activeTab,
-                    mixer: {
-                        trackMix,
-                        globalMutes: Array.from(globalMutes),
-                        masterVolume,
-                        globalSolos: Array.from(globalSolos)
-                    },
-                    trackStatus,
-                    arrangementMode: arr.arrangementMode,
-                    arrangement: arr.arrangementMode ? arr.arrangement : null,
-                    effects: effectsManagerRef.current ? effectsManagerRef.current.serialize() : null,
-                    timestamp: Date.now()
-                });
-                if (snapshot.length > 5 * 1024 * 1024) {
-                    console.warn('[AutoSave] Snapshot too large (>5MB), skipping');
-                    return;
+                // Electron: save as .wlz to userData directory (includes all samples)
+                if (isElectron() && window.electronAPI?.app?.getPath && window.electronAPI?.fs?.writeFile) {
+                    const pm = new ProjectManager(samplerRef.current, exporterRef.current);
+                    const projectState = {
+                        projectName: projectName || 'Autosave',
+                        globalSettings: {
+                            tempo: globalTempo, key: globalKey, scale: globalScale,
+                            bars: globalBars, resolution: globalResolution,
+                            genre: globalGenre, mood: globalMood
+                        },
+                        patterns,
+                        trackStatus,
+                        mixer: {
+                            trackMix,
+                            globalMutes: Array.from(globalMutes),
+                            masterVolume,
+                            globalSolos: Array.from(globalSolos)
+                        },
+                        loadedInstrumentNames: {
+                            chords: loadedInstruments.chords,
+                            melody: loadedInstruments.melody,
+                            bass: loadedInstruments.bass
+                        },
+                        arrangementMode: arr.arrangementMode,
+                        arrangement: arr.arrangementMode ? arr.arrangement : null,
+                        timelineBars,
+                        loopRange,
+                        trackOrder,
+                        audioTracks: [],  // Skip audio tracks for autosave (too large)
+                        midiTracks: midiTracks.map(mt => ({
+                            id: mt.id, name: mt.name, color: mt.color,
+                            clips: (mt.clips || []).map(c => ({
+                                id: c.id, timelineBar: c.timelineBar, bars: c.bars,
+                                pattern: c.pattern, name: c.name, color: c.color
+                            })),
+                            instrumentName: mt.instrumentName, octave: mt.octave
+                        })),
+                        drumClips: drumClips.map(c => ({
+                            id: c.id, timelineBar: c.timelineBar, bars: c.bars,
+                            drumStates: c.drumStates, name: c.name, color: c.color
+                        })),
+                        chordClips: chordClips.map(c => ({
+                            id: c.id, timelineBar: c.timelineBar, bars: c.bars,
+                            pattern: c.pattern, name: c.name, color: c.color
+                        })),
+                        melodyClips: melodyClips.map(c => ({
+                            id: c.id, timelineBar: c.timelineBar, bars: c.bars,
+                            pattern: c.pattern, name: c.name, color: c.color
+                        })),
+                        bassClips: bassClips.map(c => ({
+                            id: c.id, timelineBar: c.timelineBar, bars: c.bars,
+                            pattern: c.pattern, name: c.name, color: c.color
+                        })),
+                        trackAutomation,
+                        effects: effectsManagerRef.current ? effectsManagerRef.current.serialize() : { tracks: {}, master: [] }
+                    };
+                    const { blob } = await pm.saveProject(projectState, () => {});
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const userDataDir = await window.electronAPI.app.getPath('userData');
+                    await window.electronAPI.fs.writeFile(userDataDir + '/wavloom-autosave.wlz', arrayBuffer);
+                    // Also store active tab in a lightweight sidecar
+                    localStorage.setItem('wavloom_autosave_meta', JSON.stringify({ activeTab, timestamp: Date.now() }));
+                } else {
+                    // Browser fallback: JSON to localStorage (no samples)
+                    const snapshot = JSON.stringify({
+                        projectName, activeTab, timestamp: Date.now(),
+                        globalSettings: { tempo: globalTempo, key: globalKey, scale: globalScale, bars: globalBars, resolution: globalResolution, genre: globalGenre, mood: globalMood },
+                        patterns, trackStatus,
+                        mixer: { trackMix, globalMutes: Array.from(globalMutes), masterVolume, globalSolos: Array.from(globalSolos) },
+                        drumClips, chordClips, melodyClips, bassClips,
+                        timelineBars, loopRange, trackOrder,
+                        arrangementMode: arr.arrangementMode, arrangement: arr.arrangementMode ? arr.arrangement : null,
+                        loadedInstrumentNames: { chords: loadedInstruments.chords, melody: loadedInstruments.melody, bass: loadedInstruments.bass },
+                        midiTracks, trackAutomation,
+                        effects: effectsManagerRef.current ? effectsManagerRef.current.serialize() : null,
+                    });
+                    if (snapshot.length < 5 * 1024 * 1024) {
+                        localStorage.setItem('wavloom_autosave', snapshot);
+                    }
                 }
-                localStorage.setItem('wavloom_autosave', snapshot);
             } catch (e) { console.warn('[AutoSave] Save failed:', e); }
+            finally { autosaveBusyRef.current = false; }
         }, appSettings.autoSaveInterval * 1000);
         return () => clearInterval(interval);
-    }, [projectName, globalTempo, globalKey, globalScale, globalBars, globalGenre, globalMood, patterns, activeTab, trackMix, globalMutes, globalSolos, masterVolume, trackStatus, arr.arrangementMode, arr.arrangement, appSettings.autoSaveEnabled, appSettings.autoSaveInterval]);
+    }, [projectName, globalTempo, globalKey, globalScale, globalBars, globalResolution, globalGenre, globalMood, patterns, activeTab, trackMix, globalMutes, globalSolos, masterVolume, trackStatus, drumClips, chordClips, melodyClips, bassClips, timelineBars, loopRange, trackOrder, arr.arrangementMode, arr.arrangement, loadedInstruments, midiTracks, trackAutomation, appSettings.autoSaveEnabled, appSettings.autoSaveInterval]);
 
     // --- Auto-Save Restore / Dismiss ---
-    const handleRestoreAutosave = () => {
+    const handleRestoreAutosave = async () => {
         try {
+            // Electron: load the .wlz autosave file via the full project loader
+            if (autosavePath && window.electronAPI?.fs?.readFile) {
+                const { data, error } = await window.electronAPI.fs.readFile(autosavePath);
+                if (!error && data) {
+                    const blob = new Blob([data]);
+                    const file = new File([blob], 'wavloom-autosave.wlz', { type: 'application/zip' });
+                    await handleLoadProject(file, autosavePath);
+                    // Restore active tab from sidecar meta
+                    try {
+                        const meta = JSON.parse(localStorage.getItem('wavloom_autosave_meta') || '{}');
+                        if (meta.activeTab) setActiveTab(meta.activeTab);
+                    } catch (_) {}
+                }
+                setShowAutosaveBanner(false);
+                return;
+            }
+
+            // Browser fallback: restore from localStorage JSON
             const raw = localStorage.getItem('wavloom_autosave');
             if (!raw) return;
-            const data = JSON.parse(raw);
-            if (data.globalSettings) {
-                if (data.globalSettings.tempo) setGlobalTempo(data.globalSettings.tempo);
-                if (data.globalSettings.key) setGlobalKey(data.globalSettings.key);
-                if (data.globalSettings.scale) setGlobalScale(data.globalSettings.scale);
-                if (data.globalSettings.bars) setGlobalBars(data.globalSettings.bars);
-                if (data.globalSettings.genre) setGlobalGenre(data.globalSettings.genre);
-                if (data.globalSettings.mood) setGlobalMood(data.globalSettings.mood);
-            }
-            if (data.patterns) setPatterns(data.patterns);
-            if (data.projectName) setProjectName(data.projectName);
-            if (data.activeTab) setActiveTab(data.activeTab);
-            if (data.trackStatus) setTrackStatus(data.trackStatus);
+            const d = JSON.parse(raw);
 
-            // Restore mixer
-            if (data.mixer) {
-                if (data.mixer.trackMix) setTrackMix(data.mixer.trackMix);
-                if (data.mixer.globalMutes) setGlobalMutes(new Set(data.mixer.globalMutes));
-                if (data.mixer.globalSolos) setGlobalSolos(new Set(data.mixer.globalSolos));
-                if (data.mixer.masterVolume !== undefined) setMasterVolume(data.mixer.masterVolume);
+            if (d.globalSettings) {
+                if (d.globalSettings.tempo) setGlobalTempo(d.globalSettings.tempo);
+                if (d.globalSettings.key) setGlobalKey(d.globalSettings.key);
+                if (d.globalSettings.scale) setGlobalScale(d.globalSettings.scale);
+                if (d.globalSettings.bars) setGlobalBars(d.globalSettings.bars);
+                if (d.globalSettings.resolution) setGlobalResolution(d.globalSettings.resolution);
+                if (d.globalSettings.genre) setGlobalGenre(d.globalSettings.genre);
+                if (d.globalSettings.mood) setGlobalMood(d.globalSettings.mood);
             }
-
-            // Restore arrangement
-            if (data.arrangementMode && data.arrangement) {
+            if (d.patterns) setPatterns(d.patterns);
+            if (d.projectName) setProjectName(d.projectName);
+            if (d.activeTab) setActiveTab(d.activeTab);
+            if (d.trackStatus) setTrackStatus(d.trackStatus);
+            if (d.mixer) {
+                if (d.mixer.trackMix) setTrackMix(d.mixer.trackMix);
+                if (d.mixer.globalMutes) setGlobalMutes(new Set(d.mixer.globalMutes));
+                if (d.mixer.globalSolos) setGlobalSolos(new Set(d.mixer.globalSolos));
+                if (d.mixer.masterVolume !== undefined) setMasterVolume(d.mixer.masterVolume);
+            }
+            if (d.drumClips) setDrumClips(d.drumClips);
+            if (d.chordClips) setChordClips(d.chordClips);
+            if (d.melodyClips) setMelodyClips(d.melodyClips);
+            if (d.bassClips) setBassClips(d.bassClips);
+            if (d.timelineBars) setTimelineBars(d.timelineBars);
+            if (d.loopRange) setLoopRange(d.loopRange);
+            if (d.trackOrder) setTrackOrder(d.trackOrder);
+            if (d.arrangementMode && d.arrangement) {
                 arr.setArrangementMode(true);
-                arr.setArrangement(data.arrangement);
-                arr.setActiveSection(data.arrangement[0]?.id || null);
+                arr.setArrangement(d.arrangement);
+                arr.setActiveSection(d.arrangement[0]?.id || null);
             }
-
-            // Restore effects
-            if (data.effects && effectsManagerRef.current) {
-                effectsManagerRef.current.loadState(data.effects);
+            if (d.loadedInstrumentNames) {
+                setLoadedInstruments({ chords: d.loadedInstrumentNames.chords || null, melody: d.loadedInstrumentNames.melody || null, bass: d.loadedInstrumentNames.bass || null });
+            }
+            if (d.midiTracks) setMidiTracks(d.midiTracks);
+            if (d.trackAutomation) setTrackAutomation(d.trackAutomation);
+            if (d.effects && effectsManagerRef.current) {
+                effectsManagerRef.current.loadState(d.effects);
                 setEffectsVersion(v => v + 1);
             }
-
-            // Push to generator UIs
+            const instrumentNames = d.loadedInstrumentNames || {};
             setTimeout(() => {
-                if (drumRef.current) drumRef.current.loadState(data.patterns?.drums);
-                if (chordsRef.current) chordsRef.current.loadState(data.patterns?.chords);
-                if (melodyRef.current) melodyRef.current.loadState(data.patterns?.melody);
-                if (bassRef.current) bassRef.current.loadState(data.patterns?.bass);
+                const dc = d.drumClips?.[0], cc = d.chordClips?.[0], mc = d.melodyClips?.[0], bc = d.bassClips?.[0];
+                if (dc?.drumStates && drumRef.current) drumRef.current.loadState(dc.drumStates);
+                else if (drumRef.current) drumRef.current.loadState(d.patterns?.drums);
+                if (cc?.pattern?.length && chordsRef.current) chordsRef.current.loadState(cc.pattern, instrumentNames.chords);
+                else if (chordsRef.current) chordsRef.current.loadState(d.patterns?.chords, instrumentNames.chords);
+                if (mc?.pattern?.length && melodyRef.current) melodyRef.current.loadState(mc.pattern, instrumentNames.melody);
+                else if (melodyRef.current) melodyRef.current.loadState(d.patterns?.melody, instrumentNames.melody);
+                if (bc?.pattern?.length && bassRef.current) bassRef.current.loadState(bc.pattern, instrumentNames.bass);
+                else if (bassRef.current) bassRef.current.loadState(d.patterns?.bass, instrumentNames.bass);
+            }, 200);
 
-                // Restore vocal engine params (lightweight — no audio buffer)
-            }, 100);
             localStorage.removeItem('wavloom_autosave');
             setShowAutosaveBanner(false);
         } catch (e) { console.error('[AutoSave] Restore failed:', e); }
     };
 
-    const handleDismissAutosave = () => {
+    const handleDismissAutosave = async () => {
         localStorage.removeItem('wavloom_autosave');
+        localStorage.removeItem('wavloom_autosave_meta');
+        // Delete .wlz autosave file if it exists
+        if (autosavePath && window.electronAPI?.fs?.writeFile) {
+            try {
+                // Overwrite with empty to "delete" (fs:unlink not exposed, but writeFile with 0 bytes works)
+                await window.electronAPI.fs.writeFile(autosavePath, new ArrayBuffer(0));
+            } catch (_) {}
+        }
         setShowAutosaveBanner(false);
     };
 
@@ -6187,8 +6385,12 @@ const WavLoomAppComplete = () => {
                 URL.revokeObjectURL(url);
             }
 
+            // Track in recent projects
+            addRecentProject(projectName || 'Untitled', filename);
+
             // Clear autosave after successful manual save
             localStorage.removeItem('wavloom_autosave');
+            localStorage.removeItem('wavloom_autosave_meta');
 
             // Notify collaborators that we saved
             if (collab.broadcastSaveNotification) {
@@ -6206,10 +6408,10 @@ const WavLoomAppComplete = () => {
 
     const handleLoadProjectInput = (e) => {
         const file = e.target.files[0];
-        if (file) handleLoadProject(file);
+        if (file) handleLoadProject(file, file.path || null);
     };
 
-    const handleLoadProject = async (file) => {
+    const handleLoadProject = async (file, filePath) => {
         setIsExporting(true);
         setExportStatusText("Loading Project...");
         setExportProgress(10); // Start
@@ -6300,6 +6502,26 @@ const WavLoomAppComplete = () => {
             if (manifest.chordClips) setChordClips(manifest.chordClips);
             if (manifest.melodyClips) setMelodyClips(manifest.melodyClips);
             if (manifest.bassClips) setBassClips(manifest.bassClips);
+
+            // Load first clip's pattern into generators so piano rolls aren't blank
+            setTimeout(() => {
+                const firstDrumClip = manifest.drumClips?.[0];
+                const firstChordClip = manifest.chordClips?.[0];
+                const firstMelodyClip = manifest.melodyClips?.[0];
+                const firstBassClip = manifest.bassClips?.[0];
+                if (firstDrumClip?.drumStates && drumRef.current) {
+                    drumRef.current.loadState(firstDrumClip.drumStates);
+                }
+                if (firstChordClip?.pattern?.length && chordsRef.current) {
+                    chordsRef.current.loadState(firstChordClip.pattern, instrumentNames.chords);
+                }
+                if (firstMelodyClip?.pattern?.length && melodyRef.current) {
+                    melodyRef.current.loadState(firstMelodyClip.pattern, instrumentNames.melody);
+                }
+                if (firstBassClip?.pattern?.length && bassRef.current) {
+                    bassRef.current.loadState(firstBassClip.pattern, instrumentNames.bass);
+                }
+            }, 300);
 
             // Restore arrangement state
             if (manifest.arrangementMode && manifest.arrangement) {
@@ -6467,6 +6689,9 @@ const WavLoomAppComplete = () => {
             }
 
             setTimeout(() => pushSnapshot(currentStateRef.current), 100);
+
+            // Track in recent projects (use full path from Electron dialog if available)
+            addRecentProject(manifest.projectName || file.name, filePath || file.name);
 
             setExportProgress(100);
             setExportStatusText("Done!");
@@ -7112,6 +7337,8 @@ const WavLoomAppComplete = () => {
                             isDark={isDark}
                             isHost={collab.isHost}
                             accentColor={ac}
+                            hasPeers={hasCollabPeers}
+                            currentProfile={collab.userProfile}
                         />
 
                         {/* Host Controls Icon Button */}
@@ -7119,8 +7346,8 @@ const WavLoomAppComplete = () => {
                             data-tour-id="tour-collab"
                             onClick={() => {
                                 if (!isAuthenticated) {
-                                    if (!toasts.some(t => t.message === 'Please sign in with Google to use collaboration features')) {
-                                        addToast('Please sign in with Google to use collaboration features', 'warning');
+                                    if (!toasts.some(t => t.message === t('collab.setNameFirst'))) {
+                                        addToast(t('collab.setNameFirst'), 'warning');
                                     }
                                     return;
                                 }
@@ -7298,8 +7525,8 @@ const WavLoomAppComplete = () => {
                             </div>
                         )}
 
-                        {/* Electron native window controls */}
-                        {isElectron() && (
+                        {/* Electron native window controls — hidden on macOS (native traffic lights) */}
+                        {isElectron() && getPlatform() !== 'darwin' && (
                             <WindowControls theme={{
                                 text: isDark ? '#ccc' : '#333',
                                 bg: isDark ? '#0a0a0f' : '#fff',
@@ -7313,6 +7540,37 @@ const WavLoomAppComplete = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Menu Toolbar — File, Edit, View, Generate, Help */}
+                <MenuToolbar
+                    isDark={isDark}
+                    ac={ac}
+                    hexToRgba={hexToRgba}
+                    onNewProject={handleNewProject}
+                    onSaveProject={handleSaveProject}
+                    onExportAudio={handleExportClick}
+                    onLoadProject={(file, filePath) => handleLoadProject(file, filePath)}
+                    onShowSettings={() => setShowSettingsModal(true)}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    onToggleSidebar={() => setIsBrowserVisible(prev => !prev)}
+                    isBrowserVisible={isBrowserVisible}
+                    onToggleFullscreen={toggleFullscreen}
+                    onSetActiveTab={setActiveTab}
+                    activeTab={activeTab}
+                    onToggleTheme={toggleTheme}
+                    themeName={theme}
+                    onGlobalGenerate={handleGlobalGenerate}
+                    onTapTempo={handleTapTempo}
+                    onToggleMetronome={() => setMetronomeEnabled(prev => !prev)}
+                    metronomeEnabled={metronomeEnabled}
+                    isPlaying={globalIsPlaying}
+                    hasPatterns={!!(patterns.chords?.length || patterns.melody?.length || patterns.bass?.length || Object.keys(patterns.drums || {}).length)}
+                    onShowShortcuts={() => setShowShortcutsPanel(true)}
+                    onShowTour={() => { resetTour(); setTimeout(() => setShowTour(true), 300); }}
+                />
 
                 {/* Row 2: Global Settings — Genre, Mood, Key, Scale, Bars, Grid Res, BPM, MIDI */}
                 <div style={{
@@ -7781,6 +8039,7 @@ const WavLoomAppComplete = () => {
                                 onClipGenerated={handleChordClipGenerated}
                                 editingClipId={editingChordClipId}
                                 clipPlaybackActive={chordClips.length > 0}
+                                onMidiDrop={handleMidiDropToGenerators}
                             />
                         </TabGuard>
                     </div>
@@ -7847,6 +8106,7 @@ const WavLoomAppComplete = () => {
                                 onClipGenerated={handleMelodyClipGenerated}
                                 editingClipId={editingMelodyClipId}
                                 clipPlaybackActive={melodyClips.length > 0}
+                                onMidiDrop={handleMidiDropToGenerators}
                             />
                         </TabGuard>
                     </div>
@@ -7913,6 +8173,7 @@ const WavLoomAppComplete = () => {
                                 onClipGenerated={handleBassClipGenerated}
                                 editingClipId={editingBassClipId}
                                 clipPlaybackActive={bassClips.length > 0}
+                                onMidiDrop={handleMidiDropToGenerators}
                             />
                         </TabGuard>
                     </div>

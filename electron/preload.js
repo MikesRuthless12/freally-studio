@@ -42,12 +42,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
         save: (folderPaths) => ipcRenderer.invoke('folders:save', folderPaths),
         load: () => ipcRenderer.invoke('folders:load'),
         scan: (dirPath) => ipcRenderer.invoke('folders:scan', dirPath),
+        watch: (dirPath) => ipcRenderer.invoke('folders:watch', dirPath),
+        unwatch: (dirPath) => ipcRenderer.invoke('folders:unwatch', dirPath),
+        onChanged: (callback) => {
+            ipcRenderer.on('folders:changed', (_event, data) => callback(data));
+        },
+        removeChangedListener: () => {
+            ipcRenderer.removeAllListeners('folders:changed');
+        },
     },
 
     // Shell operations
     shell: {
         openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
         showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
+    },
+
+    // Deep-link collab invites (wavloom://join?room=xxx)
+    deeplink: {
+        onRoom: (callback) => {
+            ipcRenderer.on('deeplink:room', (_event, room) => callback(room));
+        },
+        removeRoomListener: () => {
+            ipcRenderer.removeAllListeners('deeplink:room');
+        },
     },
 
     // App info

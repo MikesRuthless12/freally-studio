@@ -164,7 +164,7 @@ export const PUNCHLINE_PHRASES_EXPANSION = {
             "setting spirits running free",
             "the only limit is my fantasy",
             "building empires endlessly",
-            "the melody is all i need to be",
+            "the melody - is all i need to be",
             "spreading wings from sea to sea",
             "the crown belongs to you and me",
             "hustling hard for the jubilee",

@@ -1,6 +1,6 @@
 # POP Lyrics Generation Audit Report
 
-Generated: 2026-03-23T07:16:27.618Z
+Generated: 2026-03-26T18:19:20.168Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 0 |
+| Total quality issues | 2 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -35,11 +35,22 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | sad | 176 | 76 | 0 | 100.0% | 0 |
 | romantic | 176 | 76 | 0 | 100.0% | 0 |
 | aggressive | 176 | 72 | 0 | 100.0% | 0 |
-| dreamy | 176 | 84 | 0 | 100.0% | 0 |
+| dreamy | 176 | 84 | 0 | 100.0% | 2 |
 | dark | 176 | 76 | 0 | 100.0% | 0 |
 | epic | 176 | 76 | 0 | 100.0% | 0 |
 | hopeful | 176 | 72 | 0 | 100.0% | 0 |
 | melancholic | 176 | 84 | 0 | 100.0% | 0 |
+
+## Issue Type Breakdown
+
+| Issue Type | Count |
+|-----------|-------|
+| WEAK_ENDING | 2 |
+
+## Weak Ending Examples (2 total, showing up to 25)
+
+- Gen#32 [dreamy/freeform] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
+- Gen#32 [dreamy/freeform] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
 
 ---
 
@@ -48,140 +59,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the pieces of my world - just fall apart [apart]
-  2. the playlist that you made me - is the soundtrack of my heart [heart]
-  3. I caught it just - before the wind had gone [gone]
-  4. i break into the dawn [dawn]
+  1. i drift - in the moonlight [moonlight]
+  2. i bloom - in the spotlight [spotlight]
+  3. under skies of gold - and grey [grey]
+  4. i know that what - we have is here to stay [stay]
 
 **[Chorus]** (pattern: AABB)
-  1. catchy exclusive - and coded always [always]
-  2. I lost myself - inside your gaze [gaze]
-  3. i drift - in the spotlight [spotlight]
-  4. irresistible and - unforgettable tonight [tonight]
+  1. the bridge is - raw the chorus is blind [blind]
+  2. i pushed the heavy - memories left behind [behind]
+  3. this extraordinary feeling - never fades away [away]
+  4. take a breath - and let the moment stay [stay]
 
 **[Verse 2]** (pattern: AABB)
-  1. you fascinated me - right from the very start [start]
-  2. the vinyl skipped - right on our favorite part [part]
-  3. a rhythm - I could not repeat [repeat]
-  4. the porch light flickered - like a heartbeat [heartbeat]
+  1. i dance - into the dawn [dawn]
+  2. the spotlight chasing - what is gone [gone]
+  3. the answers - that I couldn't find [find]
+  4. extraordinary how - the universe aligned [aligned]
 
 **[Chorus]** (pattern: AABB)
-  1. catchy exclusive - and coded always [always]
-  2. I lost myself - inside your gaze [gaze]
-  3. i drift - in the spotlight [spotlight]
-  4. irresistible and - unforgettable tonight [tonight]
+  1. the bridge is - raw the chorus is blind [blind]
+  2. i pushed the heavy - memories left behind [behind]
+  3. this extraordinary feeling - never fades away [away]
+  4. take a breath - and let the moment stay [stay]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. a little - sign from the universe to me [me]
-  2. I find your fingerprints - just everywhere [everywhere]
-  3. the vending machine - gave me something free [free]
-  4. you left your laughter - hanging in the air [air]
+  1. I was looking - for a sign [sign]
+  2. i crash - through the night [night]
+  3. a fortune cookie said - let go and shine [shine]
+  4. i drift - in the moonlight [moonlight]
 
 **[Chorus]** (pattern: ABAB)
-  1. turn it up and let the whole - world hear [hear]
-  2. the world is - glowing burning bright [bright]
-  3. wishing you were - standing right here [here]
-  4. we paint the sky electric - every night [night]
+  1. Beyonce told us who - run the world tonight [tonight]
+  2. brighter than - the lights on Broadway [broadway]
+  3. i break - through the night [night]
+  4. you were the remix of my - quietest day [day]
 
 **[Verse 2]** (pattern: ABAB)
-  1. every melody - you sing is intertwined [intertwined]
-  2. sending signals - through the atmosphere [atmosphere]
-  3. the moment that we shared was - hard to find [find]
-  4. a satellite of truth - and fear [fear]
+  1. we shine - in the spotlight [spotlight]
+  2. I caught a snowflake - and I thought of you [you]
+  3. we sing through the night [night]
+  4. you colored outside - every line I drew [drew]
 
 **[Chorus]** (pattern: ABAB)
-  1. turn it up and let the whole - world hear [hear]
-  2. the world is - glowing burning bright [bright]
-  3. wishing you were - standing right here [here]
-  4. we paint the sky electric - every night [night]
+  1. Beyonce told us who - run the world tonight [tonight]
+  2. brighter than - the lights on Broadway [broadway]
+  3. i break - through the night [night]
+  4. you were the remix of my - quietest day [day]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. you colored outside - every line I drew [drew]
-  2. a sunset dip - inside the ocean blue [blue]
-  3. every single carriage - leads to you [you]
-  4. the mirror version of me - knows what to do [do]
+  1. singing - like Adele with tears on my face [face]
+  2. we vanish - and we leave no trace [trace]
+  3. I bottled up the feeling - just in case [case]
+  4. the silence fills - this empty space [space]
 
 **[Chorus]** (pattern: AAAA)
-  1. the summer - of lowkey gleam [gleam]
-  2. the roller coaster drops - and then we scream [scream]
-  3. this life together is - the wildest dream [dream]
-  4. I worshipped - every scheme [scheme]
+  1. keep the art - going all through the catalyst [catalyst]
+  2. the silence settled - like a morning mist [mist]
+  3. you drew a map to places - that don't exist [exist]
+  4. we gravitated - toward the analyst [analyst]
 
 **[Verse 2]** (pattern: AAAA)
-  1. the phenomenal - beauty of our imagination [imagination]
-  2. my imagination painted - every destination [destination]
-  3. the incredible - sensation of our dedication [dedication]
-  4. appreciate the moments - of illumination [illumination]
+  1. the corner store - that sold our cheap champagne [champagne]
+  2. i break - through the rain [rain]
+  3. Sabrina's nonsense - running through my brain [brain]
+  4. i glow - through the rain [rain]
 
 **[Chorus]** (pattern: AAAA)
-  1. the summer - of lowkey gleam [gleam]
-  2. the roller coaster drops - and then we scream [scream]
-  3. this life together is - the wildest dream [dream]
-  4. I worshipped - every scheme [scheme]
+  1. keep the art - going all through the catalyst [catalyst]
+  2. the silence settled - like a morning mist [mist]
+  3. you drew a map to places - that don't exist [exist]
+  4. we gravitated - toward the analyst [analyst]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. i fade - through the rain [rain]
-  2. a story only - time will tell [tell]
-  3. Chappell Roan taught me - how to feel the pink [pink]
-  4. i spark - under the stars [stars]
+  1. i break - through the night [night]
+  2. i dance - into your arms [arms]
+  3. the grocery store aisle - where we slow danced [danced]
+  4. we traded secrets - underneath the stairs [stairs]
 
 **[Chorus]** (pattern: XXXX)
-  1. we're the headline - and the encore too [too]
-  2. I was made to sing - this song with you [you]
-  3. you colored outside - every line I drew [drew]
-  4. we leave the past behind - and start brand new [new]
+  1. motivate the world - to celebrate [celebrate]
+  2. unforgettable the way - you illuminate [illuminate]
+  3. incredible the way - we resonate [resonate]
+  4. the sensational - feeling cannot wait [wait]
 
 **[Verse 2]** (pattern: XXXX)
-  1. we shine - through the night [night]
-  2. the corner store that - sold our cheap champagne [champagne]
-  3. the rain outside sounds - like your fingertips [fingertips]
-  4. I drew a heart - inside the foggy glass [glass]
+  1. There's a fire - burning in my chest [chest]
+  2. the voicemail - that you never played [played]
+  3. I watched the rivers - slowly flow [flow]
+  4. Post Malone said better now - and meant it [it]
 
 **[Chorus]** (pattern: XXXX)
-  1. we're the headline - and the encore too [too]
-  2. I was made to sing - this song with you [you]
-  3. you colored outside - every line I drew [drew]
-  4. we leave the past behind - and start brand new [new]
+  1. motivate the world - to celebrate [celebrate]
+  2. unforgettable the way - you illuminate [illuminate]
+  3. incredible the way - we resonate [resonate]
+  4. the sensational - feeling cannot wait [wait]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. every single carriage - leads to you [you]
-  2. a sunset dip - inside the ocean blue [blue]
-  3. i crash in the spotlight [spotlight]
-  4. i burn - through the night [night]
+  1. the dam is breaking - hearts about to overflow [overflow]
+  2. I drew a heart - on the fogged-up window [window]
+  3. the spotlight chasing - what is gone [gone]
+  4. i glow into the dawn [dawn]
 
 **[Chorus]** (pattern: AABB)
-  1. construct the proud - sensation tonight [tonight]
-  2. i dance - through the night [night]
-  3. every note I hear is - leading back to you [you]
-  4. I gathered every broken - promise into something new [new]
+  1. light me up I'm - ready for the show [show]
+  2. I remember every word - and every afterglow [afterglow]
+  3. you painted over every - shade of grey [grey]
+  4. and all the noise - falls away [away]
 
 **[Verse 2]** (pattern: AABB)
-  1. you fascinated me - right from the very start [start]
-  2. we slowly drifted - miles apart [apart]
-  3. i fall - along the shore [shore]
-  4. I never felt this - way with you before [before]
+  1. i drift - in the moonlight [moonlight]
+  2. the glitter falls - like snow on New Year night [night]
+  3. i shine into the dawn [dawn]
+  4. i realize that this is where - i belong [belong]
 
 **[Chorus]** (pattern: AABB)
-  1. construct the proud - sensation tonight [tonight]
-  2. i dance - through the night [night]
-  3. every note I hear is - leading back to you [you]
-  4. I gathered every broken - promise into something new [new]
+  1. light me up I'm - ready for the show [show]
+  2. I remember every word - and every afterglow [afterglow]
+  3. you painted over every - shade of grey [grey]
+  4. and all the noise - falls away [away]
 
 ---
 

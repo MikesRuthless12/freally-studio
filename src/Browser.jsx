@@ -69,6 +69,8 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     const [contextMenu, setContextMenu] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [extractProgress, setExtractProgress] = useState(0);
+    const [batchExtractState, setBatchExtractState] = useState(null); // { current, total, fileName }
+    const batchExtractAbortRef = useRef(null);
     const [navActiveKey, setNavActiveKey] = useState(null); // Keyboard nav active item
 
     // Rapid-navigation: debounce timer + generation counter to cancel stale async chains
@@ -547,6 +549,328 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         }
     };
 
+    // ---- Shared: build MIDI binary from note array ----
+    const TICKS_PER_QUARTER = 480;
+    const buildMidiFromNotes = (notes, bpm) => {
+        const ticksPerStep = TICKS_PER_QUARTER / 8;
+        const events = [];
+        for (const n of notes) {
+            const tick = Math.round(n.time * ticksPerStep);
+            const dur = Math.max(Math.round(ticksPerStep / 2), Math.round(n.duration * ticksPerStep));
+            const vel = Math.round(Math.min(127, Math.max(1, (n.velocity || 0.8) * 127)));
+            events.push({ tick, type: 'on', note: n.note, vel });
+            events.push({ tick: tick + dur, type: 'off', note: n.note, vel: 0 });
+        }
+        events.sort((a, b) => a.tick - b.tick || (a.type === 'off' ? -1 : 1));
+        const trackBytes = [];
+        const writeVLQ = (val) => {
+            const bytes = [];
+            bytes.push(val & 0x7F);
+            val >>= 7;
+            while (val > 0) { bytes.push((val & 0x7F) | 0x80); val >>= 7; }
+            bytes.reverse();
+            return bytes;
+        };
+        const usPerBeat = Math.round(60000000 / bpm);
+        trackBytes.push(...writeVLQ(0), 0xFF, 0x51, 0x03,
+            (usPerBeat >> 16) & 0xFF, (usPerBeat >> 8) & 0xFF, usPerBeat & 0xFF);
+        let lastTick = 0;
+        for (const ev of events) {
+            const delta = Math.max(0, ev.tick - lastTick);
+            trackBytes.push(...writeVLQ(delta));
+            if (ev.type === 'on') {
+                trackBytes.push(0x90, ev.note & 0x7F, ev.vel & 0x7F);
+            } else {
+                trackBytes.push(0x80, ev.note & 0x7F, 0x00);
+            }
+            lastTick = ev.tick;
+        }
+        trackBytes.push(...writeVLQ(0), 0xFF, 0x2F, 0x00);
+        const trackLen = trackBytes.length;
+        const header = [
+            0x4D, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01,
+            (TICKS_PER_QUARTER >> 8) & 0xFF, TICKS_PER_QUARTER & 0xFF,
+            0x4D, 0x54, 0x72, 0x6B,
+            (trackLen >> 24) & 0xFF, (trackLen >> 16) & 0xFF, (trackLen >> 8) & 0xFF, trackLen & 0xFF,
+        ];
+        const midi = new Uint8Array(header.length + trackLen);
+        midi.set(header, 0);
+        midi.set(trackBytes, header.length);
+        return midi;
+    };
+
+    // ---- Extract MIDI from single audio file to disk ----
+    const handleExtractMIDIToFile = async (item) => {
+        setContextMenu(null);
+        if (item.type !== 'audio') return;
+
+        // Default save path: same folder as the audio file, with .mid extension
+        const baseName = item.name.replace(/\.[^/.]+$/, '');
+        const safeName = baseName.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/\.+$/, '').trim().slice(0, 200);
+        const defaultName = (safeName || 'untitled') + '.mid';
+
+        let savePath = null;
+        if (window.electronAPI?.fs?.showSaveDialog) {
+            // Pre-fill with the audio file's folder if available
+            const defaultDir = item.nativePath ? item.nativePath.replace(/[\\/][^\\/]+$/, '') : undefined;
+            const result = await window.electronAPI.fs.showSaveDialog({
+                title: t('browser.saveMidiFile'),
+                defaultPath: defaultDir ? defaultDir + '/' + defaultName : defaultName,
+                filters: [{ name: 'MIDI File', extensions: ['mid'] }]
+            });
+            if (result.canceled || !result.filePath) return;
+            savePath = result.filePath;
+        } else {
+            alert('Saving MIDI to file requires the desktop app.');
+            return;
+        }
+
+        // Stop playback
+        stopAllPreviewAudio();
+        setIsPlaying(false);
+        setIsMidiPlaying(false);
+
+        setIsAnalyzing(true);
+        setExtractProgress(0);
+
+        try {
+            // Check for matching MIDI file first (same as single-file Extract MIDI)
+            const findMidiInTree = (items) => {
+                for (const f of (items || [])) {
+                    if (f.kind === 'directory') {
+                        const found = findMidiInTree(f.children);
+                        if (found) return found;
+                    } else if (f.type === 'midi') {
+                        const fBase = f.name.replace(/\.[^/.]+$/, '');
+                        if (fBase === baseName) return f;
+                    }
+                }
+                return null;
+            };
+            let exactMidiItem = null;
+            for (const fFiles of Object.values(folderFiles)) {
+                exactMidiItem = findMidiInTree(fFiles);
+                if (exactMidiItem) break;
+            }
+
+            if (exactMidiItem) {
+                // Copy original MIDI directly
+                const midiFile = await getFileFromItem(exactMidiItem);
+                const midiBuffer = await midiFile.arrayBuffer();
+                await window.electronAPI.fs.writeFile(savePath, midiBuffer);
+            } else {
+                // Extract from audio — same pipeline as single-file Extract MIDI
+                const file = await getFileFromItem(item);
+                const buffer = await file.arrayBuffer();
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                try {
+                    const audioBuffer = await audioContext.decodeAudioData(buffer);
+                    const { AudioAnalyzer } = await import('./AudioAnalyzer');
+                    const analyzer = new AudioAnalyzer();
+                    const filenameMetadata = extractMetadataFromFilename(item.name);
+                    const audioAnalysis = await analyzer.analyzeAudioFile(audioBuffer);
+                    const metadata = { ...audioAnalysis, ...filenameMetadata };
+                    const analysisTempo = metadata.tempo || tempo || 120;
+                    const requiredBars = calcRequiredBars(audioBuffer.duration, analysisTempo);
+                    const totalExtractSteps = requiredBars * 32;
+
+                    const melodyRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'melody', (p) => setExtractProgress(Math.round(p * 0.33)));
+                    const bassRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'bass', (p) => setExtractProgress(33 + Math.round(p * 0.33)));
+                    const chordsRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'chords', (p) => setExtractProgress(66 + Math.round(p * 0.34)));
+                    setExtractProgress(100);
+
+                    const melodyFiltered = filterExactPattern(melodyRaw, 'melody', false, totalExtractSteps);
+                    const bassFiltered = filterExactPattern(bassRaw, 'bass', false, totalExtractSteps);
+                    const chordsFiltered = filterExactPattern(chordsRaw, 'chords', false, totalExtractSteps);
+
+                    const allNotes = [
+                        ...(Array.isArray(melodyFiltered) ? melodyFiltered : []),
+                        ...(Array.isArray(bassFiltered) ? bassFiltered : []),
+                        ...(Array.isArray(chordsFiltered) ? chordsFiltered : []),
+                    ];
+
+                    if (allNotes.length > 0) {
+                        const midiBytes = buildMidiFromNotes(allNotes, analysisTempo);
+                        await window.electronAPI.fs.writeFile(savePath, midiBytes.buffer);
+                    }
+                } finally {
+                    if (audioContext.state !== 'closed') audioContext.close();
+                }
+            }
+
+            // Show the saved file in explorer
+            if (window.electronAPI?.shell?.showItemInFolder) {
+                window.electronAPI.shell.showItemInFolder(savePath);
+            }
+        } catch (error) {
+            console.error('[ExtractMIDI] Save to file failed:', error);
+        } finally {
+            setIsAnalyzing(false);
+            setExtractProgress(0);
+        }
+    };
+
+    // ---- Batch Extract MIDI from Folder ----
+    const handleExtractMIDIFromFolder = async (folderItem) => {
+        setContextMenu(null);
+
+        // Gather top-level audio files from the folder
+        let audioFiles = [];
+        const files = folderFiles[folderItem.name] || folderItem.children || [];
+        for (const f of files) {
+            if (f.kind === 'file' && f.type === 'audio') audioFiles.push(f);
+        }
+        if (audioFiles.length === 0) {
+            alert(t('browser.noAudioFilesInFolder'));
+            return;
+        }
+
+        // Ask user to choose a destination folder
+        let destFolderPath = null;
+        if (window.electronAPI?.fs?.showOpenDialog) {
+            const result = await window.electronAPI.fs.showOpenDialog({
+                properties: ['openDirectory', 'createDirectory'],
+                title: t('browser.chooseMidiDestination'),
+            });
+            if (result.canceled || !result.filePaths || result.filePaths.length === 0) return;
+            destFolderPath = result.filePaths[0];
+        } else {
+            alert('Batch MIDI extraction to folder requires the desktop app.');
+            return;
+        }
+
+        // Stop playback
+        if (window.audioEngine) window.audioEngine.stop();
+        if (midiSynthRef.current) midiSynthRef.current.stop();
+        if (midiProgressRef.current) { clearInterval(midiProgressRef.current); midiProgressRef.current = null; }
+        setIsPlaying(false);
+        setIsMidiPlaying(false);
+
+        setIsAnalyzing(true);
+        setExtractProgress(0);
+        setBatchExtractState({ current: 0, total: audioFiles.length, fileName: '' });
+        const abortController = new AbortController();
+        batchExtractAbortRef.current = abortController;
+
+        let completed = 0;
+        try {
+            for (const audioItem of audioFiles) {
+                // Check for cancellation
+                if (abortController.signal.aborted) break;
+
+                const baseName = audioItem.name.replace(/\.[^/.]+$/, '');
+                // Sanitize filename: remove illegal chars for Windows/macOS/Linux, truncate
+                const safeName = baseName
+                    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_') // illegal chars
+                    .replace(/\.+$/, '')                      // trailing dots (Windows)
+                    .replace(/\s+/g, ' ')                     // collapse whitespace
+                    .trim()
+                    .slice(0, 200);                           // keep path component short
+
+                setBatchExtractState({ current: completed + 1, total: audioFiles.length, fileName: audioItem.name });
+
+                try {
+                    const midiFileName = (safeName || 'untitled') + '.mid';
+                    const fullPath = destFolderPath + '/' + midiFileName;
+                    const writePath = fullPath.length > 255
+                        ? destFolderPath + '/' + safeName.slice(0, Math.max(10, 255 - destFolderPath.length - 5)) + '.mid'
+                        : fullPath;
+
+                    // --- EXACT MIDI MATCHING OVERRIDE (same as single-file Extract MIDI) ---
+                    // If a .mid file with the same base name exists in any open folder, copy it directly
+                    const findMidiInTree = (items) => {
+                        for (const f of (items || [])) {
+                            if (f.kind === 'directory') {
+                                const found = findMidiInTree(f.children);
+                                if (found) return found;
+                            } else if (f.type === 'midi') {
+                                const fBase = f.name.replace(/\.[^/.]+$/, '');
+                                if (fBase === baseName) return f;
+                            }
+                        }
+                        return null;
+                    };
+                    let exactMidiItem = null;
+                    for (const fFiles of Object.values(folderFiles)) {
+                        exactMidiItem = findMidiInTree(fFiles);
+                        if (exactMidiItem) break;
+                    }
+
+                    if (exactMidiItem) {
+                        // Copy the original MIDI file directly — no audio analysis needed
+                        const midiFile = await getFileFromItem(exactMidiItem);
+                        const midiBuffer = await midiFile.arrayBuffer();
+                        await window.electronAPI.fs.writeFile(writePath, midiBuffer);
+                    } else {
+                        // No matching MIDI found — extract from audio (same pipeline as single-file Extract MIDI)
+                        const file = await getFileFromItem(audioItem);
+                        const buffer = await file.arrayBuffer();
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        try {
+                            const audioBuffer = await audioContext.decodeAudioData(buffer);
+
+                            const { AudioAnalyzer } = await import('./AudioAnalyzer');
+                            const analyzer = new AudioAnalyzer();
+                            const filenameMetadata = extractMetadataFromFilename(audioItem.name);
+                            const audioAnalysis = await analyzer.analyzeAudioFile(audioBuffer);
+                            const metadata = { ...audioAnalysis, ...filenameMetadata };
+                            const analysisTempo = metadata.tempo || tempo || 120;
+                            const requiredBars = calcRequiredBars(audioBuffer.duration, analysisTempo);
+                            const totalExtractSteps = requiredBars * 32;
+
+                            // Extract all roles — same as single-file "Extract MIDI" (targetStr='all')
+                            const melodyRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'melody', () => {});
+                            const bassRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'bass', () => {});
+                            const chordsRaw = await analyzer.extractMIDI(audioBuffer, analysisTempo, 'chords', () => {});
+
+                            // Apply same filterExactPattern cleanup as single-file path
+                            const melodyFiltered = filterExactPattern(melodyRaw, 'melody', false, totalExtractSteps);
+                            const bassFiltered = filterExactPattern(bassRaw, 'bass', false, totalExtractSteps);
+                            const chordsFiltered = filterExactPattern(chordsRaw, 'chords', false, totalExtractSteps);
+
+                            const allNotes = [
+                                ...(Array.isArray(melodyFiltered) ? melodyFiltered : []),
+                                ...(Array.isArray(bassFiltered) ? bassFiltered : []),
+                                ...(Array.isArray(chordsFiltered) ? chordsFiltered : []),
+                            ];
+
+                            if (allNotes.length > 0) {
+                                const midiBytes = buildMidiFromNotes(allNotes, analysisTempo);
+                                await window.electronAPI.fs.writeFile(writePath, midiBytes.buffer);
+                            }
+                        } finally {
+                            if (audioContext.state !== 'closed') audioContext.close();
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`[BatchMIDI] Failed to extract "${audioItem.name}":`, err.message);
+                }
+
+                completed++;
+                setExtractProgress(Math.round((completed / audioFiles.length) * 100));
+                setBatchExtractState({ current: completed, total: audioFiles.length, fileName: audioItem.name });
+
+                // Yield to UI thread so progress renders and cancel button is responsive
+                await new Promise(r => setTimeout(r, 0));
+                if (abortController.signal.aborted) break;
+            }
+
+            // Open the destination folder when done (unless cancelled)
+            if (!abortController.signal.aborted && window.electronAPI?.shell?.showItemInFolder && destFolderPath) {
+                window.electronAPI.shell.showItemInFolder(destFolderPath);
+            }
+        } catch (error) {
+            if (!abortController.signal.aborted) {
+                console.error('[BatchMIDI] Batch extraction failed:', error);
+            }
+        } finally {
+            batchExtractAbortRef.current = null;
+            setIsAnalyzing(false);
+            setBatchExtractState(null);
+            setExtractProgress(0);
+        }
+    };
+
     // Preview State
     const [previewItem, setPreviewItem] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -576,6 +900,26 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     useEffect(() => {
         loadFolders();
     }, []);
+
+    // Watch folders for file changes (Electron only) — rescan when files are added/removed
+    useEffect(() => {
+        if (!window.electronAPI?.folders?.onChanged) return;
+        window.electronAPI.folders.onChanged(({ dirPath }) => {
+            // Find the folder that matches this path and rescan it silently
+            const folder = folders.find(f => f.nativePath === dirPath);
+            if (folder) {
+                console.log(`[Browser] Folder changed: ${folder.name} — rescanning`);
+                // Reset scanned flag so performScan doesn't skip it
+                currentlyScanning.current.delete(folder.name);
+                performScan(folder, { silent: true, autoExpand: false });
+            }
+        });
+        return () => {
+            if (window.electronAPI?.folders?.removeChangedListener) {
+                window.electronAPI.folders.removeChangedListener();
+            }
+        };
+    }, [folders]);
 
     // ===== Factory Samples Auto-Load =====
     useEffect(() => {
@@ -824,6 +1168,9 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    // Select/highlight this file so user sees which one was added
+                                    setPreviewItem(item);
+                                    setNavActiveKey(item.path || item.name);
                                     onAddToFileSlot(item);
                                 }}
                                 style={{
@@ -935,6 +1282,10 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     }
                     if (onFolderSelect) {
                         onFolderSelect({ name: folder.name, files, samples: allFiles.filter(f => f.type === 'audio') });
+                    }
+                    // Start watching this folder for changes
+                    if (window.electronAPI?.folders?.watch) {
+                        window.electronAPI.folders.watch(folder.nativePath);
                     }
                 }
                 return; // Skip handle-based scan
@@ -1224,10 +1575,14 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         // Bump generation so any in-flight async chains from previous clicks/nav are cancelled
         const gen = ++playGenRef.current;
 
-        // Ensure AudioContext is resumed (fire-and-forget — don't await to avoid latency)
-        if (window.audioEngine) window.audioEngine.resume();
-        // Schedule idle suspend so previews don't leave the context running
-        if (window.__samplerRef?._scheduleIdleSuspend) window.__samplerRef._scheduleIdleSuspend();
+        // Ensure AudioContext is resumed — await it so first click doesn't lag
+        if (window.audioEngine) {
+            const ctx = window.audioEngine.audioContext || window.audioEngine.ctx;
+            if (ctx && ctx.state === 'suspended') await ctx.resume();
+            window.audioEngine.resume();
+        }
+        // Cancel any pending idle suspend — we're about to play something
+        if (window.__samplerRef?._cancelIdleSuspend) window.__samplerRef._cancelIdleSuspend();
 
         // --- ALWAYS CUT AUDIO INSTANTLY ON ANY FILE CLICK ---
         stopAllPreviewAudio();
@@ -1276,12 +1631,16 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                 // Actually PLAY the MIDI through the synth
                 if (allNotes.length > 0) {
                     const tpb = midiData.ticksPerBeat || 480;
+                    // Use tempo from MIDI file, or filename metadata, or project tempo, fallback 120
+                    const filenameMetadata = extractMetadataFromFilename(item.name);
+                    const playbackBpm = midiData.tempo || filenameMetadata.tempo || tempo || 120;
+                    item._previewBpm = playbackBpm; // Cache for replay via play button
                     const maxTick = Math.max(...allNotes.map(n => n.startTick + n.duration));
-                    const totalDur = maxTick * (60 / 120) / tpb;
+                    const totalDur = maxTick * (60 / playbackBpm) / tpb;
                     setDuration(totalDur);
 
                     const synth = getMidiSynth();
-                    synth.playMidi(allNotes, 120, tpb, () => {
+                    synth.playMidi(allNotes, playbackBpm, tpb, () => {
                         // Natural end — clear interval and reset state
                         if (midiProgressRef.current) {
                             clearInterval(midiProgressRef.current);
@@ -1319,12 +1678,18 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
             if (playGenRef.current !== gen) return; // Stale
             setPreviewBuffer(buffer);
             setDuration(buffer.duration);
+            setCurrentTime(0);
+            setIsPlaying(true);
             window.audioEngine.play(buffer, () => {
-                setIsPlaying(false);
+                // Only reset state if this is still the active generation
+                if (playGenRef.current === gen) {
+                    setIsPlaying(false);
+                    setCurrentTime(0);
+                }
             });
         } catch (e) {
             console.error("Preview failed", e);
-            setIsPlaying(false);
+            if (playGenRef.current === gen) setIsPlaying(false);
         }
     };
 
@@ -1352,15 +1717,16 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
             });
             setIsPlaying(true);
         } else if (previewItem?.type === 'midi' && previewItem?.midiNotes?.length > 0) {
-            // Re-play MIDI
+            // Re-play MIDI at the same tempo used for initial preview
             const synth = getMidiSynth();
             const tpb = previewItem.ticksPerBeat || 480;
+            const playbackBpm = previewItem._previewBpm || tempo || 120;
             const maxTick = Math.max(...previewItem.midiNotes.map(n => n.startTick + n.duration));
-            const totalDur = maxTick * (60 / 120) / tpb;
+            const totalDur = maxTick * (60 / playbackBpm) / tpb;
             setDuration(totalDur);
             setCurrentTime(0);
 
-            synth.playMidi(previewItem.midiNotes, 120, tpb, () => {
+            synth.playMidi(previewItem.midiNotes, playbackBpm, tpb, () => {
                 if (midiProgressRef.current) {
                     clearInterval(midiProgressRef.current);
                     midiProgressRef.current = null;
@@ -1388,6 +1754,11 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     };
 
     const handleDragStart = (e, item) => {
+        // Stop any playing preview immediately when starting a drag
+        stopAllPreviewAudio();
+        setIsPlaying(false);
+        setIsMidiPlaying(false);
+
         // item: { name, type, kind, handle, ... }
         e.dataTransfer.setData("application/json", JSON.stringify({
             name: item.name,
@@ -2109,8 +2480,18 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     backdropFilter: 'blur(10px)'
                 }}>
                     <div style={{ fontSize: '14px', fontWeight: '900', color: ac, letterSpacing: '2px', marginBottom: '16px' }}>
-                        {t('browser.analyzingMidiDna')}
+                        {batchExtractState ? t('browser.extractingMidiFromFolder') : t('browser.analyzingMidiDna')}
                     </div>
+                    {batchExtractState && (
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '10px' }}>
+                            {t('browser.batchProgress', { current: batchExtractState.current, total: batchExtractState.total })}
+                        </div>
+                    )}
+                    {batchExtractState && batchExtractState.fileName && (
+                        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginBottom: '10px', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {batchExtractState.fileName}
+                        </div>
+                    )}
                     <div style={{
                         width: '180px', height: '6px', borderRadius: '3px',
                         background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
@@ -2118,12 +2499,38 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     }}>
                         <div style={{
                             width: `${extractProgress}%`, height: '100%', borderRadius: '3px',
-                            background: ac
+                            background: ac,
+                            transition: batchExtractState ? 'width 0.3s ease' : 'none'
                         }} />
                     </div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: batchExtractState ? '12px' : 0 }}>
                         {extractProgress}%
                     </div>
+                    {batchExtractState && (
+                        <button
+                            onClick={() => {
+                                if (batchExtractAbortRef.current) {
+                                    batchExtractAbortRef.current.abort();
+                                }
+                            }}
+                            style={{
+                                padding: '6px 20px',
+                                background: 'rgba(255, 75, 75, 0.15)',
+                                border: '1px solid rgba(255, 75, 75, 0.4)',
+                                borderRadius: '6px',
+                                color: '#ff4b4b',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                letterSpacing: '0.5px'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 75, 75, 0.3)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 75, 75, 0.15)'; }}
+                        >
+                            {t('common.cancel')}
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -3236,6 +3643,20 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                             >
                                 ✨ {t('browser.extractMidi')}
                             </div>
+                            {contextMenu.item.type === 'audio' && (
+                                <div
+                                    onClick={() => handleExtractMIDIToFile(contextMenu.item)}
+                                    style={{
+                                        padding: '10px 18px', cursor: 'pointer', fontSize: '11px', color: '#4facfe',
+                                        fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
+                                        borderTop: '1px solid rgba(255,255,255,0.05)'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(79, 172, 254, 0.1)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    💾 {t('browser.extractMidiToFile')}
+                                </div>
+                            )}
                         </>
                     ) : (
                         <>
@@ -3258,15 +3679,37 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 🔍 {t('browser.analyzeGenerate')}
                             </div>
                             <div
+                                onClick={() => handleExtractMIDIFromFolder(contextMenu.item)}
+                                style={{
+                                    padding: '10px 18px',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    color: '#39ff14',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'background 0.2s',
+                                    borderTop: '1px solid rgba(255,255,255,0.05)'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(57, 255, 20, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                ✨ {t('browser.extractMidiFromFolder')}
+                            </div>
+                            <div
                                 onClick={async () => {
                                     if (window.libraryManager) {
                                         await window.libraryManager.removeFolder(contextMenu.item.name);
                                     }
-                                    // Also remove from Electron native persistence
+                                    // Also remove from Electron native persistence + stop watching
                                     if (window.electronAPI?.folders?.load && contextMenu.item.nativePath) {
                                         const result = await window.electronAPI.folders.load();
                                         const updated = (result.folders || []).filter(p => p !== contextMenu.item.nativePath);
                                         await window.electronAPI.folders.save(updated);
+                                        if (window.electronAPI.folders.unwatch) {
+                                            window.electronAPI.folders.unwatch(contextMenu.item.nativePath);
+                                        }
                                     }
                                     setFolders(prev => prev.filter(f => f.name !== contextMenu.item.name));
                                     setFolderFiles(prev => {

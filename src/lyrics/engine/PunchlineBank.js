@@ -7237,7 +7237,7 @@ const PUNCHLINE_PHRASES = {
     // --- Alien / Predator / Die Hard ---
     'lien': {
         all: [
-            "in space no one hears the alien alien",
+            "in space no one hears - the alien",
             "ripley the resilient alien",
             "game over man the civilian alien",
             "face hugger the chameleon alien",

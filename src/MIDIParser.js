@@ -25,10 +25,23 @@ export class MIDIParser {
             offset += track.length + 8;
         }
 
+        // Extract tempo from first setTempo event across all tracks
+        let midiTempo = null;
+        for (const track of tracks) {
+            for (const ev of track.events) {
+                if (ev.type === 'setTempo') {
+                    midiTempo = ev.bpm;
+                    break;
+                }
+            }
+            if (midiTempo) break;
+        }
+
         return {
             format: header.format,
             numTracks: header.numTracks,
             ticksPerBeat: header.ticksPerBeat,
+            tempo: midiTempo,
             tracks
         };
     }
@@ -142,7 +155,22 @@ export class MIDIParser {
                 const metaType = dataView.getUint8(eventOffset);
                 eventOffset++;
                 const metaLength = this.readVariableLength(dataView, eventOffset);
-                eventOffset += metaLength.length + metaLength.value;
+                eventOffset += metaLength.length;
+
+                // Extract tempo from Set Tempo meta event (0x51)
+                if (metaType === 0x51 && metaLength.value === 3) {
+                    const usPerBeat = (dataView.getUint8(eventOffset) << 16) |
+                                      (dataView.getUint8(eventOffset + 1) << 8) |
+                                       dataView.getUint8(eventOffset + 2);
+                    events.push({
+                        type: 'setTempo',
+                        tick: currentTick,
+                        microsecondsPerBeat: usPerBeat,
+                        bpm: Math.round(60000000 / usPerBeat)
+                    });
+                }
+
+                eventOffset += metaLength.value;
             } else if (statusByte === 0xF0 || statusByte === 0xF7) {
                 // SysEx
                 const sysexLength = this.readVariableLength(dataView, eventOffset);

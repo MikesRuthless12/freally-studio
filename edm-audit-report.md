@@ -1,6 +1,6 @@
 # EDM Lyrics Generation Audit Report
 
-Generated: 2026-03-23T07:11:19.473Z
+Generated: 2026-03-26T18:25:28.370Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 1 |
+| Total quality issues | 2 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -32,7 +32,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Mood | Lines | Rhyme Pairs | Rhyme Failures | Accuracy | Quality Issues |
 |------|-------|-------------|----------------|----------|----------------|
 | happy | 192 | 84 | 0 | 100.0% | 0 |
-| sad | 176 | 76 | 0 | 100.0% | 1 |
+| sad | 176 | 76 | 0 | 100.0% | 2 |
 | romantic | 176 | 76 | 0 | 100.0% | 0 |
 | aggressive | 176 | 72 | 0 | 100.0% | 0 |
 | dreamy | 176 | 84 | 0 | 100.0% | 0 |
@@ -45,11 +45,12 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 1 |
+| WEAK_ENDING | 2 |
 
-## Weak Ending Examples (1 total, showing up to 25)
+## Weak Ending Examples (2 total, showing up to 25)
 
-- Gen#20 [sad/freeform] Verse 2: `we pulse this is the moment - we have waited for` — WEAK_ENDING: ends with "for"
+- Gen#56 [sad/freeform] Verse 2: `the sun comes up - but we keep going on` — WEAK_ENDING: ends with "on"
+- Gen#92 [sad/freeform] Verse 2: `we pulse this is the moment - we have waited for` — WEAK_ENDING: ends with "for"
 
 ---
 
@@ -58,140 +59,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the melody is - launching into outer space [space]
-  2. the rhythm pulls us in and - we embrace [embrace]
-  3. the bass thunder across the dancefloor - shaking everything [everything]
-  4. the sound system tests at two PM - and already I'm moving [moving]
+  1. the bass explode past - the limits of reality tonight [tonight]
+  2. the speakers blasting - like a stick of dynamite [dynamite]
+  3. the pad evolves over thirty-two - bars of pure emotion [emotion]
+  4. the kaleidoscopic frequency - in perpetual motion [motion]
 
 **[Chorus]** (pattern: AABB)
-  1. the dance floor - calling do you dare [dare]
-  2. the music - floating everywhere [everywhere]
-  3. the bass is - heavy in the street [street]
-  4. the euphoric intensity of every - single beat [beat]
+  1. the tempo - shifting losing pace [pace]
+  2. the beat consumes - us in its warm embrace [embrace]
+  3. feel the flow - and let the rhythm grow [grow]
+  4. the atmosphere is - kaleidoscopic neon glow [glow]
 
 **[Verse 2]** (pattern: AABB)
-  1. the euphoric celebration - lasts for days [days]
-  2. we harmonized together in the strobe - lit haze [haze]
-  3. the water spray catches the lights - and makes a rainbow [rainbow]
-  4. the drop is coming - let it go [go]
+  1. the festival dust glitters - like pixels in sunlight [sunlight]
+  2. the crossfader slides from left - to right [right]
+  3. the bass rise through every cell - inside our bodies now [now]
+  4. the bass is shaking - all around [around]
 
 **[Chorus]** (pattern: AABB)
-  1. the dance floor - calling do you dare [dare]
-  2. the music - floating everywhere [everywhere]
-  3. the bass is - heavy in the street [street]
-  4. the euphoric intensity of every - single beat [beat]
+  1. the tempo - shifting losing pace [pace]
+  2. the beat consumes - us in its warm embrace [embrace]
+  3. feel the flow - and let the rhythm grow [grow]
+  4. the atmosphere is - kaleidoscopic neon glow [glow]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. we vibrate through every cell - inside our bodies now [now]
-  2. the drops are - heavy and endowed [endowed]
-  3. the bass is shaking - all around [around]
-  4. the synth washes - over the crowd [crowd]
+  1. the hypnotized velocity - of supersonic sound [sound]
+  2. the bass surge across the dancefloor - shaking everything [everything]
+  3. the return to the drop hits - harder the second time around [around]
+  4. the sound system tests at two - PM and already I'm moving [moving]
 
 **[Chorus]** (pattern: ABAB)
-  1. every spark ignites a brand - new start [start]
-  2. I felt the bass - rewrite the rhythm of my actual heartbeat [heartbeat]
-  3. multiplying me - into every part [part]
-  4. the electrified and mesmerized - surrender to the beat [beat]
+  1. let the beat - take over heart and soul [soul]
+  2. the euphoric and hypnotized - surrender to the night [night]
+  3. we are the wave - the endless roll [roll]
+  4. synchronized together - we are infinite [infinite]
 
 **[Verse 2]** (pattern: ABAB)
-  1. the crowd - erupting at the laser arc [arc]
-  2. the bass - radiate into the stratosphere of sound [sound]
-  3. we cascade - like a supernova in the dark [dark]
-  4. the bass is rumbling - underneath the ground [ground]
+  1. we ripple - like a supernova in the dark [dark]
+  2. pulsing through the midnight air [air]
+  3. the crowd erupting - at the laser arc [arc]
+  4. the festival mud becomes a badge - of honor we all wear [wear]
 
 **[Chorus]** (pattern: ABAB)
-  1. every spark ignites a brand - new start [start]
-  2. I felt the bass - rewrite the rhythm of my actual heartbeat [heartbeat]
-  3. multiplying me - into every part [part]
-  4. the electrified and mesmerized - surrender to the beat [beat]
+  1. let the beat - take over heart and soul [soul]
+  2. the euphoric and hypnotized - surrender to the night [night]
+  3. we are the wave - the endless roll [roll]
+  4. synchronized together - we are infinite [infinite]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. the adrenaline is pumping - wanting more and more [more]
-  2. the rhythm pulls - us to the core [core]
-  3. the kaleidoscopic lights - illuminate the floor [floor]
-  4. a million hearts - begin to roar [roar]
+  1. the mesmerized velocity - that carries us back home [home]
+  2. the transcendent adrenaline - reverberates the zone [zone]
+  3. the supersonic intensity - reverberates the dome [dome]
+  4. the DJ booth elevated - like a throne [throne]
 
 **[Chorus]** (pattern: AAAA)
-  1. the tempo - shifting losing pace [pace]
-  2. outer space is our - favorite place [place]
-  3. the rhythm pulls - us in and we embrace [embrace]
-  4. the breakdown is not an absence of music - but a presence of space [space]
+  1. the crowd - becomes the enormous ray [ray]
+  2. we dance - until the break of day [day]
+  3. the melody - takes us away [away]
+  4. we dance because the bass demands it - and we gladly obey [obey]
 
 **[Verse 2]** (pattern: AAAA)
-  1. we radiate past - the limits of reality tonight [tonight]
-  2. a thousand bodies - feel the might [might]
-  3. the skyline - glowing with a neon light [light]
-  4. the lasers paint - the ceiling white [white]
+  1. the adrenaline intensity - that shakes the ground [ground]
+  2. the atmosphere electrified - the underground [underground]
+  3. we rise into the stratosphere - of sound [sound]
+  4. the kaleidoscopic atmosphere - is all around [around]
 
 **[Chorus]** (pattern: AAAA)
-  1. the tempo - shifting losing pace [pace]
-  2. outer space is our - favorite place [place]
-  3. the rhythm pulls - us in and we embrace [embrace]
-  4. the breakdown is not an absence of music - but a presence of space [space]
+  1. the crowd - becomes the enormous ray [ray]
+  2. we dance - until the break of day [day]
+  3. the melody - takes us away [away]
+  4. we dance because the bass demands it - and we gladly obey [obey]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. the festival mud becomes a badge of honor - we all wear [wear]
-  2. the DJ spins - us into another dimension [dimension]
-  3. we overwhelm from the subwoofer - to the rooftop high [high]
-  4. we vibrate through the fog - and laser light supreme [supreme]
+  1. we surge through the speakers - shattering the air [air]
+  2. the bass drop across the dancefloor - shaking everything [everything]
+  3. we shake from the subwoofer - to the rooftop high [high]
+  4. the vocoder turns human - voice into digital poetry [poetry]
 
 **[Chorus]** (pattern: XXXX)
-  1. a million hearts - begin to roar [roar]
-  2. bass so heavy - that it shakes the floor [floor]
-  3. the adrenaline is pumping - wanting more and more [more]
-  4. and this is the moment the night was - always building toward [toward]
+  1. drop the stream - and spin the floor [floor]
+  2. the rhythm pulls - us to the core [core]
+  3. give me more I - always want some more [more]
+  4. I have never felt - this way before [before]
 
 **[Verse 2]** (pattern: XXXX)
-  1. we cascade through every cell - inside our bodies now [now]
-  2. we surge through the speakers - shattering the air [air]
-  3. the bass cascade - like a supernova in the dark [dark]
-  4. the bass surge until the sunrise - breaks the spell at last [last]
+  1. the electrified intensity - is supernatural [supernatural]
+  2. the bass oscillate into the stratosphere - of sound [sound]
+  3. the modular synth patch evolves - like a living organism [organism]
+  4. we electrify past - the limits of reality tonight [tonight]
 
 **[Chorus]** (pattern: XXXX)
-  1. a million hearts - begin to roar [roar]
-  2. bass so heavy - that it shakes the floor [floor]
-  3. the adrenaline is pumping - wanting more and more [more]
-  4. and this is the moment the night was - always building toward [toward]
+  1. drop the stream - and spin the floor [floor]
+  2. the rhythm pulls - us to the core [core]
+  3. give me more I - always want some more [more]
+  4. I have never felt - this way before [before]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the synthesizer hums a note - that resonates inside [inside]
-  2. we ride the wave of frequency with nothing - left to hide [hide]
-  3. the bass cascade - like a supernova in the dark [dark]
-  4. the crowd - erupting at the laser arc [arc]
+  1. the bass vibrate across the dancefloor - shaking everything [everything]
+  2. the buildup crescendos - and the world stops spinning [spinning]
+  3. the laser - cutting through the sleek [sleek]
+  4. the dancefloor shaking - every week [week]
 
 **[Chorus]** (pattern: AABB)
-  1. the kick drum - wheel-ups the space [space]
-  2. the beat consumes - us in its warm embrace [embrace]
-  3. the filter opens slowly - like a sunrise over the festival [festival]
-  4. and when the lights go out the music - sees for us all [all]
+  1. the kaleidoscopic atmosphere - ignites the satellite [satellite]
+  2. we vibrate - past the limits of reality tonight [tonight]
+  3. the transcendent atmosphere - takes absolute control [control]
+  4. losing every - fragment gaining whole [whole]
 
 **[Verse 2]** (pattern: AABB)
-  1. we thunder through every cell - inside our bodies now [now]
-  2. the bass is shaking - all around [around]
-  3. we overwhelm past - the limits of reality tonight [tonight]
-  4. the skyline - glowing with a neon light [light]
+  1. the kick drum pounds - inside my brain [brain]
+  2. the melody - drives me insane [insane]
+  3. Avicii's levels still - echo through the crowd [crowd]
+  4. the sunrise creeps in as the final track - plays out [out]
 
 **[Chorus]** (pattern: AABB)
-  1. the kick drum - wheel-ups the space [space]
-  2. the beat consumes - us in its warm embrace [embrace]
-  3. the filter opens slowly - like a sunrise over the festival [festival]
-  4. and when the lights go out the music - sees for us all [all]
+  1. the kaleidoscopic atmosphere - ignites the satellite [satellite]
+  2. we vibrate - past the limits of reality tonight [tonight]
+  3. the transcendent atmosphere - takes absolute control [control]
+  4. losing every - fragment gaining whole [whole]
 
 ---
 

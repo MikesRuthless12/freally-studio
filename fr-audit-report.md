@@ -1,6 +1,6 @@
 # FRENCH (fr) Audit
 
-Total lines: 6000 | Issues: **1**
+Total lines: 6000 | Issues: **0**
 
 | Genre | Lines | Issues |
 |-------|-------|--------|
@@ -14,9 +14,5 @@ Total lines: 6000 | Issues: **1**
 | folk | 400 | 0 |
 | metal | 400 | 0 |
 | jazz | 400 | 0 |
-| k-pop | 700 | 1 |
+| k-pop | 700 | 0 |
 | latin | 400 | 0 |
-
-## Examples
-
-- [k-pop] Gen#16 Verse 2: `la danse danse sur - les charts internationaux` — REPEATED: "danse danse"

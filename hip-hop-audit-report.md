@@ -1,6 +1,6 @@
 # Hip Hop Lyrics Generation Audit Report
 
-Generated: 2026-03-23T07:01:42.501Z
+Generated: 2026-03-26T18:22:39.083Z
 
 - **50 generations WITHOUT punchlines**
 - **50 generations WITH punchlines**
@@ -28,33 +28,8 @@ Generated: 2026-03-23T07:01:42.501Z
 | Rhyme pairs checked | 1072 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total nonsense/quality issues | 8 |
+| Total nonsense/quality issues | 0 |
 | Lines with 3+ duplicates (non-hook) | 200 |
-
-### Issue Breakdown
-
-| Issue Type | Count |
-|-----------|-------|
-| TOO_SHORT | 4 |
-| REPEATED_WORD | 3 |
-| ARTICLE_VERB | 1 |
-
-### Article+Verb Grammar Issues (1 total, showing up to 20)
-
-- Gen#34 Verse 1: `the explain the complain - the entertain` — ARTICLE_VERB: "the explain" — verb used as noun
-
-### Too Short Lines (4 total, showing up to 15)
-
-- Gen#7 Hook: `celebrating jubilee`
-- Gen#7 Hook: `celebrating jubilee`
-- Gen#7 Hook: `celebrating jubilee`
-- Gen#7 Hook: `celebrating jubilee`
-
-### Critical Issues (Template Artifacts / Bad Values / Repeated Words)
-
-- Gen#9 Verse 2: `i knock knock - open every lock` — REPEATED_WORD: "knock knock"
-- Gen#29 Verse 3: `requiem the mozart mozart` — REPEATED_WORD: "mozart mozart"
-- Gen#35 Verse 2: `dollar dollar bill - y'all cream` — REPEATED_WORD: "dollar dollar"
 
 ---
 
@@ -62,61 +37,61 @@ Generated: 2026-03-23T07:01:42.501Z
 
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, bpm: 90)
 
-Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 3
+Rhyme Accuracy: 100% | Hook Score: 85 | Punchline Score: 0
 
 **[Hook]** (pattern: AABB)
-  1. came up from the folk - to the anthem [anthem]
-  2. the rearview shows me - everything I had to overcome [overcome]
-  3. this is history in the making - listen close now [now]
-  4. never backing down - never slowing down [down]
+  1. we don't stop we - check the city [city]
+  2. communicated visions - to the community [community]
+  3. i stack on the corners - where we learned to fight [fight]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 **[Verse 1]** (pattern: AABBAABB)
-  1. they copy my style - but can't replicate the soul [soul]
-  2. the metaphors are - foul on foul [foul]
-  3. the legacy - the lasting sound [sound]
-  4. the underground - the proving ground [ground]
-  5. i got the vision - take control [control]
-  6. no stopping - now we reach the goal [goal]
-  7. the whole block watching - come around [around]
-  8. the cypher spinning - round and round [round]
+  1. we claim in the concrete jungle - every day [day]
+  2. Black Panther Wakanda - in my DNA [dna]
+  3. we build with precision - like a surgeon now [now]
+  4. i spit past the limits - they tried putting down [down]
+  5. keep it pushing - till I get my pay [pay]
+  6. it paved the golden runway - all the way [way]
+  7. stacking up achievements - and I never take a bow [bow]
+  8. the dopest rapper - in the town [town]
 
 **[Hook]** (pattern: AABB)
-  1. came up from the folk - to the anthem [anthem]
-  2. the rearview shows me - everything I had to overcome [overcome]
-  3. this is history in the making - listen close now [now]
-  4. never backing down - never slowing down [down]
+  1. we don't stop we - check the city [city]
+  2. communicated visions - to the community [community]
+  3. i stack on the corners - where we learned to fight [fight]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 **[Verse 2]** (pattern: AABBAABB)
-  1. i ride on the corners - where we learned to fight [fight]
-  2. the cadence changing - switching up the height [height]
-  3. accumulated wealth - through dedication [dedication]
-  4. my imagination - has no limitation [limitation]
-  5. we stay solid - and we hold it tight [tight]
-  6. finna take the throne - that's on sight [sight]
-  7. exterminated doubt with sheer determination [determination]
-  8. obliterated hate - with innovation [innovation]
+  1. eliminated doubt - with concentration [concentration]
+  2. my reputation - built on elevation [elevation]
+  3. Kendrick sat down - then he stood up as king [king]
+  4. I let the records - and the numbers sing [sing]
+  5. the double cup is full - of dedication [dedication]
+  6. the incarceration - of the mind is liberation [liberation]
+  7. Cardi showed the world - that Bronx girls win [win]
+  8. the doubters fuel my fire - keep it coming [coming]
 
 **[Hook]** (pattern: AABB)
-  1. came up from the folk - to the anthem [anthem]
-  2. the rearview shows me - everything I had to overcome [overcome]
-  3. this is history in the making - listen close now [now]
-  4. never backing down - never slowing down [down]
+  1. we don't stop we - check the city [city]
+  2. communicated visions - to the community [community]
+  3. i stack on the corners - where we learned to fight [fight]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 **[Verse 3]** (pattern: AABBAABB)
-  1. i dominated - every conversation [conversation]
-  2. the domination of the game - is my declaration [declaration]
-  3. we claim past the limits - they tried putting down [down]
-  4. we built this kingdom - run this town [town]
-  5. the scoreboard - tells a story of relentless dedication [dedication]
-  6. eliminated doubt - with concentration [concentration]
-  7. we stack with precision - like a surgeon now [now]
-  8. we flex with precision - like a surgeon now [now]
+  1. my flow so warm - I put them on the map [map]
+  2. Pull up on the scene - no cap [cap]
+  3. I rose above - and never settled down [down]
+  4. i stack - while the legacy is being written now [now]
+  5. spit the bars so hard - and watch the beat slap [slap]
+  6. we pull up on the scene - no time to nap [nap]
+  7. the whole block watching - come around [around]
+  8. Nicki Minaj the queen - put on the crown [crown]
 
 **[Hook]** (pattern: AABB)
-  1. came up from the folk - to the anthem [anthem]
-  2. the rearview shows me - everything I had to overcome [overcome]
-  3. this is history in the making - listen close now [now]
-  4. never backing down - never slowing down [down]
+  1. we don't stop we - check the city [city]
+  2. communicated visions - to the community [community]
+  3. i stack on the corners - where we learned to fight [fight]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 ---
 
@@ -125,538 +100,538 @@ Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 3
 Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 0
 
 **[Hook]** (pattern: ABAB)
-  1. flipping scene - into stack [stack]
-  2. we push with precision - like a surgeon now [now]
-  3. the money - stacking right on track [track]
-  4. stacking up achievements and I - never take a bow [bow]
+  1. whole squad - drop the blessed scene [scene]
+  2. I represent the heart - of every nation [nation]
+  3. the rearview mirror shows - where I have been [been]
+  4. monopolized the game - with domination [domination]
 
 **[Verse 1]** (pattern: ABABABAB)
-  1. i trap till the whole world - knows my name for real [real]
-  2. Ice Cube said - today was a good day [day]
-  3. catch me in the whip - behind the wheel [wheel]
-  4. Black Panther - Wakanda in my DNA [dna]
-  5. the pressure only - made me steel [steel]
-  6. No stopping - now I'm on my way [way]
-  7. I finesse the game - that's the deal [deal]
-  8. no delays - I got nothing to say [say]
+  1. we flex in the concrete jungle - every day [day]
+  2. we spit past the limits - they tried putting down [down]
+  3. Black Panther Wakanda - in my DNA [dna]
+  4. we claim with precision - like a surgeon now [now]
+  5. no delays I got nothing - to say [say]
+  6. we built this kingdom - we run this town [town]
+  7. the headline reads - another classic dropped today [today]
+  8. the freestyle king - returns to claim the crown [crown]
 
 **[Hook]** (pattern: ABAB)
-  1. flipping scene - into stack [stack]
-  2. we push with precision - like a surgeon now [now]
-  3. the money - stacking right on track [track]
-  4. stacking up achievements and I - never take a bow [bow]
+  1. whole squad - drop the blessed scene [scene]
+  2. I represent the heart - of every nation [nation]
+  3. the rearview mirror shows - where I have been [been]
+  4. monopolized the game - with domination [domination]
 
 **[Verse 2]** (pattern: ABABABAB)
-  1. i revolutionized the way - they see the vision [vision]
-  2. accumulated knowledge - never graduated [graduated]
-  3. I turned the volume up on truth in an era of fiction [fiction]
-  4. dominated stages - never been frustrated [frustrated]
-  5. eliminated every obstacle - with precision [precision]
-  6. elevated standards - never underrated [underrated]
-  7. I rise - above the division [division]
-  8. from the bottom - i persevered and elevated [elevated]
+  1. exterminated doubt - with sheer determination [determination]
+  2. i claim from the bottom - to the very top [top]
+  3. my reputation - built on elevation [elevation]
+  4. this hustle never stops - it doesn't stop [stop]
+  5. obliterated hate - with innovation [innovation]
+  6. they study my flow - in the halls of hip-hop [hip-hop]
+  7. i dominated - every conversation [conversation]
+  8. the bass is bumping - watch the beat drop and make it drop [drop]
 
 **[Hook]** (pattern: ABAB)
-  1. flipping scene - into stack [stack]
-  2. we push with precision - like a surgeon now [now]
-  3. the money - stacking right on track [track]
-  4. stacking up achievements and I - never take a bow [bow]
+  1. whole squad - drop the blessed scene [scene]
+  2. I represent the heart - of every nation [nation]
+  3. the rearview mirror shows - where I have been [been]
+  4. monopolized the game - with domination [domination]
 
 **[Verse 3]** (pattern: ABABABAB)
-  1. my metaphors do - parkour across the track layout [layout]
-  2. we flex from the bottom - to the very top [top]
-  3. the speakers shake - when they pronounce my name out loud [loud]
-  4. they study my flow in the halls of hip-hop [hip-hop]
-  5. They said I couldn't - make it out [out]
-  6. this hustle never stops - it doesn't stop [stop]
-  7. I am the blueprint - Jay-Z would be proud [proud]
-  8. this energy is - flowing non-stop [non-stop]
+  1. I dial success - on every single phone [phone]
+  2. we etched our name - into the hall of fame [fame]
+  3. a passport stamped - in every single zone [zone]
+  4. no lame vibes - only real ones came [came]
+  5. I built this dynasty from a notebook - dream alone [alone]
+  6. I changed the rules - and redefined the game [game]
+  7. I built an empire - sitting on my throne [throne]
+  8. they tried to box me in - but I broke the frame [frame]
 
 **[Hook]** (pattern: ABAB)
-  1. flipping scene - into stack [stack]
-  2. we push with precision - like a surgeon now [now]
-  3. the money - stacking right on track [track]
-  4. stacking up achievements and I - never take a bow [bow]
+  1. whole squad - drop the blessed scene [scene]
+  2. I represent the heart - of every nation [nation]
+  3. the rearview mirror shows - where I have been [been]
+  4. monopolized the game - with domination [domination]
 
 ---
 
 ### Generation #3 (mood: aggressive, rhyme: AAAA, creativity: 90, bpm: 110)
 
-Rhyme Accuracy: 100% | Hook Score: 47 | Punchline Score: 0
+Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 0
 
 **[Hook]** (pattern: AAAA)
-  1. accumulated everything from underground [underground]
-  2. the ones who left will - wish they stayed around [around]
-  3. the bass is - thumping dollar sound [sound]
-  4. these streets are - mine i stand my ground [ground]
+  1. the goodbye was more - bulletproof than the pedigree [pedigree]
+  2. I walk on beats - like they are red carpets for me [me]
+  3. this is what it looks - like to be free [free]
+  4. they tried to stop me - but they couldn't see [see]
 
 **[Verse 1]** (pattern: AAAAAAAA)
-  1. investigated every possibility [possibility]
-  2. built a legacy of solidarity - and unity [unity]
-  3. communicated visions to the community [community]
-  4. demonstrated unmatched capability [capability]
-  5. i capitalized on every opportunity [opportunity]
-  6. the industry can't - manufacture authenticity [authenticity]
-  7. I dominated - every conversation with authority [authority]
-  8. the capitalization of my creativity [creativity]
+  1. we stack till the whole world - knows my name for real [real]
+  2. catch me in the whip - behind the wheel [wheel]
+  3. I finesse the game - that's the deal [deal]
+  4. you can feel the pressure - you can feel the steel [steel]
+  5. I balanced on the edge between the real - and surreal [surreal]
+  6. somewhere underneath - the feel [feel]
+  7. we found - it in the cornfield [cornfield]
+  8. we were dancing through the windshield [windshield]
 
 **[Hook]** (pattern: AAAA)
-  1. accumulated everything from underground [underground]
-  2. the ones who left will - wish they stayed around [around]
-  3. the bass is - thumping dollar sound [sound]
-  4. these streets are - mine i stand my ground [ground]
+  1. the goodbye was more - bulletproof than the pedigree [pedigree]
+  2. I walk on beats - like they are red carpets for me [me]
+  3. this is what it looks - like to be free [free]
+  4. they tried to stop me - but they couldn't see [see]
 
 **[Verse 2]** (pattern: AAAAAAAA)
-  1. my bars hit different - when the lights go low at night [night]
-  2. i flip on the corners - where we learned to fight [fight]
-  3. the mic is breathing - heavy bars ignite [ignite]
-  4. i flex on the corners - where we learned to fight [fight]
-  5. finna take the throne - that's on sight [sight]
-  6. the studio session lasted - forty hours straight [straight]
-  7. dropped out of nothing - straight into the spotlight [spotlight]
-  8. i break on the corners - where we learned to fight [fight]
+  1. every obstacle i conquered - and obliterated [obliterated]
+  2. celebrated victories - never fabricated [fabricated]
+  3. elevated standards - never underrated [underrated]
+  4. from the bottom i persevered - and elevated [elevated]
+  5. accumulated knowledge - never graduated [graduated]
+  6. dominated stages - never been frustrated [frustrated]
+  7. they interrogated - but I never hesitated [hesitated]
+  8. my imagination was the catalyst - I cultivated [cultivated]
 
 **[Hook]** (pattern: AAAA)
-  1. accumulated everything from underground [underground]
-  2. the ones who left will - wish they stayed around [around]
-  3. the bass is - thumping dollar sound [sound]
-  4. these streets are - mine i stand my ground [ground]
+  1. the goodbye was more - bulletproof than the pedigree [pedigree]
+  2. I walk on beats - like they are red carpets for me [me]
+  3. this is what it looks - like to be free [free]
+  4. they tried to stop me - but they couldn't see [see]
 
 **[Verse 3]** (pattern: AAAAAAAA)
-  1. my verse is proof that - pressure makes a diamond shine [shine]
-  2. no cap this whole - wave is mine [mine]
-  3. every single bar - is on the line [line]
-  4. stacking dreams higher - than the skyline [skyline]
-  5. from food - stamps to the Forbes magazine [magazine]
-  6. I keep - searching for the offline [offline]
-  7. we were lost - inside the lupine [lupine]
-  8. we found - it in the fine [fine]
+  1. my bars hit different - when the lights go low at night [night]
+  2. we spit on the corners - where we learned to fight [fight]
+  3. finna take the throne - that's on sight [sight]
+  4. Cardi B said I Like - It Like That tonight [tonight]
+  5. we stay solid - and we hold it tight [tight]
+  6. the punchline landing - with the knockout right [right]
+  7. the mic is breathing - heavy bars ignite [ignite]
+  8. the cadence changing - switching up the height [height]
 
 **[Hook]** (pattern: AAAA)
-  1. accumulated everything from underground [underground]
-  2. the ones who left will - wish they stayed around [around]
-  3. the bass is - thumping dollar sound [sound]
-  4. these streets are - mine i stand my ground [ground]
+  1. the goodbye was more - bulletproof than the pedigree [pedigree]
+  2. I walk on beats - like they are red carpets for me [me]
+  3. this is what it looks - like to be free [free]
+  4. they tried to stop me - but they couldn't see [see]
 
 ---
 
 ### Generation #4 (mood: sad, rhyme: freeform, creativity: 50, bpm: 120)
 
-Rhyme Accuracy: 0% | Hook Score: 85 | Punchline Score: 0
+Rhyme Accuracy: 0% | Hook Score: 93 | Punchline Score: 0
 
 **[Hook]** (pattern: XXXX)
-  1. the grind don't - stop the set don't quit [quit]
-  2. the weight of the crown is heavy - but I wear it [it]
-  3. the legacy lives on in every - bar I spit [spit]
-  4. the bridge between the hustle - and the dream is paved with grit [grit]
+  1. the loot is - prime tonight [tonight]
+  2. i flip on the corners - where we learned to fight [fight]
+  3. the flow is supernatural - every night [night]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 **[Verse 1]** (pattern: XXXXXXXX)
-  1. annihilated everything in my trajectory [trajectory]
-  2. energized the game - made it popular [popular]
-  3. i prove with the fire - of a thousand suns [suns]
-  4. we trap through the concrete - jungle every day [day]
-  5. i prove past the haters - and the doubters all [all]
-  6. i blaze through the system - that was built to fail [fail]
-  7. i prove past the limits - they tried putting down [down]
-  8. the flow is - supernatural every night [night]
+  1. Nipsey told us the marathon - continues still [still]
+  2. the undeniable rise - of the underestimated kid [kid]
+  3. the microphone is my eternal weapon [weapon]
+  4. we claim till the whole world - knows my name for real [real]
+  5. I body every track like - it owes me money [money]
+  6. I turned a nightmare - into every dream [dream]
+  7. the Wire taught me chess - not checkers move [move]
+  8. the bars are dripping - from the jaw [jaw]
 
 **[Hook]** (pattern: XXXX)
-  1. the grind don't - stop the set don't quit [quit]
-  2. the weight of the crown is heavy - but I wear it [it]
-  3. the legacy lives on in every - bar I spit [spit]
-  4. the bridge between the hustle - and the dream is paved with grit [grit]
+  1. the loot is - prime tonight [tonight]
+  2. i flip on the corners - where we learned to fight [fight]
+  3. the flow is supernatural - every night [night]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 **[Verse 2]** (pattern: XXXXXXXX)
-  1. everything I do - is for the real [real]
-  2. i claim with precision - like a surgeon now [now]
-  3. we push on the corners - where we learned to fight [fight]
-  4. J Cole's forest hills - drive was the turning point [point]
-  5. the blueprint they follow - has my fingerprints all over it [it]
-  6. i prove through the concrete - jungle every day [day]
-  7. i stack through the system - that was built to fail [fail]
-  8. Eminem cleaned out his - closet on the track [track]
+  1. we trap through the system - that was built to fail [fail]
+  2. every loss I took - became a gain [gain]
+  3. i spit past the limits - they tried putting down [down]
+  4. i trap in the concrete jungle - every day [day]
+  5. i capitalized - on every opportunity [opportunity]
+  6. i stack because this is more - than just a game to me [me]
+  7. J Cole went Platinum - With No Features clean [clean]
+  8. Megan ate the beat - and left no crumbs behind [behind]
 
 **[Hook]** (pattern: XXXX)
-  1. the grind don't - stop the set don't quit [quit]
-  2. the weight of the crown is heavy - but I wear it [it]
-  3. the legacy lives on in every - bar I spit [spit]
-  4. the bridge between the hustle - and the dream is paved with grit [grit]
+  1. the loot is - prime tonight [tonight]
+  2. i flip on the corners - where we learned to fight [fight]
+  3. the flow is supernatural - every night [night]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 **[Verse 3]** (pattern: XXXXXXXX)
-  1. we pull up on the scene - no time to nap [nap]
-  2. the sample flipped the beat - is raw [raw]
-  3. we stack with precision - like a surgeon now [now]
-  4. i flex through the system - that was built to fail [fail]
-  5. I mix the conscious with the confident in equal parts [parts]
-  6. i ride on the corners - where we learned to fight [fight]
-  7. i claim till the whole world - knows my name for real [real]
-  8. concentrated energy - and dedicated time [time]
+  1. they said - I could not but I proved them able [able]
+  2. I entered the arena - and the crowd stood up [up]
+  3. my verse is proof - that pressure makes a diamond shine [shine]
+  4. energized the game - made it popular [popular]
+  5. the streets were my teacher - and the booth my graduation [graduation]
+  6. i retaliated - with determination [determination]
+  7. we stay solid - and we hold it tight [tight]
+  8. I study Jay-Z Blueprints - late at night [night]
 
 **[Hook]** (pattern: XXXX)
-  1. the grind don't - stop the set don't quit [quit]
-  2. the weight of the crown is heavy - but I wear it [it]
-  3. the legacy lives on in every - bar I spit [spit]
-  4. the bridge between the hustle - and the dream is paved with grit [grit]
+  1. the loot is - prime tonight [tonight]
+  2. i flip on the corners - where we learned to fight [fight]
+  3. the flow is supernatural - every night [night]
+  4. I pivoted from pain to pure - ambition overnight [overnight]
 
 ---
 
 ### Generation #5 (mood: epic, rhyme: AABB, creativity: 70, bpm: 90)
 
-Rhyme Accuracy: 100% | Hook Score: 83 | Punchline Score: 0
+Rhyme Accuracy: 100% | Hook Score: 91 | Punchline Score: 0
 
 **[Hook]** (pattern: AABB)
-  1. write your - doctrine across the scene [scene]
-  2. the greatest - comeback anybody seen [seen]
-  3. we run this we run this we - run this whole town now [now]
-  4. the whole block - watching come around [around]
+  1. one of a kind - ahead of my time [time]
+  2. they tried to hold me down - but watch me climb [climb]
+  3. we grind on the corners - where we learned to fight [fight]
+  4. the mic is breathing - heavy bars ignite [ignite]
 
 **[Verse 1]** (pattern: AABBAABB)
-  1. i flip with precision - like a surgeon now [now]
-  2. i stack past the limits - they tried putting down [down]
-  3. i build on the corners - where we learned to fight [fight]
-  4. the punchline - landing with the knockout right [right]
-  5. we grind past the limits - they tried putting down [down]
-  6. stacking up achievements and - I never take a bow [bow]
-  7. my flow switches lanes - like a highway at midnight [midnight]
-  8. we stay solid - and we hold it tight [tight]
+  1. i conquer past the limits - they tried putting down [down]
+  2. we spit with precision - like a surgeon now [now]
+  3. No stopping - now I'm on my way [way]
+  4. we push through the concrete jungle - every day [day]
+  5. the whole block watching - come around [around]
+  6. we built this kingdom - we run this town [town]
+  7. no delays I got nothing - to say [say]
+  8. Black Panther Wakanda - in my DNA [dna]
 
 **[Hook]** (pattern: AABB)
-  1. write your - doctrine across the scene [scene]
-  2. the greatest - comeback anybody seen [seen]
-  3. we run this we run this we - run this whole town now [now]
-  4. the whole block - watching come around [around]
+  1. one of a kind - ahead of my time [time]
+  2. they tried to hold me down - but watch me climb [climb]
+  3. we grind on the corners - where we learned to fight [fight]
+  4. the mic is breathing - heavy bars ignite [ignite]
 
 **[Verse 2]** (pattern: AABBAABB)
-  1. Drake got me in my feelings - every time [time]
-  2. these punchlines hit - like Tyson in his prime [prime]
-  3. Megan Thee Stallion hot - girl summer all year [year]
-  4. the ink dries but the impact - never fades away from here [here]
-  5. they tried to hold me down - but watch me climb [climb]
-  6. orchestrated melodies in every rhyme [rhyme]
-  7. I came from nothing - now I'm here [here]
-  8. the retaliation brought them - all to fear [fear]
+  1. i stack till the whole world - knows my name for real [real]
+  2. catch me in the whip - behind the wheel [wheel]
+  3. my concentration - is unmistakable [unmistakable]
+  4. my determination - is unbreakable [unbreakable]
+  5. I keep it real - because that is the deal [deal]
+  6. you can feel the pressure - you can feel the steel [steel]
+  7. the algorithm can't decode what - I bring to the table [table]
+  8. they said - I could not but I proved them able [able]
 
 **[Hook]** (pattern: AABB)
-  1. write your - doctrine across the scene [scene]
-  2. the greatest - comeback anybody seen [seen]
-  3. we run this we run this we - run this whole town now [now]
-  4. the whole block - watching come around [around]
+  1. one of a kind - ahead of my time [time]
+  2. they tried to hold me down - but watch me climb [climb]
+  3. we grind on the corners - where we learned to fight [fight]
+  4. the mic is breathing - heavy bars ignite [ignite]
 
 **[Verse 3]** (pattern: AABBAABB)
-  1. the crown is mine - and it's no surprise [surprise]
-  2. we built this company - and that's the enterprise [enterprise]
-  3. i trap on the corners - where we learned to fight [fight]
-  4. Cardi B said I like it - like that tonight [tonight]
-  5. the empire building - and we on the rise [rise]
-  6. the realest in the game - and that's no disguise [disguise]
-  7. squad got my back - day and night [night]
-  8. finna take the throne - that's on sight [sight]
+  1. we hunt from the bottom - to the very top [top]
+  2. they study my flow - in the halls of hip-hop [hip-hop]
+  3. the legacy is bigger - than any moment before [before]
+  4. I came from nothing - now they want some more [more]
+  5. this hustle never stops - it doesn't stop [stop]
+  6. this energy - is flowing non-stop [non-stop]
+  7. a limousine is waiting - at the door [door]
+  8. we started from the gutter - to the penthouse floor [floor]
 
 **[Hook]** (pattern: AABB)
-  1. write your - doctrine across the scene [scene]
-  2. the greatest - comeback anybody seen [seen]
-  3. we run this we run this we - run this whole town now [now]
-  4. the whole block - watching come around [around]
+  1. one of a kind - ahead of my time [time]
+  2. they tried to hold me down - but watch me climb [climb]
+  3. we grind on the corners - where we learned to fight [fight]
+  4. the mic is breathing - heavy bars ignite [ignite]
 
 ---
 
 ### Generation #6 (mood: hopeful, rhyme: ABAB, creativity: 90, bpm: 100)
 
-Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 0
+Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 0
 
 **[Hook]** (pattern: ABAB)
-  1. facts I recognized harder - than the virtuoso [virtuoso]
-  2. annihilated doubt - with every revelation [revelation]
-  3. the sauce is real - and everybody know [know]
-  4. my dedication - fueled the whole operation [operation]
+  1. the M game - belongs to me [me]
+  2. i blaze past the limits - they tried putting down [down]
+  3. I don't need - permission to be free [free]
+  4. we grind with precision - like a surgeon now [now]
 
 **[Verse 1]** (pattern: ABABABAB)
-  1. i break on the corners - where we learned to fight [fight]
-  2. they tried to box me in but - I broke the frame [frame]
-  3. I architect these bars - like Frank Lloyd Wright [wright]
-  4. no lame vibes only - real ones came [came]
-  5. the flow is - supernatural every night [night]
-  6. built my legacy - and staked my claim [claim]
-  7. the cadence changing - switching up the height [height]
-  8. we etched our name - into the hall of fame [fame]
+  1. Biggie painted Brooklyn - with a hypnotic flow [flow]
+  2. I made it out the trenches - with my pen intact [intact]
+  3. leveled up my life - and watch me grow [grow]
+  4. Eminem - Cleaned Out His Closet on the track [track]
+  5. I engineered my future - in a basement studio [studio]
+  6. My whole squad eating - that's a fact [fact]
+  7. stacking up achievements - and I never take a bow [bow]
+  8. haters throwing shade - behind my back [back]
 
 **[Hook]** (pattern: ABAB)
-  1. facts I recognized harder - than the virtuoso [virtuoso]
-  2. annihilated doubt - with every revelation [revelation]
-  3. the sauce is real - and everybody know [know]
-  4. my dedication - fueled the whole operation [operation]
+  1. the M game - belongs to me [me]
+  2. i blaze past the limits - they tried putting down [down]
+  3. I don't need - permission to be free [free]
+  4. we grind with precision - like a surgeon now [now]
 
 **[Verse 2]** (pattern: ABABABAB)
-  1. Black Panther - Wakanda in my DNA [dna]
-  2. Straight Outta Compton to the top of the game [game]
-  3. i blaze through the concrete - jungle every day [day]
-  4. they know my name - and they know the flame [flame]
-  5. no delays - I got nothing to say [say]
-  6. The streets remember - every name [name]
-  7. i prove through the concrete - jungle every day [day]
-  8. now I put my city - on the map of fame [fame]
+  1. my rhyme book thicker - than the city phonebook ever grew [grew]
+  2. we started from the gutter - to the penthouse floor [floor]
+  3. every single bar I spit is tested tried - and true [true]
+  4. the beat is knocking - open up the door [door]
+  5. the hood salutes me - when I pull on through [through]
+  6. the legacy is bigger - than any moment before [before]
+  7. authenticity in everything - I do [do]
+  8. I came from nothing - now they want some more [more]
 
 **[Hook]** (pattern: ABAB)
-  1. facts I recognized harder - than the virtuoso [virtuoso]
-  2. annihilated doubt - with every revelation [revelation]
-  3. the sauce is real - and everybody know [know]
-  4. my dedication - fueled the whole operation [operation]
+  1. the M game - belongs to me [me]
+  2. i blaze past the limits - they tried putting down [down]
+  3. I don't need - permission to be free [free]
+  4. we grind with precision - like a surgeon now [now]
 
 **[Verse 3]** (pattern: ABABABAB)
-  1. i hunt till the whole world - knows my name for real [real]
-  2. i break through the concrete - jungle every day [day]
-  3. catch me in the whip - behind the wheel [wheel]
-  4. keep it pushing till - I get my pay [pay]
-  5. you can feel the pressure - you can feel the steel [steel]
-  6. finna blow up in a major way [way]
-  7. I finesse the game - that's the deal [deal]
-  8. the headline reads another - classic dropped today [today]
+  1. Megan ate the beat - and left no crumbs behind [behind]
+  2. the block party is bumping - till the dawn [dawn]
+  3. the answers coming - hard to find [find]
+  4. the real recognize real - and I got a whole army strong [strong]
+  5. the vision clear - i'm one of a kind [kind]
+  6. they tried to hold me back - but I am gone [gone]
+  7. the strategy a state - of mind [mind]
+  8. they doubted us - but we prove them wrong [wrong]
 
 **[Hook]** (pattern: ABAB)
-  1. facts I recognized harder - than the virtuoso [virtuoso]
-  2. annihilated doubt - with every revelation [revelation]
-  3. the sauce is real - and everybody know [know]
-  4. my dedication - fueled the whole operation [operation]
+  1. the M game - belongs to me [me]
+  2. i blaze past the limits - they tried putting down [down]
+  3. I don't need - permission to be free [free]
+  4. we grind with precision - like a surgeon now [now]
 
 ---
 
 ### Generation #7 (mood: happy, rhyme: AAAA, creativity: 50, bpm: 110)
 
-Rhyme Accuracy: 100% | Hook Score: 75 | Punchline Score: 3
+Rhyme Accuracy: 100% | Hook Score: 90 | Punchline Score: 0
 
 **[Hook]** (pattern: AAAA)
-  1. from the block to the billboard - that is my journey told [told]
-  2. my story written - in the streets of gold [gold]
-  3. the squad is - moving playing bold [bold]
-  4. and every ad-lib tells a story - that the verse couldn't hold [hold]
+  1. we are the rizz - in someone's chain [chain]
+  2. the bass line rattles - every window pane [pane]
+  3. the grind is real - and it feeds my brain [brain]
+  4. I don't complain I go - against the grain [grain]
 
 **[Verse 1]** (pattern: AAAAAAAA)
-  1. the bass is thumping - dollar sound [sound]
-  2. the whole block watching - come around [around]
-  3. the underground - the proving ground [ground]
-  4. the cypher spinning - round and round [round]
-  5. accumulated everything from underground [underground]
-  6. my feet planted - firmly on the ground [ground]
-  7. they cannot - stop the unbound [unbound]
-  8. holding on through every renowned [renowned]
+  1. we stay solid - and we hold it tight [tight]
+  2. I study Jay-Z Blueprints - late at night [night]
+  3. i trap on the corners - where we learned to fight [fight]
+  4. my future looking - goated looking bright [bright]
+  5. dropped out of nothing - straight into the spotlight [spotlight]
+  6. the cadence changing - switching up the height [height]
+  7. the mic is breathing - heavy bars ignite [ignite]
+  8. I pivoted from pain - to pure ambition overnight [overnight]
 
 **[Hook]** (pattern: AAAA)
-  1. from the block to the billboard - that is my journey told [told]
-  2. my story written - in the streets of gold [gold]
-  3. the squad is - moving playing bold [bold]
-  4. and every ad-lib tells a story - that the verse couldn't hold [hold]
+  1. we are the rizz - in someone's chain [chain]
+  2. the bass line rattles - every window pane [pane]
+  3. the grind is real - and it feeds my brain [brain]
+  4. I don't complain I go - against the grain [grain]
 
 **[Verse 2]** (pattern: AAAAAAAA)
-  1. we ride through the concrete - jungle every day [day]
-  2. Black Panther - Wakanda in my DNA [dna]
-  3. No stopping - now I'm on my way [way]
-  4. keep it pushing till - I get my pay [pay]
-  5. the headline reads another - classic dropped today [today]
-  6. no delays - I got nothing to say [say]
-  7. the accumulation of a lifetime on display [display]
-  8. we found - it in the grey [grey]
+  1. they tried to box me in - but I broke the mold [mold]
+  2. a story that the streets - already told [told]
+  3. I rise above - the enrolled [enrolled]
+  4. the squad is moving - playing bold [bold]
+  5. the spotlight hits - and every word is gold [gold]
+  6. they cannot stop - the hold [hold]
+  7. the ink is dry - the story has been told [told]
+  8. I know - I got the untold [untold]
 
 **[Hook]** (pattern: AAAA)
-  1. from the block to the billboard - that is my journey told [told]
-  2. my story written - in the streets of gold [gold]
-  3. the squad is - moving playing bold [bold]
-  4. and every ad-lib tells a story - that the verse couldn't hold [hold]
+  1. we are the rizz - in someone's chain [chain]
+  2. the bass line rattles - every window pane [pane]
+  3. the grind is real - and it feeds my brain [brain]
+  4. I don't complain I go - against the grain [grain]
 
 **[Verse 3]** (pattern: AAAAAAAA)
-  1. i hunt on the corners - where we learned to fight [fight]
-  2. the studio session lasted - forty hours straight [straight]
-  3. my bars hit different - when the lights go low at night [night]
-  4. I architect these bars - like Frank Lloyd Wright [wright]
-  5. finna take the throne - that's on sight [sight]
-  6. dropped out of nothing - straight into the spotlight [spotlight]
-  7. the cadence changing - switching up the height [height]
-  8. we stay solid - and we hold it tight [tight]
+  1. i break from the ashes - of a broken dream [dream]
+  2. a diamond chain that catches - every gleam [gleam]
+  3. the underground crowned me - before the mainstream [mainstream]
+  4. Biggie said It Was All A Dream - now we living supreme [supreme]
+  5. we were found - inside the stream [stream]
+  6. we left behind - the blaspheme [blaspheme]
+  7. we were dancing through the daydream [daydream]
+  8. we were found - inside the jetstream [jetstream]
 
 **[Hook]** (pattern: AAAA)
-  1. from the block to the billboard - that is my journey told [told]
-  2. my story written - in the streets of gold [gold]
-  3. the squad is - moving playing bold [bold]
-  4. and every ad-lib tells a story - that the verse couldn't hold [hold]
+  1. we are the rizz - in someone's chain [chain]
+  2. the bass line rattles - every window pane [pane]
+  3. the grind is real - and it feeds my brain [brain]
+  4. I don't complain I go - against the grain [grain]
 
 ---
 
 ### Generation #8 (mood: dark, rhyme: freeform, creativity: 70, bpm: 120)
 
-Rhyme Accuracy: 0% | Hook Score: 71 | Punchline Score: 0
+Rhyme Accuracy: 0% | Hook Score: 91 | Punchline Score: 0
 
 **[Hook]** (pattern: XXXX)
-  1. exterminated all - the opposition here [here]
-  2. the retaliation brought - them all to fear [fear]
-  3. no fear no doubt - just persevere [persevere]
-  4. forever in the premiere [premiere]
+  1. I bodied - every ice on the flow [flow]
+  2. a rooftop cipher - with the city below [below]
+  3. I engineered my - future in a basement studio [studio]
+  4. stacking up achievements and I - never take a bow [bow]
 
 **[Verse 1]** (pattern: XXXXXXXX)
-  1. i capitalized on every opportunity [opportunity]
-  2. i ride on the corners - where we learned to fight [fight]
-  3. we grind from the ashes - of a broken dream [dream]
-  4. i ride from the bottom - to the very top [top]
-  5. we claim through the concrete - jungle every day [day]
-  6. I rose from ashes - like a hood phoenix [phoenix]
-  7. I pivoted from pain to pure - ambition overnight [overnight]
-  8. the realest thing - you ever saw [saw]
+  1. we ride from the ashes - of a broken dream [dream]
+  2. i prove from the bottom - to the very top [top]
+  3. I measured twice - and cut the competition once clean [clean]
+  4. the pen is mightier - than any weapon formed [formed]
+  5. Kendrick's DNA runs - through these verses deep [deep]
+  6. I went from famine - to a royal feast [feast]
+  7. I steal the show - wherever that I go [go]
+  8. I rap in cursive - while they print in crayon badly [badly]
 
 **[Hook]** (pattern: XXXX)
-  1. exterminated all - the opposition here [here]
-  2. the retaliation brought - them all to fear [fear]
-  3. no fear no doubt - just persevere [persevere]
-  4. forever in the premiere [premiere]
+  1. I bodied - every ice on the flow [flow]
+  2. a rooftop cipher - with the city below [below]
+  3. I engineered my - future in a basement studio [studio]
+  4. stacking up achievements and I - never take a bow [bow]
 
 **[Verse 2]** (pattern: XXXXXXXX)
-  1. the beat drops - and the crowd goes wild [wild]
-  2. they sleeping on me - but I never rest [rest]
-  3. dropped out of nothing - straight into the spotlight [spotlight]
-  4. i build through the system - that was built to fail [fail]
-  5. J Cole went - platinum with no features clean [clean]
-  6. i push past the limits - they tried putting down [down]
-  7. my concentration - is unmistakable [unmistakable]
-  8. i spit from the ashes - of a broken dream [dream]
+  1. i conquer on the corners - where we learned to fight [fight]
+  2. the whole block watching - come around [around]
+  3. My whole squad eating - that's a fact [fact]
+  4. orchestrated moves - that were legendary [legendary]
+  5. I am the greatest - ask any other [other]
+  6. the street corner was my first stage - and my classroom [classroom]
+  7. I break bread with the loyal - not the popular ones [ones]
+  8. I calculated every step - like NASA engineers [engineers]
 
 **[Hook]** (pattern: XXXX)
-  1. exterminated all - the opposition here [here]
-  2. the retaliation brought - them all to fear [fear]
-  3. no fear no doubt - just persevere [persevere]
-  4. forever in the premiere [premiere]
+  1. I bodied - every ice on the flow [flow]
+  2. a rooftop cipher - with the city below [below]
+  3. I engineered my - future in a basement studio [studio]
+  4. stacking up achievements and I - never take a bow [bow]
 
 **[Verse 3]** (pattern: XXXXXXXX)
-  1. the industry can't - manufacture authenticity [authenticity]
-  2. i break with the fire - of a thousand suns [suns]
-  3. i build from the bottom - to the very top [top]
-  4. we grind past the haters - and the doubters all [all]
-  5. intimidated rivals with my vocabulary [vocabulary]
-  6. the illest verses - ever had [had]
-  7. we grind on the corners - where we learned to fight [fight]
-  8. my pen is loaded with a hundred - different stories told [told]
+  1. we break past the limits - they tried putting down [down]
+  2. i push through the concrete jungle - every day [day]
+  3. I archive victories - and delete the losses permanently [permanently]
+  4. i blaze till the whole world - knows my name for real [real]
+  5. the ink dries but the impact - never fades away from here [here]
+  6. we trap with the fire - of a thousand suns [suns]
+  7. respect is all I ever - need to check [check]
+  8. I built an empire - sitting on my throne [throne]
 
 **[Hook]** (pattern: XXXX)
-  1. exterminated all - the opposition here [here]
-  2. the retaliation brought - them all to fear [fear]
-  3. no fear no doubt - just persevere [persevere]
-  4. forever in the premiere [premiere]
+  1. I bodied - every ice on the flow [flow]
+  2. a rooftop cipher - with the city below [below]
+  3. I engineered my - future in a basement studio [studio]
+  4. stacking up achievements and I - never take a bow [bow]
 
 ---
 
 ### Generation #9 (mood: aggressive, rhyme: AABB, creativity: 90, bpm: 90)
 
-Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 0
+Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 0
 
 **[Hook]** (pattern: AABB)
-  1. run the blue-face - like I own the whip [whip]
-  2. riding with my - squad a solid grip [grip]
-  3. i retaliated - with determination [determination]
-  4. the scoreboard tells a story - of relentless dedication [dedication]
+  1. I put the drip - on the map [map]
+  2. spit the bars so hard - and watch the beat slap [slap]
+  3. we ride with precision - like a surgeon now [now]
+  4. i prove past the limits - they tried putting down [down]
 
 **[Verse 1]** (pattern: AABBAABB)
-  1. i hunt on the corners - where we learned to fight [fight]
-  2. the flow is - supernatural every night [night]
-  3. Django unchained - and the game is free [free]
-  4. they tried to stop me - but they couldn't see [see]
-  5. my future looking - goated looking bright [bright]
-  6. the mic is breathing - heavy bars ignite [ignite]
-  7. I walk on beats - like they are red carpets for me [me]
-  8. I schooled the game and - never got a degree [degree]
+  1. my discography a masterclass - in evolution pure [pure]
+  2. my presence on the track is an event - not a feature [feature]
+  3. the price of freedom - pay the toll [toll]
+  4. i got the vision - take control [control]
+  5. I turned the bridge into a launchpad - for the future [future]
+  6. I never fold I never fold - I never fold under pressure [pressure]
+  7. the speakers bumping - let it roll [roll]
+  8. they copy my style - but can't replicate the soul [soul]
 
 **[Hook]** (pattern: AABB)
-  1. run the blue-face - like I own the whip [whip]
-  2. riding with my - squad a solid grip [grip]
-  3. i retaliated - with determination [determination]
-  4. the scoreboard tells a story - of relentless dedication [dedication]
+  1. I put the drip - on the map [map]
+  2. spit the bars so hard - and watch the beat slap [slap]
+  3. we ride with precision - like a surgeon now [now]
+  4. i prove past the limits - they tried putting down [down]
 
 **[Verse 2]** (pattern: AABBAABB)
-  1. i trap with precision - like a surgeon now [now]
-  2. i claim past the limits - they tried putting down [down]
-  3. i revolutionized the way - they see the vision [vision]
-  4. I turned the volume up on truth in an era of fiction [fiction]
-  5. stacking up achievements and - I never take a bow [bow]
-  6. we spit past the limits - they tried putting down [down]
-  7. eliminated every obstacle - with precision [precision]
-  8. it started with the expedition [expedition]
+  1. i grind past the limits - they tried putting down [down]
+  2. i break with precision - like a surgeon now [now]
+  3. i build on the corners - where we learned to fight [fight]
+  4. we stay solid - and we hold it tight [tight]
+  5. stacking up achievements - and I never take a bow [bow]
+  6. we built this kingdom - we run this town [town]
+  7. the mic is breathing - heavy bars ignite [ignite]
+  8. the cadence changing - switching up the height [height]
 
 **[Hook]** (pattern: AABB)
-  1. run the blue-face - like I own the whip [whip]
-  2. riding with my - squad a solid grip [grip]
-  3. i retaliated - with determination [determination]
-  4. the scoreboard tells a story - of relentless dedication [dedication]
+  1. I put the drip - on the map [map]
+  2. spit the bars so hard - and watch the beat slap [slap]
+  3. we ride with precision - like a surgeon now [now]
+  4. i prove past the limits - they tried putting down [down]
 
 **[Verse 3]** (pattern: AABBAABB)
-  1. i retaliated with determination [determination]
-  2. i monopolized the conversation - with my elevation [elevation]
-  3. the dopest - rapper in the town [town]
-  4. Tupac said only God can - judge me now [now]
-  5. capitalized on every single situation [situation]
-  6. every generation - needs a revelation [revelation]
-  7. we break past the limits - they tried putting down [down]
-  8. Nicki Minaj the queen - put on the crown [crown]
+  1. i claim from the ashes - of a broken dream [dream]
+  2. the underground crowned me - before the mainstream [mainstream]
+  3. the legacy is bigger - than any moment before [before]
+  4. the beat is knocking - open up the door [door]
+  5. a diamond chain that catches - every gleam [gleam]
+  6. Biggie said It Was All A Dream - now we living supreme [supreme]
+  7. I came from nothing - now they want some more [more]
+  8. we started from the gutter - to the penthouse floor [floor]
 
 **[Hook]** (pattern: AABB)
-  1. run the blue-face - like I own the whip [whip]
-  2. riding with my - squad a solid grip [grip]
-  3. i retaliated - with determination [determination]
-  4. the scoreboard tells a story - of relentless dedication [dedication]
+  1. I put the drip - on the map [map]
+  2. spit the bars so hard - and watch the beat slap [slap]
+  3. we ride with precision - like a surgeon now [now]
+  4. i prove past the limits - they tried putting down [down]
 
 ---
 
 ### Generation #10 (mood: sad, rhyme: ABAB, creativity: 50, bpm: 100)
 
-Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 0
+Rhyme Accuracy: 100% | Hook Score: 85 | Punchline Score: 0
 
 **[Hook]** (pattern: ABAB)
-  1. they can't take - what we built tonight [tonight]
-  2. we stack with precision - like a surgeon now [now]
-  3. I seen the darkest days - without a light [light]
-  4. I body tracks the way - Shaq broke backboards down [down]
+  1. stack the pillar - and never stop [stop]
+  2. the bass line rattles - every window pane [pane]
+  3. we flex from the bottom - to the very top [top]
+  4. I don't complain I go - against the grain [grain]
 
 **[Verse 1]** (pattern: ABABABAB)
-  1. the speakers bumping - let it roll [roll]
-  2. I put the work - in every day [day]
-  3. the price of freedom - pay the toll [toll]
-  4. the headline reads another - classic dropped today [today]
-  5. they copy my style - but can't replicate the soul [soul]
-  6. keep it pushing till - I get my pay [pay]
-  7. the metaphors are - foul on foul [foul]
-  8. No stopping - now I'm on my way [way]
+  1. the underground crowned me - before the mainstream [mainstream]
+  2. my presence on the track is an event - not a feature [feature]
+  3. we build from the ashes - of a broken dream [dream]
+  4. my discography a masterclass - in evolution pure [pure]
+  5. a diamond chain that catches - every gleam [gleam]
+  6. I read the room - and then I rearranged all of the furniture [furniture]
+  7. Biggie said It Was All A Dream - now we living supreme [supreme]
+  8. I never fold I never fold - I never fold under pressure [pressure]
 
 **[Hook]** (pattern: ABAB)
-  1. they can't take - what we built tonight [tonight]
-  2. we stack with precision - like a surgeon now [now]
-  3. I seen the darkest days - without a light [light]
-  4. I body tracks the way - Shaq broke backboards down [down]
+  1. stack the pillar - and never stop [stop]
+  2. the bass line rattles - every window pane [pane]
+  3. we flex from the bottom - to the very top [top]
+  4. I don't complain I go - against the grain [grain]
 
 **[Verse 2]** (pattern: ABABABAB)
-  1. i retaliated with determination [determination]
+  1. money on my mind - I let it rip [rip]
   2. the tracklist reads - like chapters of a revolution born [born]
-  3. obliterated hate - with innovation [innovation]
+  3. a championship ring - on my fingertip [fingertip]
   4. I walk the talk - while others just perform [perform]
-  5. intimidation never - slowed my acceleration [acceleration]
-  6. it hits me with the thunderstorm [thunderstorm]
-  7. my dedication fueled - the whole operation [operation]
+  5. catch me in the zone - and I never slip [slip]
+  6. I gave - it all for the freeborn [freeborn]
+  7. riding with my squad - a solid grip [grip]
   8. I weathered every single - kind of storm [storm]
 
 **[Hook]** (pattern: ABAB)
-  1. they can't take - what we built tonight [tonight]
-  2. we stack with precision - like a surgeon now [now]
-  3. I seen the darkest days - without a light [light]
-  4. I body tracks the way - Shaq broke backboards down [down]
+  1. stack the pillar - and never stop [stop]
+  2. the bass line rattles - every window pane [pane]
+  3. we flex from the bottom - to the very top [top]
+  4. I don't complain I go - against the grain [grain]
 
 **[Verse 3]** (pattern: ABABABAB)
-  1. i break till the whole world - knows my name for real [real]
-  2. obliterated limits with this concentration [concentration]
-  3. the pressure only - made me steel [steel]
-  4. my reputation - built on elevation [elevation]
-  5. catch me in the whip - behind the wheel [wheel]
-  6. every generation - needs a revelation [revelation]
-  7. I finesse the game - that's the deal [deal]
-  8. incarcerated thoughts - need liberation [liberation]
+  1. Kendrick sat down - then he stood up as king [king]
+  2. I came from nothing - now they want some more [more]
+  3. Lauryn Hill told me - Everything Is Everything [everything]
+  4. the beat is knocking - open up the door [door]
+  5. my mama prayed for me - I feel her covering [covering]
+  6. we started from the gutter - to the penthouse floor [floor]
+  7. Cardi showed the world - that Bronx girls win [win]
+  8. the legacy is bigger - than any moment before [before]
 
 **[Hook]** (pattern: ABAB)
-  1. they can't take - what we built tonight [tonight]
-  2. we stack with precision - like a surgeon now [now]
-  3. I seen the darkest days - without a light [light]
-  4. I body tracks the way - Shaq broke backboards down [down]
+  1. stack the pillar - and never stop [stop]
+  2. the bass line rattles - every window pane [pane]
+  3. we flex from the bottom - to the very top [top]
+  4. I don't complain I go - against the grain [grain]
 
 ---
 
@@ -664,601 +639,601 @@ Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 0
 
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, bpm: 90)
 
-Rhyme Accuracy: 100% | Hook Score: 82 | Punchline Score: 75
+Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 57
 
 **[Hook]** (pattern: AABB)
-  1. this is the sound of making it - out alive and well [well]
-  2. civil rights the hustle - bill russell [russell]
-  3. the realest in the game - by far [far]
-  4. raised the ceiling - raised the bar [bar]
+  1. they can't take - what we built tonight [tonight]
+  2. kryptonite in the starlight [starlight]
+  3. the scoreboard tells a story - of relentless dedication [dedication]
+  4. aretha franklin - natural woman revelation [revelation]
 
 **[Verse 1]** (pattern: AABBAABB)
-  1. we claim through the concrete - jungle every day [day]
-  2. ricochet on the runway bouquet [bouquet]
-  3. the whole block watching - come around [around]
-  4. the turnaround the runaround - the go-around [go-around]
-  5. runaway from the game - of fame kanye [kanye]
-  6. pathway to the gateway [gateway]
-  7. i'm homeward bound - the glory sound [sound]
-  8. lacrosse legend the renown - jim brown [brown]
+  1. i flex through the system - that was built to fail [fail]
+  2. betrayal - on the holy grail [grail]
+  3. my wordplay gymnastic flipping - concepts warm [warm]
+  4. the tracklist reads - like chapters of a revolution born [born]
+  5. peel back the layers - i reveal [reveal]
+  6. nobody cares the betrayal - a bronx tale [tale]
+  7. I walk the talk - while others just perform [perform]
+  8. I weathered every single - kind of storm [storm]
 
 **[Hook]** (pattern: AABB)
-  1. this is the sound of making it - out alive and well [well]
-  2. civil rights the hustle - bill russell [russell]
-  3. the realest in the game - by far [far]
-  4. raised the ceiling - raised the bar [bar]
+  1. they can't take - what we built tonight [tonight]
+  2. kryptonite in the starlight [starlight]
+  3. the scoreboard tells a story - of relentless dedication [dedication]
+  4. aretha franklin - natural woman revelation [revelation]
 
 **[Verse 2]** (pattern: AABBAABB)
-  1. i ride with precision - like a surgeon now [now]
-  2. all my life i've been down - lil durk with the crown [crown]
-  3. we grind from the ashes - of a broken dream [dream]
-  4. wu-tang ain't - nothing to scheme with cream [cream]
-  5. came from nothing - now they know my renown [renown]
-  6. loyal to the crown - chris brown [brown]
-  7. deeper levels of the dream - inception scheme [scheme]
-  8. fortnite squad - the winning team [team]
+  1. i trap on the corners - where we learned to fight [fight]
+  2. the highlight - the sunlight ignite [ignite]
+  3. no cap - this whole wave is mine [mine]
+  4. discipline - on the trampoline line [line]
+  5. my flow takes - flight into the night [night]
+  6. diamond bright satellite [satellite]
+  7. stevie wonder - you are the sunshine [sunshine]
+  8. sunshine - after the decline [decline]
 
 **[Hook]** (pattern: AABB)
-  1. this is the sound of making it - out alive and well [well]
-  2. civil rights the hustle - bill russell [russell]
-  3. the realest in the game - by far [far]
-  4. raised the ceiling - raised the bar [bar]
+  1. they can't take - what we built tonight [tonight]
+  2. kryptonite in the starlight [starlight]
+  3. the scoreboard tells a story - of relentless dedication [dedication]
+  4. aretha franklin - natural woman revelation [revelation]
 
 **[Verse 3]** (pattern: AABBAABB)
-  1. i stack till the whole world - knows my name for real [real]
-  2. the newsreel of the surreal - the ideal [ideal]
-  3. every single bar - is on the line [line]
-  4. stevie wonder - you are the sunshine [sunshine]
-  5. cartwheeling through the battlefield [battlefield]
-  6. i keep it real - that's my appeal [appeal]
-  7. relatively speaking einstein [einstein]
-  8. boom bars from the voice - royce da five nine [nine]
+  1. Mac Miller swam through oceans - of his mind [mind]
+  2. peace of mind - that i finally find [find]
+  3. we bring the heat - rocking down the street [street]
+  4. de niro pacino - bringing the heat [heat]
+  5. concrete jungle - where dreams are designed [designed]
+  6. the peace of mind - the one of a kind [kind]
+  7. jay-z run this town - on the concrete [concrete]
+  8. heartbeat - of the drumbeat sweet [sweet]
 
 **[Hook]** (pattern: AABB)
-  1. this is the sound of making it - out alive and well [well]
-  2. civil rights the hustle - bill russell [russell]
-  3. the realest in the game - by far [far]
-  4. raised the ceiling - raised the bar [bar]
+  1. they can't take - what we built tonight [tonight]
+  2. kryptonite in the starlight [starlight]
+  3. the scoreboard tells a story - of relentless dedication [dedication]
+  4. aretha franklin - natural woman revelation [revelation]
 
 ---
 
 ### Generation #2 (mood: dark, rhyme: ABAB, creativity: 70, bpm: 100)
 
-Rhyme Accuracy: 100% | Hook Score: 54 | Punchline Score: 65
+Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 65
 
 **[Hook]** (pattern: ABAB)
-  1. obliterated every single - boundary and wall [wall]
-  2. my dedication - fueled the whole operation [operation]
-  3. the free fall with no - safety call [call]
-  4. stevie wonder - imagination inspiration [inspiration]
+  1. the iconic adlib - bleeds at dawn [dawn]
+  2. I flipped the script - and rewrote the game [game]
+  3. I built my - theme from nothing to gong [gong]
+  4. hall of fame - with the perfect aim [aim]
 
 **[Verse 1]** (pattern: ABABABAB)
-  1. I switched it up and - changed the game [game]
-  2. stacking up achievements and - I never take a bow [bow]
-  3. tom brady seven rings - hall of fame [fame]
-  4. kanye west stronger - let it grow [grow]
-  5. the hall of fame is - just the picture frame [frame]
-  6. every verse a solo show [show]
-  7. michael jordan changed the game - forever flame [flame]
-  8. the archipelago the cargo - the indigo flow [flow]
+  1. i build till the whole world - knows my name for real [real]
+  2. we flip in the concrete jungle - every day [day]
+  3. the oatmeal grind - the daily meal [meal]
+  4. resume the passageway [passageway]
+  5. sex appeal on the big deal [deal]
+  6. big worm - the payday friday [friday]
+  7. cartwheeling through the battlefield [battlefield]
+  8. next episode - with dre [dre]
 
 **[Hook]** (pattern: ABAB)
-  1. obliterated every single - boundary and wall [wall]
-  2. my dedication - fueled the whole operation [operation]
-  3. the free fall with no - safety call [call]
-  4. stevie wonder - imagination inspiration [inspiration]
+  1. the iconic adlib - bleeds at dawn [dawn]
+  2. I flipped the script - and rewrote the game [game]
+  3. I built my - theme from nothing to gong [gong]
+  4. hall of fame - with the perfect aim [aim]
 
 **[Verse 2]** (pattern: ABABABAB)
-  1. every loss I took - became a gain [gain]
-  2. these streets are mine - i stand my ground [ground]
-  3. dark clouds but - i don't complain [complain]
-  4. i broke the sound - barrier underground [underground]
-  5. carter legacy - lil wayne [wayne]
-  6. I built my compound - from nothing to hound [hound]
-  7. hundred points of rain - wilt chamberlain [chamberlain]
-  8. I run it uptown - downtown all around [around]
+  1. every single bar I spit is tested tried - and true [true]
+  2. i conquer from the bottom - to the very top [top]
+  3. the anime - the hero grew [grew]
+  4. shellshock - but i never stop [stop]
+  5. they see the avenue - but never see the revenue [revenue]
+  6. banana in the tailpipe - nonstop beverly hills cop [cop]
+  7. the preview the review - the bird's-eye view [view]
+  8. nonstop - at the rooftop [rooftop]
 
 **[Hook]** (pattern: ABAB)
-  1. obliterated every single - boundary and wall [wall]
-  2. my dedication - fueled the whole operation [operation]
-  3. the free fall with no - safety call [call]
-  4. stevie wonder - imagination inspiration [inspiration]
+  1. the iconic adlib - bleeds at dawn [dawn]
+  2. I flipped the script - and rewrote the game [game]
+  3. I built my - theme from nothing to gong [gong]
+  4. hall of fame - with the perfect aim [aim]
 
 **[Verse 3]** (pattern: ABABABAB)
-  1. from the bottom to the penthouse view [view]
-  2. i see the world - through my open eyes [eyes]
-  3. wu-tang clan - nothing to play with the crew [crew]
-  4. visualize then materialize [materialize]
-  5. the anime - the hero grew [grew]
-  6. ten crack commandments - i memorize [memorize]
-  7. kanye the new - kanye the breakthrough [breakthrough]
-  8. energize and - i'll supervise [supervise]
+  1. we break with precision - like a surgeon now [now]
+  2. a touchdown celebration - in the end zone [zone]
+  3. activist - and the gown jim brown [brown]
+  4. post moves to the zone - karl malone [malone]
+  5. write my name - all over this town [town]
+  6. family affair to the bone - sly stone [stone]
+  7. darkness all around - but i don't drown [drown]
+  8. scarface of chicago - al capone [capone]
 
 **[Hook]** (pattern: ABAB)
-  1. obliterated every single - boundary and wall [wall]
-  2. my dedication - fueled the whole operation [operation]
-  3. the free fall with no - safety call [call]
-  4. stevie wonder - imagination inspiration [inspiration]
+  1. the iconic adlib - bleeds at dawn [dawn]
+  2. I flipped the script - and rewrote the game [game]
+  3. I built my - theme from nothing to gong [gong]
+  4. hall of fame - with the perfect aim [aim]
 
 ---
 
 ### Generation #3 (mood: aggressive, rhyme: AAAA, creativity: 90, bpm: 110)
 
-Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 70
+Rhyme Accuracy: 100% | Hook Score: 84 | Punchline Score: 83
 
 **[Hook]** (pattern: AAAA)
-  1. nothing in the juggernaut can - memorized me [me]
-  2. step to me - and you will see [see]
-  3. the future - wide and barrier-free [barrier-free]
-  4. breaking chains - and running free [free]
+  1. pieces of my turf - scattered in the vision [vision]
+  2. supervision of the provision [provision]
+  3. royale with cheese the conviction - pulp fiction [fiction]
+  4. head-on collision - no revision [revision]
 
 **[Verse 1]** (pattern: AAAAAAAA)
-  1. the sample flipped the beat - is raw [raw]
-  2. shock and awe - the iron claw [claw]
-  3. the outlaw - the quick draw [draw]
-  4. I mastered southpaw - and conquered every outlaw [outlaw]
-  5. in-law on the overhaul braw [braw]
-  6. the outlaw - the brother-in-law [brother-in-law]
-  7. chainsaw on the southpaw jaw [jaw]
-  8. the eyewitness to what - i saw [saw]
+  1. my dedication fueled - the whole operation [operation]
+  2. accumulation - of the information [information]
+  3. foundation - of the reputation [reputation]
+  4. usain bolt world - record acceleration [acceleration]
+  5. assassination - with no deviation [deviation]
+  6. motivation - for the generation [generation]
+  7. liberation - from the frustration [frustration]
+  8. through fabrication - and fire I reached the liberation [liberation]
 
 **[Hook]** (pattern: AAAA)
-  1. nothing in the juggernaut can - memorized me [me]
-  2. step to me - and you will see [see]
-  3. the future - wide and barrier-free [barrier-free]
-  4. breaking chains - and running free [free]
+  1. pieces of my turf - scattered in the vision [vision]
+  2. supervision of the provision [provision]
+  3. royale with cheese the conviction - pulp fiction [fiction]
+  4. head-on collision - no revision [revision]
 
 **[Verse 2]** (pattern: AAAAAAAA)
-  1. i capitalized on every opportunity [opportunity]
-  2. sit your five dollar self - down the knickknack new jack city [city]
-  3. defying all - the gravity [gravity]
-  4. communicated visions to the community [community]
-  5. demonstrated unmatched capability [capability]
-  6. investigated every possibility [possibility]
-  7. built a legacy of solidarity - and unity [unity]
-  8. the industry can't - manufacture authenticity [authenticity]
+  1. i claim past the limits - they tried putting down [down]
+  2. all my life i've been down - lil durk with the crown [crown]
+  3. i built my kingdom - brick by brick downtown [downtown]
+  4. beyonce run the world - and own this town [town]
+  5. tombstone - but i've never been overthrown [overthrown]
+  6. sundown - in the boomtown [boomtown]
+  7. hitsville usa motown [motown]
+  8. get up offa that thing - james brown [brown]
 
 **[Hook]** (pattern: AAAA)
-  1. nothing in the juggernaut can - memorized me [me]
-  2. step to me - and you will see [see]
-  3. the future - wide and barrier-free [barrier-free]
-  4. breaking chains - and running free [free]
+  1. pieces of my turf - scattered in the vision [vision]
+  2. supervision of the provision [provision]
+  3. royale with cheese the conviction - pulp fiction [fiction]
+  4. head-on collision - no revision [revision]
 
 **[Verse 3]** (pattern: AAAAAAAA)
-  1. i grind till the whole world - knows my name for real [real]
-  2. the banana peel they slipped - i took the deal [deal]
-  3. the truth that - time cannot conceal [conceal]
-  4. alicia keys this - girl is on fire the ordeal [ordeal]
-  5. like the achilles - heel my only reveal [reveal]
-  6. the champion with nerves of steel [steel]
-  7. like a cartwheel - i spin the wheel [wheel]
-  8. the way - i hustle mass appeal [appeal]
+  1. the legacy - the lasting sound [sound]
+  2. the turnaround the runaround - the go-around [go-around]
+  3. lost and found - on the battleground [battleground]
+  4. inception dream levels compound - and rebound [rebound]
+  5. underground - to the foreground [foreground]
+  6. pound for pound - the most profound [profound]
+  7. the hunting ground - the proving ground [ground]
+  8. the surround sound - the fairground [fairground]
 
 **[Hook]** (pattern: AAAA)
-  1. nothing in the juggernaut can - memorized me [me]
-  2. step to me - and you will see [see]
-  3. the future - wide and barrier-free [barrier-free]
-  4. breaking chains - and running free [free]
+  1. pieces of my turf - scattered in the vision [vision]
+  2. supervision of the provision [provision]
+  3. royale with cheese the conviction - pulp fiction [fiction]
+  4. head-on collision - no revision [revision]
 
 ---
 
 ### Generation #4 (mood: sad, rhyme: freeform, creativity: 50, bpm: 120)
 
-Rhyme Accuracy: 0% | Hook Score: 85 | Punchline Score: 63
+Rhyme Accuracy: 0% | Hook Score: 73 | Punchline Score: 55
 
 **[Hook]** (pattern: XXXX)
-  1. racks on racks - and prime scheme [scheme]
-  2. the melody - the sweetest theme [theme]
-  3. steph curry - the three-point dream [dream]
-  4. the mainstream - and the jet stream [stream]
+  1. on god I spin - the for-real playlist [playlist]
+  2. through blacklist and - fire I reached the shortlist [shortlist]
+  3. i persist and i exist - and i resist [resist]
+  4. every gist led me - closer to coexist [coexist]
 
 **[Verse 1]** (pattern: XXXXXXXX)
-  1. the comeback story - that amazed [amazed]
-  2. i spit till the whole world - knows my name for real [real]
-  3. boardgames to the end-game flames [flames]
-  4. i break from the bottom - to the very top [top]
-  5. geto boys - legend scarface [scarface]
-  6. oceanside to the mountainside [mountainside]
-  7. i give to live - and live to give [give]
-  8. my bloodline's got the gasoline - and turpentine [turpentine]
+  1. Drake got me In My Feelings - every time [time]
+  2. the answers coming - hard to find [find]
+  3. man in black - johnny cash [cash]
+  4. like a winter wind - the beat froze [froze]
+  5. from the corner store to stages - that are sold out worldwide [worldwide]
+  6. My whole squad eating - that's a fact [fact]
+  7. person - in the immersion [immersion]
+  8. riding with my squad - a solid grip [grip]
 
 **[Hook]** (pattern: XXXX)
-  1. racks on racks - and prime scheme [scheme]
-  2. the melody - the sweetest theme [theme]
-  3. steph curry - the three-point dream [dream]
-  4. the mainstream - and the jet stream [stream]
+  1. on god I spin - the for-real playlist [playlist]
+  2. through blacklist and - fire I reached the shortlist [shortlist]
+  3. i persist and i exist - and i resist [resist]
+  4. every gist led me - closer to coexist [coexist]
 
 **[Verse 2]** (pattern: XXXXXXXX)
-  1. I came from nothing - now I'm here [here]
-  2. we flip from the ashes - of a broken dream [dream]
-  3. a-tisket a-tasket - ella fitzgerald [fitzgerald]
-  4. I hold the pen - like a weapon of mass construction [construction]
-  5. the verse is - evidence the chorus is the verdict read [read]
-  6. run this town - like jay-z [jay-z]
-  7. the booth - confession of a modern prophet [prophet]
-  8. master and commander the bow - russell crowe [crowe]
+  1. voice of the streets - second to none lil durk run [run]
+  2. we break from the ashes - of a broken dream [dream]
+  3. we push through the system - that was built to fail [fail]
+  4. Drip too hard they can't - keep up [up]
+  5. i blaze with the fire - of a thousand suns [suns]
+  6. we prove in the concrete jungle - every day [day]
+  7. I rap like Hov - and dream like Martin Luther [luther]
+  8. I break the chains - and pocket all the gains [gains]
 
 **[Hook]** (pattern: XXXX)
-  1. racks on racks - and prime scheme [scheme]
-  2. the melody - the sweetest theme [theme]
-  3. steph curry - the three-point dream [dream]
-  4. the mainstream - and the jet stream [stream]
+  1. on god I spin - the for-real playlist [playlist]
+  2. through blacklist and - fire I reached the shortlist [shortlist]
+  3. i persist and i exist - and i resist [resist]
+  4. every gist led me - closer to coexist [coexist]
 
 **[Verse 3]** (pattern: XXXXXXXX)
-  1. stacking up achievements and - I never take a bow [bow]
-  2. i ride on the corners - where we learned to fight [fight]
-  3. suspicious minds obsessively - elvis presley [presley]
-  4. i rewrite the rulebook - of this game [game]
-  5. manufactured destiny - rewrote my history [history]
-  6. the beat is knocking - open up the door [door]
-  7. minecraft the avenue breakthrough [breakthrough]
-  8. pyramid on the grid [grid]
+  1. regress - to the progress profess [profess]
+  2. brooklyn street cred - so fabulous [fabulous]
+  3. you got knocked - out midday friday [friday]
+  4. blue collar comedy - the trustworthy jeff foxworthy [foxworthy]
+  5. through peacock - and fire I reached the bedrock [bedrock]
+  6. i push past the limits - they tried putting down [down]
+  7. a freestyle session - underneath the bridge [bridge]
+  8. hereof thereof - the love thereof [thereof]
 
 **[Hook]** (pattern: XXXX)
-  1. racks on racks - and prime scheme [scheme]
-  2. the melody - the sweetest theme [theme]
-  3. steph curry - the three-point dream [dream]
-  4. the mainstream - and the jet stream [stream]
+  1. on god I spin - the for-real playlist [playlist]
+  2. through blacklist and - fire I reached the shortlist [shortlist]
+  3. i persist and i exist - and i resist [resist]
+  4. every gist led me - closer to coexist [coexist]
 
 ---
 
 ### Generation #5 (mood: epic, rhyme: AABB, creativity: 70, bpm: 90)
 
-Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 63
+Rhyme Accuracy: 100% | Hook Score: 74 | Punchline Score: 65
 
 **[Hook]** (pattern: AABB)
-  1. we the ones who - run the state [state]
-  2. thanos snap - the twisted fate [fate]
-  3. the concrete jungle raised me - but it couldn't contain me [me]
-  4. filigree of the guarantee [guarantee]
+  1. the photograph - shows unhinged turnaround [turnaround]
+  2. runaround on the turnaround mound [mound]
+  3. from nothing to the top - that's the only route I know [know]
+  4. let it - go with the undertow [undertow]
 
 **[Verse 1]** (pattern: AABBAABB)
-  1. the ink dries but the impact - never fades away from here [here]
-  2. volunteer the auctioneer [auctioneer]
-  3. demonstrated unmatched capability [capability]
-  4. crack era the flashback - new jack city [city]
-  5. volunteer in the frontier [frontier]
-  6. frontier of the premier career [career]
-  7. defying all - the gravity [gravity]
-  8. built a legacy of solidarity - and unity [unity]
+  1. i grind till the whole world - knows my name for real [real]
+  2. the verdict's in the court's appeal [appeal]
+  3. i push through the concrete jungle - every day [day]
+  4. holiday - in the hideaway [hideaway]
+  5. every single wound - will heal [heal]
+  6. commonweal - on the ideal reel [reel]
+  7. alien superstar - the key beyonce [beyonce]
+  8. never letting them - get in the way [way]
 
 **[Hook]** (pattern: AABB)
-  1. we the ones who - run the state [state]
-  2. thanos snap - the twisted fate [fate]
-  3. the concrete jungle raised me - but it couldn't contain me [me]
-  4. filigree of the guarantee [guarantee]
+  1. the photograph - shows unhinged turnaround [turnaround]
+  2. runaround on the turnaround mound [mound]
+  3. from nothing to the top - that's the only route I know [know]
+  4. let it - go with the undertow [undertow]
 
 **[Verse 2]** (pattern: AABBAABB)
-  1. i build with precision - like a surgeon now [now]
-  2. voice of the trenches hold it - down lil durk in the town [town]
-  3. we pull up on the scene - no time to nap [nap]
-  4. from recap I rose - and found my nightcap [nightcap]
-  5. the sundown - silhouette the uptown [uptown]
-  6. earned this crown don't - let it down [down]
-  7. megan thee stallion the snap - the clap [clap]
-  8. cardi b the trap - the handicap [handicap]
+  1. they sleeping on me - but I never rest [rest]
+  2. the interest - the second-best [second-best]
+  3. the realest in the game - and that's no disguise [disguise]
+  4. voodoo child mesmerize jimi - hendrix on the rise [rise]
+  5. heartless grind - like kanye west [west]
+  6. never settling for anything less - than best [best]
+  7. ostracize the compromise [compromise]
+  8. authorize the enterprise [enterprise]
 
 **[Hook]** (pattern: AABB)
-  1. we the ones who - run the state [state]
-  2. thanos snap - the twisted fate [fate]
-  3. the concrete jungle raised me - but it couldn't contain me [me]
-  4. filigree of the guarantee [guarantee]
+  1. the photograph - shows unhinged turnaround [turnaround]
+  2. runaround on the turnaround mound [mound]
+  3. from nothing to the top - that's the only route I know [know]
+  4. let it - go with the undertow [undertow]
 
 **[Verse 3]** (pattern: AABBAABB)
-  1. we claim from the bottom - to the very top [top]
-  2. bus stop to the pit stop [stop]
-  3. energized the game - made it popular [popular]
-  4. alright we gon' - be a star kendrick lamar [lamar]
-  5. the aftershock of every bar - i drop [drop]
-  6. nonstop at the rooftop [rooftop]
-  7. black hole - the bestseller interstellar [interstellar]
-  8. veni vidi vici - julius caesar [caesar]
+  1. the shackles falling - and we broke the chain [chain]
+  2. the bottom lane - to the top terrain [terrain]
+  3. we push from the bottom - to the very top [top]
+  4. detroit hustle at the bus - stop beverly hills cop [cop]
+  5. hurricane - in the fast lane [lane]
+  6. rihanna - umbrella in the rain [rain]
+  7. the aftershock of every bar - i drop [drop]
+  8. bus stop to the pit stop [stop]
 
 **[Hook]** (pattern: AABB)
-  1. we the ones who - run the state [state]
-  2. thanos snap - the twisted fate [fate]
-  3. the concrete jungle raised me - but it couldn't contain me [me]
-  4. filigree of the guarantee [guarantee]
+  1. the photograph - shows unhinged turnaround [turnaround]
+  2. runaround on the turnaround mound [mound]
+  3. from nothing to the top - that's the only route I know [know]
+  4. let it - go with the undertow [undertow]
 
 ---
 
 ### Generation #6 (mood: hopeful, rhyme: ABAB, creativity: 90, bpm: 100)
 
-Rhyme Accuracy: 100% | Hook Score: 73 | Punchline Score: 65
+Rhyme Accuracy: 100% | Hook Score: 75 | Punchline Score: 65
 
 **[Hook]** (pattern: ABAB)
-  1. the ladder - starts at visceral plug [plug]
-  2. we prove past the limits - they tried putting down [down]
-  3. unplug from the jitterbug [jitterbug]
-  4. wore the golden gown - and the crown [crown]
+  1. the block - knows my certified pillar [pillar]
+  2. i blaze on the corners - where we learned to fight [fight]
+  3. driller on the caterpillar [caterpillar]
+  4. the satellite - view from this height [height]
 
 **[Verse 1]** (pattern: ABABABAB)
-  1. the mic is breathing - heavy bars ignite [ignite]
-  2. we flip till the whole world - knows my name for real [real]
-  3. the knockout punch - ignite the night [night]
-  4. cockatiel on the ferris wheel [wheel]
-  5. after hours the city - lights burning bright [bright]
-  6. bruno mars 24k - the real deal [deal]
-  7. i write these - wrongs to set it right [right]
-  8. the truth that - time cannot conceal [conceal]
+  1. grew up on corners now - I own the block [block]
+  2. this is my Scarface - moment at the top [top]
+  3. like a woodpecker - i knock knock knock [knock]
+  4. banana in the tailpipe - nonstop beverly hills cop [cop]
+  5. standing firm - like a solid rock [rock]
+  6. the aftershock of every bar - i drop [drop]
+  7. through peacock - and fire I reached the bedrock [bedrock]
+  8. nonstop - at the rooftop [rooftop]
 
 **[Hook]** (pattern: ABAB)
-  1. the ladder - starts at visceral plug [plug]
-  2. we prove past the limits - they tried putting down [down]
-  3. unplug from the jitterbug [jitterbug]
-  4. wore the golden gown - and the crown [crown]
+  1. the block - knows my certified pillar [pillar]
+  2. i blaze on the corners - where we learned to fight [fight]
+  3. driller on the caterpillar [caterpillar]
+  4. the satellite - view from this height [height]
 
 **[Verse 2]** (pattern: ABABABAB)
-  1. i spit with precision - like a surgeon now [now]
-  2. from concrete grew - something real [real]
-  3. goodfellas running - this whole town [town]
-  4. like a cartwheel - i spin the wheel [wheel]
-  5. the facedown the staredown - the throwdown [throwdown]
-  6. every bar a bigger deal [deal]
-  7. from sundown to sunup - I hold it down [down]
-  8. raw emotion - i reveal [reveal]
+  1. i break from the ashes - of a broken dream [dream]
+  2. the feature list reads - like a hall of fame [fame]
+  3. regime - of the supreme extreme [extreme]
+  4. timeframe - on the picture frame [frame]
+  5. gasoline - on the fire supreme [supreme]
+  6. i changed the game - forever changed the name [name]
+  7. midstream - of the laser beam [beam]
+  8. call of duty - warzone the aim [aim]
 
 **[Hook]** (pattern: ABAB)
-  1. the ladder - starts at visceral plug [plug]
-  2. we prove past the limits - they tried putting down [down]
-  3. unplug from the jitterbug [jitterbug]
-  4. wore the golden gown - and the crown [crown]
+  1. the block - knows my certified pillar [pillar]
+  2. i blaze on the corners - where we learned to fight [fight]
+  3. driller on the caterpillar [caterpillar]
+  4. the satellite - view from this height [height]
 
 **[Verse 3]** (pattern: ABABABAB)
-  1. the sample flipped the beat - is raw [raw]
-  2. i trap from the bottom - to the very top [top]
-  3. the outlaw - the brother-in-law [brother-in-law]
-  4. detroit hustle at the bus - stop beverly hills cop [cop]
-  5. seesaw on the chainsaw draw [draw]
-  6. bus stop to the pit stop [stop]
-  7. shock and awe - the dropped jaw [jaw]
-  8. the aftershock of every bar - i drop [drop]
+  1. I finesse the game - that's the deal [deal]
+  2. we break with precision - like a surgeon now [now]
+  3. the truth that time - can never steal [steal]
+  4. the breakdown - before the breakthrough renown [renown]
+  5. the oatmeal grind - the daily meal [meal]
+  6. james brown get down - and claim the crown [crown]
+  7. roadkill - to the overkill [overkill]
+  8. i built my kingdom - brick by brick downtown [downtown]
 
 **[Hook]** (pattern: ABAB)
-  1. the ladder - starts at visceral plug [plug]
-  2. we prove past the limits - they tried putting down [down]
-  3. unplug from the jitterbug [jitterbug]
-  4. wore the golden gown - and the crown [crown]
+  1. the block - knows my certified pillar [pillar]
+  2. i blaze on the corners - where we learned to fight [fight]
+  3. driller on the caterpillar [caterpillar]
+  4. the satellite - view from this height [height]
 
 ---
 
 ### Generation #7 (mood: happy, rhyme: AAAA, creativity: 50, bpm: 110)
 
-Rhyme Accuracy: 100% | Hook Score: 72 | Punchline Score: 83
+Rhyme Accuracy: 100% | Hook Score: 91 | Punchline Score: 68
 
 **[Hook]** (pattern: AAAA)
-  1. eliminated every complication - that i see [see]
-  2. celebrating jubilee [jubilee] ⚠️ TOO_SHORT: only 2 words
-  3. flowing like the river - to the sea [sea]
-  4. living life - with no referee [referee]
+  1. we revolutionized the sound - and made it right [right]
+  2. birthright and - the second sight [sight]
+  3. pen game - tight dynamite [dynamite]
+  4. ali floated - like a butterfly in the light [light]
 
 **[Verse 1]** (pattern: AAAAAAAA)
-  1. the realest in the game - and that's no disguise [disguise]
-  2. jeopardize the compromise [compromise]
-  3. galvanize and cauterize [cauterize]
-  4. notorious with the hypnotize [hypnotize]
-  5. woman of the enterprise - doja cat capitalize [capitalize]
-  6. open up your eyes - and realize [realize]
-  7. purple haze in my eyes - jimi hendrix improvise [improvise]
-  8. weaponize the enterprise [enterprise]
+  1. we build from the ashes - of a broken dream [dream]
+  2. the melody - the sweetest theme [theme]
+  3. lebron james the dream - team supreme [supreme]
+  4. redeem the pipe dream - and the scheme [scheme]
+  5. esteem - from the downstream stream [stream]
+  6. the morning light - the golden gleam [gleam]
+  7. the ice cream - of the daydream [daydream]
+  8. regime - of the supreme extreme [extreme]
 
 **[Hook]** (pattern: AAAA)
-  1. eliminated every complication - that i see [see]
-  2. celebrating jubilee [jubilee] ⚠️ TOO_SHORT: only 2 words
-  3. flowing like the river - to the sea [sea]
-  4. living life - with no referee [referee]
+  1. we revolutionized the sound - and made it right [right]
+  2. birthright and - the second sight [sight]
+  3. pen game - tight dynamite [dynamite]
+  4. ali floated - like a butterfly in the light [light]
 
 **[Verse 2]** (pattern: AAAAAAAA)
-  1. the mic is breathing - heavy bars ignite [ignite]
-  2. utopia visions - burning bright [bright]
-  3. from socialite I rose - and found my termite [termite]
-  4. midnight twilight candlelight [candlelight]
-  5. my hindsight - became my foresight [foresight]
-  6. like a meteorite - i entered the night [night]
-  7. oversight in the copyright might [might]
-  8. never giving up - without a fight [fight]
+  1. they tried to hold me down - but watch me climb [climb]
+  2. i turned water into wine - every time [time]
+  3. orchestrated melodies - in every rhyme [rhyme]
+  4. Drake got me In My Feelings - every time [time]
+  5. these punchlines hit - like Tyson in his prime [prime]
+  6. standing - in the enzyme [enzyme]
+  7. chasing down - the wartime [wartime]
+  8. they cannot stop - the paradigm [paradigm]
 
 **[Hook]** (pattern: AAAA)
-  1. eliminated every complication - that i see [see]
-  2. celebrating jubilee [jubilee] ⚠️ TOO_SHORT: only 2 words
-  3. flowing like the river - to the sea [sea]
-  4. living life - with no referee [referee]
+  1. we revolutionized the sound - and made it right [right]
+  2. birthright and - the second sight [sight]
+  3. pen game - tight dynamite [dynamite]
+  4. ali floated - like a butterfly in the light [light]
 
 **[Verse 3]** (pattern: AAAAAAAA)
-  1. haters throwing shade - behind my back [back]
-  2. the sunshine's - back no setback [setback]
-  3. the soundtrack the off-track - the fast track [track]
-  4. flashback to the knickknack [knickknack]
-  5. zeze on the soundtrack - kodak black [black]
-  6. fortnite building on attack [attack]
-  7. the knickknack the haystick - the crackerjack [crackerjack]
-  8. the godfather - the flashback [flashback]
+  1. i conquer till the whole world - knows my name for real [real]
+  2. sza kill bill - the overkill [overkill]
+  3. the sex appeal - of the business deal [deal]
+  4. raw emotion - i reveal [reveal]
+  5. surreal ordeal - on the appeal [appeal]
+  6. the champion with nerves - of steel [steel]
+  7. oatmeal - on the treadmill zeal [zeal]
+  8. cartwheeling through the battlefield [battlefield]
 
 **[Hook]** (pattern: AAAA)
-  1. eliminated every complication - that i see [see]
-  2. celebrating jubilee [jubilee] ⚠️ TOO_SHORT: only 2 words
-  3. flowing like the river - to the sea [sea]
-  4. living life - with no referee [referee]
+  1. we revolutionized the sound - and made it right [right]
+  2. birthright and - the second sight [sight]
+  3. pen game - tight dynamite [dynamite]
+  4. ali floated - like a butterfly in the light [light]
 
 ---
 
 ### Generation #8 (mood: dark, rhyme: freeform, creativity: 70, bpm: 120)
 
-Rhyme Accuracy: 0% | Hook Score: 91 | Punchline Score: 45
+Rhyme Accuracy: 0% | Hook Score: 75 | Punchline Score: 53
 
 **[Hook]** (pattern: XXXX)
-  1. been about the bando - since day one [one]
-  2. comparison to none - under the sun [sun]
-  3. steph curry - splash the battle won [won]
-  4. twinz deep - cover big pun [pun]
+  1. the streets - remember my fortress [fortress]
+  2. effortless on the limitless [limitless]
+  3. my sweetness speaks louder - than any completeness [completeness]
+  4. reckless with finesse nonetheless [nonetheless]
 
 **[Verse 1]** (pattern: XXXXXXXX)
-  1. detroit legend the neutron - calvin johnson [johnson]
-  2. i trap past the limits - they tried putting down [down]
-  3. the studio at three am is - where the magic lives [lives]
-  4. the headphones on the world - off that's my signal [signal]
-  5. i spit with the fire - of a thousand suns [suns]
-  6. i flex on the corners - where we learned to fight [fight]
-  7. Eminem cleaned out his - closet on the track [track]
-  8. we claim from the bottom - to the very top [top]
+  1. heartache - that i can't forsake [forsake]
+  2. from concrete grew - something real [real]
+  3. deathblow - in the undertow [undertow]
+  4. i claim from the bottom - to the very top [top]
+  5. my pen is loaded - with a hundred different stories told [told]
+  6. fresh-squeezed no excuse [excuse]
+  7. i hunt from the ashes - of a broken dream [dream]
+  8. holla holla - like ja rule [rule]
 
 **[Hook]** (pattern: XXXX)
-  1. been about the bando - since day one [one]
-  2. comparison to none - under the sun [sun]
-  3. steph curry - splash the battle won [won]
-  4. twinz deep - cover big pun [pun]
+  1. the streets - remember my fortress [fortress]
+  2. effortless on the limitless [limitless]
+  3. my sweetness speaks louder - than any completeness [completeness]
+  4. reckless with finesse nonetheless [nonetheless]
 
 **[Verse 2]** (pattern: XXXXXXXX)
-  1. the initiative the narrative - the competitive drive [drive]
-  2. real recognize real - and you look unfamiliar [unfamiliar]
-  3. we break through the system - that was built to fail [fail]
-  4. i capitalized on every opportunity [opportunity]
-  5. Black Panther - Wakanda in my DNA [dna]
-  6. i stack past the limits - they tried putting down [down]
-  7. Nas wrote - Illmatic on the fire escape [escape]
-  8. put it on and - cast the spell big l [l]
+  1. digits on the plug - young thug [thug]
+  2. I walk on beats - like they are red carpets for me [me]
+  3. prime delivery on the job bezos [bezos]
+  4. i blaze past the haters - and the doubters all [all]
+  5. we grind with the fire - of a thousand suns [suns]
+  6. offspring - of the mainspring swing [swing]
+  7. we claim on the corners - where we learned to fight [fight]
+  8. a vinyl record - spinning on the deck [deck]
 
 **[Hook]** (pattern: XXXX)
-  1. been about the bando - since day one [one]
-  2. comparison to none - under the sun [sun]
-  3. steph curry - splash the battle won [won]
-  4. twinz deep - cover big pun [pun]
+  1. the streets - remember my fortress [fortress]
+  2. effortless on the limitless [limitless]
+  3. my sweetness speaks louder - than any completeness [completeness]
+  4. reckless with finesse nonetheless [nonetheless]
 
 **[Verse 3]** (pattern: XXXXXXXX)
-  1. the portfolio the studio - the ratio show [show]
-  2. i hunt past the haters - and the doubters all [all]
-  3. Andre 3000 said what's - cooler than cool [cool]
-  4. the warrior who - never fade [fade]
-  5. the incarceration of the mind - is liberation [liberation]
-  6. i flip from the ashes - of a broken dream [dream]
-  7. I rap like Hov and dream - like Martin Luther [luther]
-  8. moving with the main attraction [attraction]
+  1. Lauryn Hill told me - Everything Is Everything [everything]
+  2. stacking up achievements - and I never take a bow [bow]
+  3. drake god's plan - the outline [outline]
+  4. we trap in the concrete jungle - every day [day]
+  5. we flip with precision - like a surgeon now [now]
+  6. i promise legacy - second to none lebron [lebron]
+  7. this is my Scarface - moment at the top [top]
+  8. They said - I couldn't make it out [out]
 
 **[Hook]** (pattern: XXXX)
-  1. been about the bando - since day one [one]
-  2. comparison to none - under the sun [sun]
-  3. steph curry - splash the battle won [won]
-  4. twinz deep - cover big pun [pun]
+  1. the streets - remember my fortress [fortress]
+  2. effortless on the limitless [limitless]
+  3. my sweetness speaks louder - than any completeness [completeness]
+  4. reckless with finesse nonetheless [nonetheless]
 
 ---
 
 ### Generation #9 (mood: aggressive, rhyme: AABB, creativity: 90, bpm: 90)
 
-Rhyme Accuracy: 100% | Hook Score: 93 | Punchline Score: 57
+Rhyme Accuracy: 100% | Hook Score: 67 | Punchline Score: 75
 
 **[Hook]** (pattern: AABB)
-  1. the twin game - belongs to me [me]
-  2. stand tall - like a redwood tree [tree]
-  3. they sold me doubt at retail - but I bought belief wholesale [wholesale]
-  4. c chose the door - the detail a bronx tale [tale]
+  1. the crown fits perfect on my - head tonight and always [always]
+  2. i raise the bar - and earn the praise [praise]
+  3. here to make a statement - not a dent [dent]
+  4. magnificent in every increment [increment]
 
 **[Verse 1]** (pattern: AABBAABB)
-  1. these streets are mine - i stand my ground [ground]
-  2. i pound the ground - round after round [round]
-  3. built my legacy - and staked my claim [claim]
-  4. i am the danger - the hall of fame [fame]
-  5. outbound from the homebound [homebound]
-  6. lost and - found on the battleground [battleground]
-  7. the godfather - corleone the name [name]
-  8. i rewrite the rulebook - of this game [game]
+  1. i trap till the whole world - knows my name for real [real]
+  2. the champion with nerves - of steel [steel]
+  3. annihilated - everything in my trajectory [trajectory]
+  4. artistry - of the mystery [mystery]
+  5. kiss from a rose - that's a big deal [deal]
+  6. cartwheeling through the battlefield [battlefield]
+  7. i dominate - this territory [territory]
+  8. gentry - in the inventory [inventory]
 
 **[Hook]** (pattern: AABB)
-  1. the twin game - belongs to me [me]
-  2. stand tall - like a redwood tree [tree]
-  3. they sold me doubt at retail - but I bought belief wholesale [wholesale]
-  4. c chose the door - the detail a bronx tale [tale]
+  1. the crown fits perfect on my - head tonight and always [always]
+  2. i raise the bar - and earn the praise [praise]
+  3. here to make a statement - not a dent [dent]
+  4. magnificent in every increment [increment]
 
 **[Verse 2]** (pattern: AABBAABB)
-  1. moving like Denzel in Training - Day for real [real]
-  2. raw deal - but i'll never squeal [squeal]
-  3. they said I wouldn't make - it past the block [block]
-  4. i turned the roadblock - into a springboard dock [dock]
-  5. ironclad and - steel for the ordeal [ordeal]
-  6. diamond cuts that - make you feel [feel]
-  7. electrifying like - the rock [rock]
-  8. i knock knock - open every lock [lock] ⚠️ REPEATED_WORD: "knock knock"
+  1. i hunt from the ashes - of a broken dream [dream]
+  2. deeper levels of the dream - inception scheme [scheme]
+  3. i retaliated - with determination [determination]
+  4. arnold schwarzenegger termination [termination]
+  5. supreme - team on the extreme [extreme]
+  6. blaspheme - in the mainstream beam [beam]
+  7. improvisation - at the celebration [celebration]
+  8. retaliation - with no hesitation [hesitation]
 
 **[Hook]** (pattern: AABB)
-  1. the twin game - belongs to me [me]
-  2. stand tall - like a redwood tree [tree]
-  3. they sold me doubt at retail - but I bought belief wholesale [wholesale]
-  4. c chose the door - the detail a bronx tale [tale]
+  1. the crown fits perfect on my - head tonight and always [always]
+  2. i raise the bar - and earn the praise [praise]
+  3. here to make a statement - not a dent [dent]
+  4. magnificent in every increment [increment]
 
 **[Verse 3]** (pattern: AABBAABB)
-  1. eliminated doubt - with concentration [concentration]
-  2. constellation of the correlation [correlation]
-  3. the speakers shake - when they pronounce my name out loud [loud]
-  4. my metaphors do - parkour across the track layout [layout]
-  5. floyd mayweather - undefeated domination [domination]
-  6. hallucination or - the revelation [revelation]
-  7. They said I couldn't - make it out [out]
-  8. standing out standing up - standing proud [proud]
+  1. my voice the instrument - the street the orchestra plays [plays]
+  2. i blaze through every single maze [maze]
+  3. i stack in the concrete jungle - every day [day]
+  4. still reppin' - compton dre [dre]
+  5. the trail of fire - the deadly blaze [blaze]
+  6. the social - media craze [craze]
+  7. protege - on the getaway [getaway]
+  8. renaissance - the jubilee beyonce [beyonce]
 
 **[Hook]** (pattern: AABB)
-  1. the twin game - belongs to me [me]
-  2. stand tall - like a redwood tree [tree]
-  3. they sold me doubt at retail - but I bought belief wholesale [wholesale]
-  4. c chose the door - the detail a bronx tale [tale]
+  1. the crown fits perfect on my - head tonight and always [always]
+  2. i raise the bar - and earn the praise [praise]
+  3. here to make a statement - not a dent [dent]
+  4. magnificent in every increment [increment]
 
 ---
 
 ### Generation #10 (mood: sad, rhyme: ABAB, creativity: 50, bpm: 100)
 
-Rhyme Accuracy: 100% | Hook Score: 81 | Punchline Score: 55
+Rhyme Accuracy: 100% | Hook Score: 82 | Punchline Score: 65
 
 **[Hook]** (pattern: ABAB)
-  1. every wall is a door - to sauce [sauce]
-  2. and when the lights go down I'm - still standing tall [tall]
-  3. greatest deep threat the toss - randy moss [moss]
-  4. cannonball at the carnival [carnival]
+  1. we dominated we - elevated we arrived [arrived]
+  2. leveled up my - life and watch me grow [grow]
+  3. bona fide - and the bonafide ride [ride]
+  4. whats poppin in the narrow - jack harlow [harlow]
 
 **[Verse 1]** (pattern: ABABABAB)
-  1. I walk on beats - like they are red carpets for me [me]
-  2. we flex through the concrete - jungle every day [day]
-  3. impossible is - nothing ali [ali]
-  4. protege on the getaway [getaway]
-  5. game of death - with bruce lee [lee]
-  6. seize the day in every way [way]
-  7. martial arts master - bruce lee [lee]
-  8. run the world - like beyonce [beyonce]
+  1. we ride from the bottom - to the very top [top]
+  2. i flip in the concrete jungle - every day [day]
+  3. axel foley on the rooftop - beverly hills cop [cop]
+  4. fiance - in the entryway [entryway]
+  5. the aftershock of every bar - i drop [drop]
+  6. cliche - in the alleyway [alleyway]
+  7. nonstop - at the rooftop [rooftop]
+  8. making hay - while the sun's at play [play]
 
 **[Hook]** (pattern: ABAB)
-  1. every wall is a door - to sauce [sauce]
-  2. and when the lights go down I'm - still standing tall [tall]
-  3. greatest deep threat the toss - randy moss [moss]
-  4. cannonball at the carnival [carnival]
+  1. we dominated we - elevated we arrived [arrived]
+  2. leveled up my - life and watch me grow [grow]
+  3. bona fide - and the bonafide ride [ride]
+  4. whats poppin in the narrow - jack harlow [harlow]
 
 **[Verse 2]** (pattern: ABABABAB)
-  1. spit the bars hard - watch the beat slap [slap]
-  2. dominated stages - never been frustrated [frustrated]
-  3. every burlap led me - closer to yap [yap]
-  4. from the bottom - i persevered and elevated [elevated]
-  5. from recap I rose - and lost my nightcap [nightcap]
-  6. celebrated victories - never fabricated [fabricated]
-  7. I built my rap from nothing to cap [cap]
-  8. accumulated knowledge - never graduated [graduated]
+  1. spitting verses - through the dead of night [night]
+  2. Drip too hard they can't - keep up [up]
+  3. ali floated like a butterfly - in the light [light]
+  4. i got the luck - the four-leaf struck [struck]
+  5. magnet - on the granite [granite]
+  6. potluck - and the nunchuck [nunchuck]
+  7. continental rules hold tight - john wick flight [flight]
+  8. they see the diamond - but never see the stuff [stuff]
 
 **[Hook]** (pattern: ABAB)
-  1. every wall is a door - to sauce [sauce]
-  2. and when the lights go down I'm - still standing tall [tall]
-  3. greatest deep threat the toss - randy moss [moss]
-  4. cannonball at the carnival [carnival]
+  1. we dominated we - elevated we arrived [arrived]
+  2. leveled up my - life and watch me grow [grow]
+  3. bona fide - and the bonafide ride [ride]
+  4. whats poppin in the narrow - jack harlow [harlow]
 
 **[Verse 3]** (pattern: ABABABAB)
-  1. the real recognize real and - I got a whole army strong [strong]
-  2. I put the work - in every day [day]
-  3. sing along - the victory song [song]
-  4. lemonade the recipe beyonce [beyonce]
-  5. the headstrong the armstrong - the furlong [furlong]
-  6. say so every day doja - cat in the way [way]
-  7. stevie wonder signed - and sealed along [along]
-  8. risque on the croquet [croquet]
+  1. they sleeping on me - but I never rest [rest]
+  2. i got the vision - take control [control]
+  3. runaway genius - kanye west [west]
+  4. I carry hearthrob - and throb inside my soul [soul]
+  5. the litmus test - the manifest [manifest]
+  6. went platinum - like j. cole [cole]
+  7. golden crest - upon the nest [nest]
+  8. l-o-v-e from the soul - nat king cole [cole]
 
 **[Hook]** (pattern: ABAB)
-  1. every wall is a door - to sauce [sauce]
-  2. and when the lights go down I'm - still standing tall [tall]
-  3. greatest deep threat the toss - randy moss [moss]
-  4. cannonball at the carnival [carnival]
+  1. we dominated we - elevated we arrived [arrived]
+  2. leveled up my - life and watch me grow [grow]
+  3. bona fide - and the bonafide ride [ride]
+  4. whats poppin in the narrow - jack harlow [harlow]
 
 ---
 

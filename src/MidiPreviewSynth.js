@@ -41,7 +41,6 @@ export class MidiPreviewSynth {
      */
     playMidi(notes, tempo = 120, ticksPerBeat = 480, onEnd = null) {
         this.stop();
-        // Cancel any pending idle suspend from a previous preview
         if (this._idleSuspendTimer) {
             clearTimeout(this._idleSuspendTimer);
             this._idleSuspendTimer = null;
@@ -54,67 +53,102 @@ export class MidiPreviewSynth {
         }
 
         this._playing = true;
+        window.__midiPreviewPlaying = true;
         this._onEnd = onEnd;
-        const now = this.audioContext.currentTime;
-        this._startTime = now;
 
         const secondsPerTick = (60 / tempo) / ticksPerBeat;
-
-        // Find total duration
         const maxEndTick = Math.max(...notes.map(n => n.startTick + n.duration));
         this._duration = maxEndTick * secondsPerTick;
 
-        notes.forEach(note => {
-            const startSec = note.startTick * secondsPerTick;
-            const durSec = Math.min(note.duration * secondsPerTick, 2.0); // Cap at 2s per note
-            const freq = this.midiToFreq(note.note);
-            const vel = (note.velocity || 100) / 127;
+        // Sort notes by start time for the lookahead scheduler
+        const sorted = [...notes].sort((a, b) => a.startTick - b.startTick);
 
-            // Create oscillator
-            const osc = this.audioContext.createOscillator();
-            const noteGain = this.audioContext.createGain();
+        this._startTime = this.audioContext.currentTime;
+        let noteIndex = 0;
+        const LOOKAHEAD_SEC = 2.0;   // Schedule 2 seconds ahead
+        const INTERVAL_MS = 200;     // Check every 200ms
 
-            osc.type = 'sine';
-            osc.frequency.value = freq;
+        const scheduleNotes = () => {
+            if (!this._playing) return;
 
-            // ADSR-like envelope: quick attack, short sustain, gentle release
-            const attackTime = 0.005;
-            const releaseTime = Math.min(0.08, durSec * 0.3);
-            const peakGain = vel * 0.4;
+            // Ensure context is running
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
 
-            noteGain.gain.setValueAtTime(0, now + startSec);
-            noteGain.gain.linearRampToValueAtTime(peakGain, now + startSec + attackTime);
-            noteGain.gain.setValueAtTime(peakGain, now + startSec + durSec - releaseTime);
-            noteGain.gain.linearRampToValueAtTime(0, now + startSec + durSec);
+            const now = this.audioContext.currentTime;
+            const elapsed = now - this._startTime;
+            const scheduleUntil = elapsed + LOOKAHEAD_SEC;
 
-            osc.connect(noteGain);
-            noteGain.connect(this.gainNode);
+            while (noteIndex < sorted.length) {
+                const note = sorted[noteIndex];
+                const startSec = note.startTick * secondsPerTick;
 
-            osc.start(now + startSec);
-            osc.stop(now + startSec + durSec + 0.01);
+                if (startSec > scheduleUntil) break; // Not yet time to schedule this note
 
-            this.activeOscillators.push({ osc, noteGain });
+                const durSec = Math.min(note.duration * secondsPerTick, 2.0);
+                const freq = this.midiToFreq(note.note);
+                const vel = (note.velocity || 100) / 127;
 
-            // Cleanup reference when done
-            osc.onended = () => {
-                const idx = this.activeOscillators.findIndex(o => o.osc === osc);
-                if (idx !== -1) this.activeOscillators.splice(idx, 1);
-            };
-        });
+                const osc = this.audioContext.createOscillator();
+                const noteGain = this.audioContext.createGain();
 
-        // End callback + idle suspend so context doesn't run forever
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+
+                const attackTime = 0.005;
+                const releaseTime = Math.min(0.08, durSec * 0.3);
+                const peakGain = vel * 0.4;
+                const absStart = this._startTime + startSec;
+
+                noteGain.gain.setValueAtTime(0, absStart);
+                noteGain.gain.linearRampToValueAtTime(peakGain, absStart + attackTime);
+                noteGain.gain.setValueAtTime(peakGain, absStart + durSec - releaseTime);
+                noteGain.gain.linearRampToValueAtTime(0, absStart + durSec);
+
+                osc.connect(noteGain);
+                noteGain.connect(this.gainNode);
+
+                osc.start(absStart);
+                osc.stop(absStart + durSec + 0.01);
+
+                this.activeOscillators.push({ osc, noteGain });
+                osc.onended = () => {
+                    const idx = this.activeOscillators.findIndex(o => o.osc === osc);
+                    if (idx !== -1) this.activeOscillators.splice(idx, 1);
+                };
+
+                noteIndex++;
+            }
+
+            // Check if all notes are done playing
+            if (noteIndex >= sorted.length && elapsed > this._duration) {
+                this._playing = false;
+                window.__midiPreviewPlaying = false;
+                if (this._onEnd) this._onEnd();
+                this._idleSuspendTimer = setTimeout(() => {
+                    if (window.__samplerRef?._audioActive) return;
+                    if (!this._playing && this.audioContext && this.audioContext.state === 'running') {
+                        this.audioContext.suspend().catch(() => {});
+                    }
+                }, 4000);
+                return;
+            }
+
+            // Keep scheduling
+            this._scheduleTimer = setTimeout(scheduleNotes, INTERVAL_MS);
+        };
+
+        // Kick off the scheduler
+        scheduleNotes();
+
+        // Safety end timeout in case scheduler misses the end
         this._endTimeout = setTimeout(() => {
+            if (!this._playing) return;
             this._playing = false;
+            window.__midiPreviewPlaying = false;
             if (this._onEnd) this._onEnd();
-            // Suspend after a grace period so the context doesn't stay running idle
-            // — but NOT if SamplerEngine is actively playing (shared context)
-            this._idleSuspendTimer = setTimeout(() => {
-                if (window.__samplerRef?._audioActive) return;
-                if (!this._playing && this.audioContext && this.audioContext.state === 'running') {
-                    this.audioContext.suspend().catch(() => {});
-                }
-            }, 4000);
-        }, this._duration * 1000 + 100);
+        }, this._duration * 1000 + 500);
     }
 
     /**
@@ -122,10 +156,15 @@ export class MidiPreviewSynth {
      */
     stop() {
         this._playing = false;
+        window.__midiPreviewPlaying = false;
 
         if (this._endTimeout) {
             clearTimeout(this._endTimeout);
             this._endTimeout = null;
+        }
+        if (this._scheduleTimer) {
+            clearTimeout(this._scheduleTimer);
+            this._scheduleTimer = null;
         }
 
         this.activeOscillators.forEach(({ osc, noteGain }) => {

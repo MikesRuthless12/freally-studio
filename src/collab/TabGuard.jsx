@@ -6,6 +6,13 @@ const TAB_PERMISSION_MAP = {
     chords: 'canEditChords',
     melody: 'canEditMelody',
     bass: 'canEditBass',
+    lyrics: 'canEditLyrics',
+    lyricengine: 'canEditLyricEngine',
+    browser: 'canEditBrowser',
+    mixer: 'canEditMixer',
+    arrange: 'canEditArrange',
+    drumsynth: 'canEditDrumSynth',
+    instrsynth: 'canEditInstSynth',
 };
 
 export function TabGuard({ tab, myId, owners, freeForAll, onRequestAccess, permissions, children }) {

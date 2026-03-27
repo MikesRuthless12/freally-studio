@@ -1942,6 +1942,11 @@ export class SamplerEngine {
                     this._scheduleIdleSuspend();
                     return;
                 }
+                // Check if MIDI preview synth is actively playing
+                if (window.__midiPreviewPlaying) {
+                    this._scheduleIdleSuspend();
+                    return;
+                }
                 this.audioContext.suspend().catch(() => {});
             }
             // Also stop the hot-swap interval if it was started by a preview

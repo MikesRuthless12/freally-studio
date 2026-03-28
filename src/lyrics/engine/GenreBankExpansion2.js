@@ -519,7 +519,7 @@ export const GENRE_BANKS_EXPANSION2 = {
             'the verse is gold the hook is platinum certified',
             'unbreakable that is the DNA inside of me',
             'I rewrote the rules and they thanked me for doing it',
-            'the king is here the king is here bow down now',
+            'the king is here so bow down to the crown now',
             'I bodied every doubt they ever had about me',
             'we the realest to ever do it and that is a fact',
             'the legacy lives on in every bar I spit',

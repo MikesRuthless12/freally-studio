@@ -11,7 +11,7 @@ import { collectAudioFiles, shuffleArray } from './randomFileUtils';
 import StemSeparationModal from './StemSeparationModal';
 import { StemSeparator } from './StemSeparator';
 import { AudioAnalyzer } from './AudioAnalyzer';
-import { interpolateAutomation, addAutomationPoint, removeAutomationPoint, moveAutomationPoint } from './automationUtils';
+import { interpolateAutomation, addAutomationPoint, removeAutomationPoint, moveAutomationPoint, getAutomatableParams, createDefaultAutomationPoints, clearToAnchors, erasePointsInRange } from './automationUtils';
 import { loopAllPatterns } from './patternUtils';
 import { useTranslation } from './i18n/I18nContext.jsx';
 import { getFileFromItem } from './getFileFromItem.js';
@@ -868,6 +868,9 @@ export default function ArrangementTimeline({
 
     const [zoom, setZoom] = useState(DEFAULT_PX_PER_BAR);
     const [showMixer, setShowMixer] = useState(false);
+    const [mixerPanelHeight, setMixerPanelHeight] = useState(220);
+    const [mixerPanelMaximized, setMixerPanelMaximized] = useState(false);
+    const mixerPanelPrevHeight = useRef(220);
     const [showDetailPanel, setShowDetailPanel] = useState(false);
     const [detailPanelHeight, setDetailPanelHeight] = useState(200);
     const [detailPanelMaximized, setDetailPanelMaximized] = useState(false);
@@ -933,12 +936,29 @@ export default function ArrangementTimeline({
     const [hoveredAudioClipId, setHoveredAudioClipId] = useState(null);
     const [draggingClipBetweenTracks, setDraggingClipBetweenTracks] = useState(null); // { clip, sourceTrackId, sourceRowId }
     const [clipDropGhost, setClipDropGhost] = useState(null); // { targetRowId, bar, width } for ghost preview
+    const browserDragWaveSvgRef = useRef(null); // cached waveform SVG for browser file drags
+    const browserDragItemRef = useRef(null); // tracks which item the cached SVG is for
     const [draggingFadeHandle, setDraggingFadeHandle] = useState(null); // 'fadeIn' | 'fadeOut' | 'fadeInCurve' | 'fadeOutCurve' | null
+
+    // Snap-to-grid helper: snaps a bar position to the nearest grid line
+    // globalResolution = subdivisions per bar (4=quarter, 8=eighth, 16=sixteenth, 32=thirty-second)
+    const snapBar = useCallback((bar) => {
+        const subsPerBar = globalResolution || 4;
+        const unit = 1 / subsPerBar; // e.g. 0.25 bars at quarter-note resolution
+        return Math.max(0, Math.round(bar / unit) * unit);
+    }, [globalResolution]);
 
     // Automation lane state
     const [automationVisibleTracks, setAutomationVisibleTracks] = useState(new Set()); // trackIds with visible automation lane
     const [automationSelectedParam, setAutomationSelectedParam] = useState({}); // { [trackId]: paramKey }
     const [draggingAutomationPoint, setDraggingAutomationPoint] = useState(null); // { trackId, paramKey, pointIndex, startX, startY }
+
+    // Ctrl+drag range selection state — 2D box across bars and rows
+    const [rangeSelection, setRangeSelection] = useState(null); // { startBar, endBar, startY, endY, trackIds: string[] }
+    const [rangeDragging, setRangeDragging] = useState(false);
+    const [rangeBoxVisible, setRangeBoxVisible] = useState(true); // controls dashed selection box visibility
+    const rangeJustFinishedRef = useRef(false); // prevents click from firing after Ctrl+drag
+    const pendingRangeDeleteRef = useRef(null); // stores last range for Delete after visual clears
 
     // Drag reorder state for MIDI/audio track rows
     const [dragReorderRow, setDragReorderRow] = useState(null); // { rowId, type, trackId }
@@ -999,6 +1019,45 @@ export default function ArrangementTimeline({
             setDetailPanelMaximized(true);
         }
     }, [detailPanelMaximized, detailPanelHeight, getMaxDetailHeight]);
+
+    // Mixer panel divider resize handler (drag to resize)
+    const getMaxMixerHeight = useCallback(() => {
+        const container = arrangementContainerRef.current;
+        if (!container) return 600;
+        return Math.max(200, container.clientHeight - 80);
+    }, []);
+
+    const handleMixerDividerMouseDown = useCallback((e) => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const startH = mixerPanelHeight;
+        const maxH = getMaxMixerHeight();
+        const onMove = (ev) => {
+            const newH = Math.max(120, Math.min(maxH, startH + (startY - ev.clientY)));
+            setMixerPanelHeight(newH);
+            setMixerPanelMaximized(false);
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            document.body.style.cursor = '';
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        document.body.style.cursor = 'ns-resize';
+    }, [mixerPanelHeight, getMaxMixerHeight]);
+
+    // Double-click divider to maximize/restore mixer panel
+    const handleMixerDividerDoubleClick = useCallback(() => {
+        if (mixerPanelMaximized) {
+            setMixerPanelHeight(mixerPanelPrevHeight.current);
+            setMixerPanelMaximized(false);
+        } else {
+            mixerPanelPrevHeight.current = mixerPanelHeight;
+            setMixerPanelHeight(getMaxMixerHeight());
+            setMixerPanelMaximized(true);
+        }
+    }, [mixerPanelMaximized, mixerPanelHeight, getMaxMixerHeight]);
 
     // Dedicated Escape handler for closing section mixer — capture phase ensures it runs first
     const focusedClipRef = useRef(null);
@@ -1199,6 +1258,20 @@ export default function ArrangementTimeline({
     const pixelsPerBar = zoom;
     const totalWidth = totalBars * pixelsPerBar;
 
+    // Virtual rendering: only render clips visible in the scroll viewport (+ 2-bar buffer)
+    const visibleBarStart = useMemo(() => Math.max(0, scrollLeft / pixelsPerBar - 2), [scrollLeft, pixelsPerBar]);
+    const visibleBarEnd = useMemo(() => {
+        const vpWidth = scrollContainerRef.current?.clientWidth || 1200;
+        return (scrollLeft + vpWidth) / pixelsPerBar + 2;
+    }, [scrollLeft, pixelsPerBar]);
+    const filterVisibleClips = useCallback((clips) => {
+        if (!clips || clips.length <= 20) return clips; // skip filtering for small track counts
+        return clips.filter(c => {
+            const clipEnd = (c.timelineBar || 0) + (c.bars || 4);
+            return clipEnd > visibleBarStart && (c.timelineBar || 0) < visibleBarEnd;
+        });
+    }, [visibleBarStart, visibleBarEnd]);
+
     // Toggle collapse for a track row
     const toggleCollapse = useCallback((trackId) => {
         if (trackId === 'drums') {
@@ -1372,6 +1445,7 @@ export default function ArrangementTimeline({
     }, [audioTracks.length]);
 
     // Delete key: remove selected MIDI/audio track (capture phase to fire before inline editors)
+    // IMPORTANT: skip when range selection or selected clip exists — let the main handler deal with those
     useEffect(() => {
         const handleDeleteTrack = (e) => {
             if (e.key !== 'Delete' && e.key !== 'Backspace') return;
@@ -1379,6 +1453,10 @@ export default function ArrangementTimeline({
             // Don't intercept if user is typing in an input
             const tag = document.activeElement?.tagName?.toLowerCase();
             if (tag === 'input' || tag === 'textarea') return;
+            // Skip if range selection exists — main handler will process the highlighted portion
+            if (kbRangeSelectionRef.current) return;
+            // Skip if a clip is selected — main handler will delete just the clip
+            if (selectedAudioClipId || selectedMidiClipId || selectedDrumClipId || selectedNoteClipId) return;
             const midiRow = trackRows.find(r => r.id === selectedRow && r.type === 'midi');
             const audioRow = trackRows.find(r => r.id === selectedRow && r.type === 'audio');
             if (midiRow && midiRow.trackId && onRemoveMidiTrack) {
@@ -1422,7 +1500,7 @@ export default function ArrangementTimeline({
         };
         window.addEventListener('keydown', handleDeleteTrack, true); // capture phase
         return () => window.removeEventListener('keydown', handleDeleteTrack, true);
-    }, [selectedRow, trackRows, onRemoveMidiTrack, onRemoveAudioTrack]);
+    }, [selectedRow, trackRows, onRemoveMidiTrack, onRemoveAudioTrack, selectedAudioClipId, selectedMidiClipId, selectedDrumClipId, selectedNoteClipId]);
 
     // Continuous timeline: sectionOffsets always [0] since there's one implicit section
     const sectionOffsets = useMemo(() => {
@@ -1913,6 +1991,10 @@ export default function ArrangementTimeline({
     kbDrumLaneClipsRef.current = drumLaneClips;
     const kbSelectedAudioClipIdsRef = useRef(selectedAudioClipIds);
     kbSelectedAudioClipIdsRef.current = selectedAudioClipIds;
+    const kbRangeSelectionRef = useRef(rangeSelection);
+    kbRangeSelectionRef.current = rangeSelection;
+    const kbRangeDraggingRef = useRef(rangeDragging);
+    kbRangeDraggingRef.current = rangeDragging;
 
     // Keyboard shortcuts for copy/paste/clone/escape — registered ONCE, reads from refs
     useEffect(() => {
@@ -1967,6 +2049,202 @@ export default function ArrangementTimeline({
 
             // Delete/Backspace key: remove selected MIDI/audio track(s), audio clip, or section
             if (e.key === 'Delete' || e.key === 'Backspace') {
+                // Range selection deletion: trim/splice clips within the highlighted range
+                const rangeSelection = kbRangeSelectionRef.current;
+                const rangeDragging = kbRangeDraggingRef.current;
+                if (rangeSelection && !rangeDragging) {
+                    e.preventDefault();
+                    const lo = Math.min(rangeSelection.startBar, rangeSelection.endBar);
+                    const hi = Math.max(rangeSelection.startBar, rangeSelection.endBar);
+                    if (hi - lo > 0.05 && onUpdateClip && onRemoveClip && onAddClip) {
+                        const tempo = globalTempo || 120;
+                        const secPerBar = (4 * 60) / tempo;
+                        // Find target tracks: use trackIds from range, fallback to ALL audio tracks with clips in range
+                        let targetTrackIds = rangeSelection.trackIds || [];
+                        if (targetTrackIds.length === 0 && audioTracks) {
+                            targetTrackIds = audioTracks
+                                .filter(t => t.clips && t.clips.some(c => {
+                                    const cs = c.startBar ?? c.timelineBar ?? 0;
+                                    const bd = c.buffer ? c.buffer.duration : 0;
+                                    const ed = Math.max(0.01, (bd - (c.trimStart || 0) - (c.trimEnd || 0)) / (c.playbackRate || 1));
+                                    const ce = cs + ed / secPerBar;
+                                    return ce > lo && cs < hi;
+                                }))
+                                .map(t => t.id);
+                        }
+                        console.log(`[RangeDelete] Selection: bars ${lo.toFixed(2)} → ${hi.toFixed(2)}, tracks: [${targetTrackIds.join(', ')}]`);
+                        for (const tid of targetTrackIds) {
+                            const track = audioTracks?.find(t => t.id === tid);
+                            if (!track || !track.clips) continue;
+                            for (const clip of [...track.clips]) {
+                                const bufDur = clip.buffer ? clip.buffer.duration : 0;
+                                const rate = clip.playbackRate || 1;
+                                const trimS = clip.trimStart || 0;
+                                const trimE = clip.trimEnd || 0;
+                                const effectiveDur = Math.max(0.01, (bufDur - trimS - trimE) / rate);
+                                const clipStart = clip.startBar ?? clip.timelineBar ?? 0;
+                                const clipBars = effectiveDur / secPerBar;
+                                const clipEnd = clipStart + clipBars;
+                                if (clipEnd <= lo || clipStart >= hi) continue;
+                                const leftRemain = lo - clipStart;
+                                const rightRemain = clipEnd - hi;
+                                console.log(`[RangeDelete] Clip "${clip.name}" id=${clip.id}: bars ${clipStart.toFixed(2)}→${clipEnd.toFixed(2)}, leftRemain=${leftRemain.toFixed(2)}, rightRemain=${rightRemain.toFixed(2)}`);
+                                if (leftRemain < 0.1 && rightRemain < 0.1) {
+                                    console.log(`[RangeDelete]   → REMOVE entire clip (selection covers it)`);
+                                    onRemoveClip(tid, clip.id);
+                                } else if (clipStart >= lo && clipEnd <= hi) {
+                                    console.log(`[RangeDelete]   → REMOVE clip (fully inside selection)`);
+                                    onRemoveClip(tid, clip.id);
+                                } else if (clipStart < lo && clipEnd > hi) {
+                                    // Selection is in the MIDDLE — split into left + right with gap
+                                    const loSec = (lo - clipStart) * secPerBar * rate;
+                                    const hiSec = (hi - clipStart) * secPerBar * rate;
+                                    const newTrimEnd = (bufDur - trimS) - loSec;
+                                    console.log(`[RangeDelete]   → SPLIT MIDDLE: left 0→${lo.toFixed(2)}, right ${hi.toFixed(2)}→${clipEnd.toFixed(2)} (gap ${lo.toFixed(2)}→${hi.toFixed(2)} deleted)`);
+                                    // Left portion: trim original clip to end at selection start
+                                    onUpdateClip(tid, clip.id, { trimEnd: newTrimEnd });
+                                    // Right portion: new clip at selection END, keeps original timeline position
+                                    // Only create if the remaining piece is at least 2 bars (skip tiny remnants)
+                                    if (rightRemain >= 0.5) {
+                                        onAddClip(tid, clip.sectionId, clip.buffer, clip.name, {
+                                            startBar: hi, timelineBar: hi,
+                                            trimStart: trimS + hiSec, trimEnd: trimE,
+                                            playbackRate: rate, reversed: clip.reversed,
+                                            fadeIn: 0, fadeOut: clip.fadeOut || 0,
+                                            gain: clip.gain
+                                        });
+                                    }
+                                } else if (clipStart < lo) {
+                                    // Selection covers end of clip — trim clip to end at selection start
+                                    const loSec = (lo - clipStart) * secPerBar * rate;
+                                    const newTrimEnd = (bufDur - trimS) - loSec;
+                                    console.log(`[RangeDelete]   → TRIM END: clip now ends at bar ${lo.toFixed(2)}`);
+                                    onUpdateClip(tid, clip.id, { trimEnd: newTrimEnd });
+                                } else {
+                                    // Selection covers clip start — trim clip to start at selection end
+                                    const hiSec = (hi - clipStart) * secPerBar * rate;
+                                    console.log(`[RangeDelete]   → TRIM START: clip now starts at bar ${hi.toFixed(2)}`);
+                                    onUpdateClip(tid, clip.id, {
+                                        trimStart: trimS + hiSec,
+                                        startBar: hi, timelineBar: hi
+                                    });
+                                }
+                            }
+                        }
+                        // === MIDI CLIP RANGE DELETION ===
+                        const midiTracks = kbMidiTracksRef.current || [];
+                        for (const mt of midiTracks) {
+                            if (!mt.clips) continue;
+                            for (const clip of [...mt.clips]) {
+                                const clipStart = clip.timelineBar || 0;
+                                const clipBars = clip.bars || 4;
+                                const clipEnd = clipStart + clipBars;
+                                if (clipEnd <= lo || clipStart >= hi) continue;
+                                const leftRemain = lo - clipStart;
+                                const rightRemain = clipEnd - hi;
+                                console.log(`[RangeDelete] MIDI Clip "${clip.name}" id=${clip.id}: bars ${clipStart.toFixed(2)}→${clipEnd.toFixed(2)}, leftRemain=${leftRemain.toFixed(2)}, rightRemain=${rightRemain.toFixed(2)}`);
+                                if (leftRemain < 0.1 && rightRemain < 0.1) {
+                                    console.log(`[RangeDelete]   → REMOVE entire MIDI clip`);
+                                    if (onRemoveMidiClip) onRemoveMidiClip(mt.id, clip.id);
+                                } else if (clipStart >= lo && clipEnd <= hi) {
+                                    console.log(`[RangeDelete]   → REMOVE MIDI clip (fully inside)`);
+                                    if (onRemoveMidiClip) onRemoveMidiClip(mt.id, clip.id);
+                                } else if (clipStart < lo && clipEnd > hi) {
+                                    // Middle — trim to end at selection start (consistent with audio)
+                                    const loStep = Math.round((lo - clipStart) * 32);
+                                    const newPattern = (clip.pattern || []).filter(n => n.time < loStep);
+                                    const newBars = Math.max(1, Math.round(lo - clipStart));
+                                    console.log(`[RangeDelete]   → TRIM MIDI END: ${clipBars}→${newBars} bars, ${newPattern.length} notes kept`);
+                                    if (onUpdateMidiClip) onUpdateMidiClip(mt.id, clip.id, { bars: newBars, pattern: newPattern });
+                                    // Right portion if significant
+                                    if (rightRemain >= 2.0 && onAddMidiClip) {
+                                        const hiStep = Math.round((hi - clipStart) * 32);
+                                        const rightPattern = (clip.pattern || [])
+                                            .filter(n => n.time >= hiStep)
+                                            .map(n => ({ ...n, time: n.time - hiStep }));
+                                        const rightBars = Math.max(1, Math.round(rightRemain));
+                                        onAddMidiClip(mt.id, {
+                                            timelineBar: hi, bars: rightBars,
+                                            pattern: rightPattern, name: clip.name, color: clip.color
+                                        });
+                                    }
+                                } else if (clipStart < lo) {
+                                    // Trim end
+                                    const loStep = Math.round((lo - clipStart) * 32);
+                                    const newPattern = (clip.pattern || []).filter(n => n.time < loStep);
+                                    const newBars = Math.max(1, Math.round(lo - clipStart));
+                                    console.log(`[RangeDelete]   → TRIM MIDI END: ${clipBars}→${newBars} bars`);
+                                    if (onUpdateMidiClip) onUpdateMidiClip(mt.id, clip.id, { bars: newBars, pattern: newPattern });
+                                } else {
+                                    // Trim start
+                                    const hiStep = Math.round((hi - clipStart) * 32);
+                                    const newPattern = (clip.pattern || [])
+                                        .filter(n => n.time >= hiStep)
+                                        .map(n => ({ ...n, time: n.time - hiStep }));
+                                    const newBars = Math.max(1, Math.round(clipEnd - hi));
+                                    console.log(`[RangeDelete]   → TRIM MIDI START: clip now starts at bar ${hi.toFixed(2)}, ${newBars} bars`);
+                                    if (onUpdateMidiClip) onUpdateMidiClip(mt.id, clip.id, {
+                                        timelineBar: hi, bars: newBars, pattern: newPattern
+                                    });
+                                }
+                            }
+                        }
+                        // === NOTE CLIP (chords/melody/bass) RANGE DELETION ===
+                        const noteClipSets = [
+                            { clips: kbChordClipsRef.current || [], update: onUpdateChordClip, remove: onRemoveChordClip, add: onAddChordClip, key: 'chords' },
+                            { clips: kbMelodyClipsRef.current || [], update: onUpdateMelodyClip, remove: onRemoveMelodyClip, add: onAddMelodyClip, key: 'melody' },
+                            { clips: kbBassClipsRef.current || [], update: onUpdateBassClip, remove: onRemoveBassClip, add: onAddBassClip, key: 'bass' },
+                        ];
+                        for (const { clips, update, remove, add, key } of noteClipSets) {
+                            for (const clip of [...clips]) {
+                                const clipStart = clip.timelineBar || 0;
+                                const clipBars = clip.bars || 4;
+                                const clipEnd = clipStart + clipBars;
+                                if (clipEnd <= lo || clipStart >= hi) continue;
+                                const leftRemain = lo - clipStart;
+                                const rightRemain = clipEnd - hi;
+                                console.log(`[RangeDelete] NoteClip(${key}) "${clip.name}" id=${clip.id}: bars ${clipStart.toFixed(2)}→${clipEnd.toFixed(2)}`);
+                                if (leftRemain < 0.1 && rightRemain < 0.1) {
+                                    console.log(`[RangeDelete]   → REMOVE entire note clip`);
+                                    if (remove) remove(clip.id);
+                                } else if (clipStart >= lo && clipEnd <= hi) {
+                                    console.log(`[RangeDelete]   → REMOVE note clip (fully inside)`);
+                                    if (remove) remove(clip.id);
+                                } else if (clipStart < lo && clipEnd > hi) {
+                                    // Middle — trim to end at selection start; keep right if ≥2 bars
+                                    const loStep = Math.round((lo - clipStart) * 32);
+                                    const newPattern = (clip.pattern || []).filter(n => n.time < loStep);
+                                    const newBars = Math.max(1, Math.round(lo - clipStart));
+                                    console.log(`[RangeDelete]   → TRIM NOTE END: ${clipBars}→${newBars} bars`);
+                                    if (update) update(clip.id, { bars: newBars, pattern: newPattern });
+                                    if (rightRemain >= 2.0 && add) {
+                                        const hiStep = Math.round((hi - clipStart) * 32);
+                                        const rightPattern = (clip.pattern || []).filter(n => n.time >= hiStep).map(n => ({ ...n, time: n.time - hiStep }));
+                                        const rightBars = Math.max(1, Math.round(rightRemain));
+                                        add({ timelineBar: hi, bars: rightBars, pattern: rightPattern, name: clip.name, color: clip.color });
+                                    }
+                                } else if (clipStart < lo) {
+                                    const loStep = Math.round((lo - clipStart) * 32);
+                                    const newPattern = (clip.pattern || []).filter(n => n.time < loStep);
+                                    const newBars = Math.max(1, Math.round(lo - clipStart));
+                                    console.log(`[RangeDelete]   → TRIM NOTE END: ${clipBars}→${newBars} bars`);
+                                    if (update) update(clip.id, { bars: newBars, pattern: newPattern });
+                                } else {
+                                    const hiStep = Math.round((hi - clipStart) * 32);
+                                    const newPattern = (clip.pattern || []).filter(n => n.time >= hiStep).map(n => ({ ...n, time: n.time - hiStep }));
+                                    const newBars = Math.max(1, Math.round(clipEnd - hi));
+                                    console.log(`[RangeDelete]   → TRIM NOTE START: starts at bar ${hi.toFixed(2)}, ${newBars} bars`);
+                                    if (update) update(clip.id, { timelineBar: hi, bars: newBars, pattern: newPattern });
+                                }
+                            }
+                        }
+                    }
+                    // Always clear range and stop here — NEVER fall through to track deletion
+                    console.log('[RangeDelete] Clearing range selection and returning');
+                    setRangeSelection(null);
+                    return;
+                }
+
                 // Multi-track deletion (Shift+click selection)
                 if (selectedRows.size > 0) {
                     const rowsToDelete = trackRows.filter(r => selectedRows.has(r.id) && (r.type === 'audio' || r.type === 'midi'));
@@ -2022,7 +2300,24 @@ export default function ArrangementTimeline({
                     }
                     return;
                 }
-                // Audio track deletion (no section required)
+                // Delete selected audio clip(s) (if any are selected)
+                // Use selectedAudioClipTrackId as primary — works even when row type isn't 'audio'
+                const clipTrackId = selectedAudioClipTrackId || (selectedAudioRow && selectedAudioRow.trackId);
+                if (selectedAudioClipId && clipTrackId && onRemoveClip) {
+                    e.preventDefault();
+                    if (selectedAudioClipIds.size > 1) {
+                        for (const clipId of selectedAudioClipIds) {
+                            onRemoveClip(clipTrackId, clipId);
+                        }
+                        setSelectedAudioClipIds(new Set());
+                    } else {
+                        onRemoveClip(clipTrackId, selectedAudioClipId);
+                    }
+                    setSelectedAudioClipId(null);
+                    setSelectedAudioClipTrackId(null);
+                    return;
+                }
+                // Audio track deletion (no clip selected — deletes the whole track)
                 if (selectedAudioRow && selectedAudioRow.trackId && onRemoveAudioTrack) {
                     e.preventDefault();
                     if (window.confirm(`Delete "${selectedAudioRow.label}"?`)) {
@@ -2811,8 +3106,14 @@ export default function ArrangementTimeline({
                 // Compute drop bar from mouse position
                 const rect = e.currentTarget.getBoundingClientRect();
                 const relX = e.clientX - rect.left;
-                const dropBar = dropBarOverride != null ? dropBarOverride : Math.max(0, relX / (zoom || DEFAULT_PX_PER_BAR));
-                const roundedBar = Math.round(dropBar * 100) / 100;
+                const rawDropBar = dropBarOverride != null ? dropBarOverride : Math.max(0, relX / (zoom || DEFAULT_PX_PER_BAR));
+                // Subtract click offset so clip starts from its left edge
+                const clickOffset = draggingClipBetweenTracks?.clickOffsetBars || 0;
+                const dropBar = Math.max(0, rawDropBar - clickOffset);
+                // Snap to grid based on resolution
+                const snapRes = (globalResolution || 4);
+                const snapUnit = 1 / snapRes;
+                const roundedBar = Math.round(dropBar / snapUnit) * snapUnit;
 
                 // Compute clip duration in bars for overwrite check
                 const tempo = section?.settings?.tempo || globalTempo;
@@ -2825,8 +3126,15 @@ export default function ArrangementTimeline({
                 const dropStart = roundedBar;
                 const dropEnd = roundedBar + clipBars;
                 const targetTrack = audioTracks.find(t => t.id === targetTrackId);
+                // For same-track moves, remove the source clip first so overwrite logic doesn't process it
+                const isSameTrack = srcTrackId === targetTrackId;
+                if (isSameTrack && !(e.ctrlKey || e.metaKey)) {
+                    onRemoveClip(srcTrackId, clipId);
+                }
+
                 if (targetTrack && onUpdateClip) {
                     for (const tc of targetTrack.clips) {
+                        if (tc.id === clipId) continue; // skip source clip (already removed or being copied)
                         const tcBar = tc.timelineBar ?? 0;
                         const tcBufDur = tc.buffer ? tc.buffer.duration : 0;
                         const tcRate = tc.playbackRate || 1;
@@ -2880,8 +3188,8 @@ export default function ArrangementTimeline({
                     color: srcClip.color || null
                 });
 
-                // Remove from source track (move, not copy) unless Ctrl held
-                if (!(e.ctrlKey || e.metaKey) && srcTrackId !== targetTrackId) {
+                // Remove from source track (move, not copy) — same-track already handled above
+                if (!(e.ctrlKey || e.metaKey) && !isSameTrack) {
                     onRemoveClip(srcTrackId, clipId);
                 }
             } catch (err) {
@@ -2899,8 +3207,10 @@ export default function ArrangementTimeline({
                 if (targetTrackId && srcClip) {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const relX = e.clientX - rect.left;
-                    const midiDropBar = dropBarOverride != null ? dropBarOverride : Math.max(0, relX / (zoom || DEFAULT_PX_PER_BAR));
-                    const roundedBar = Math.max(0, Math.round(midiDropBar));
+                    const rawMidiBar = dropBarOverride != null ? dropBarOverride : Math.max(0, relX / (zoom || DEFAULT_PX_PER_BAR));
+                    const midiClickOffset = draggingClipBetweenTracks?.clickOffsetBars || 0;
+                    const midiDropBar = Math.max(0, rawMidiBar - midiClickOffset);
+                    const roundedBar = snapBar(midiDropBar);
                     const srcBars = srcClip.bars || 4;
 
                     // Overwrite only the ghost-preview region on existing MIDI clips
@@ -2945,6 +3255,7 @@ export default function ArrangementTimeline({
                 files: files?.length > 0 ? Array.from(files) : null,
                 ctrlKey: e.ctrlKey || e.metaKey,
                 shiftKey: e.shiftKey,
+                dropBar: dropBarOverride != null ? Math.max(0, Math.round(dropBarOverride * 100) / 100) : null,
             });
         }
         // Clean up internal drag reference
@@ -3822,6 +4133,7 @@ export default function ArrangementTimeline({
                                                             <div
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
+                                                                    const wasVisible = automationVisibleTracks.has(autoTrackId);
                                                                     setAutomationVisibleTracks(prev => {
                                                                         const next = new Set(prev);
                                                                         if (next.has(autoTrackId)) next.delete(autoTrackId);
@@ -3829,8 +4141,22 @@ export default function ArrangementTimeline({
                                                                         return next;
                                                                     });
                                                                     // Default to 'volume' if no param selected yet
+                                                                    const paramKey = automationSelectedParam[autoTrackId] || 'volume';
                                                                     if (!automationSelectedParam[autoTrackId]) {
                                                                         setAutomationSelectedParam(prev => ({ ...prev, [autoTrackId]: 'volume' }));
+                                                                    }
+                                                                    // Seed default anchor dots when first enabling automation
+                                                                    if (!wasVisible && onSetTrackAutomation) {
+                                                                        const existing = trackAutomation?.[autoTrackId]?.[paramKey];
+                                                                        if (!existing || existing.length === 0) {
+                                                                            onSetTrackAutomation(prev => {
+                                                                                const updated = { ...prev };
+                                                                                const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                trackData[paramKey] = createDefaultAutomationPoints(paramKey, totalBars);
+                                                                                updated[autoTrackId] = trackData;
+                                                                                return updated;
+                                                                            });
+                                                                        }
                                                                     }
                                                                 }}
                                                                 title={isAutoVisible ? t('arrange.hideAutomation') : t('arrange.showAutomation')}
@@ -3875,12 +4201,28 @@ export default function ArrangementTimeline({
                                                         const autoTrackId = muteId;
                                                         if (!automationVisibleTracks.has(autoTrackId)) return null;
                                                         const currentParam = automationSelectedParam[autoTrackId] || 'volume';
+                                                        const chain = effectsManager?.getTrackChain?.(row.effectTrackId || autoTrackId);
+                                                        const autoParams = getAutomatableParams(autoTrackId, chain);
                                                         return (
                                                             <select
                                                                 value={currentParam}
                                                                 onChange={(e) => {
                                                                     e.stopPropagation();
-                                                                    setAutomationSelectedParam(prev => ({ ...prev, [autoTrackId]: e.target.value }));
+                                                                    const newParam = e.target.value;
+                                                                    setAutomationSelectedParam(prev => ({ ...prev, [autoTrackId]: newParam }));
+                                                                    // Seed default anchors if switching to a param with no points
+                                                                    if (onSetTrackAutomation) {
+                                                                        const existing = trackAutomation?.[autoTrackId]?.[newParam];
+                                                                        if (!existing || existing.length === 0) {
+                                                                            onSetTrackAutomation(prev => {
+                                                                                const updated = { ...prev };
+                                                                                const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                trackData[newParam] = createDefaultAutomationPoints(newParam, totalBars);
+                                                                                updated[autoTrackId] = trackData;
+                                                                                return updated;
+                                                                            });
+                                                                        }
+                                                                    }
                                                                 }}
                                                                 onClick={(e) => e.stopPropagation()}
                                                                 style={{
@@ -3889,12 +4231,13 @@ export default function ArrangementTimeline({
                                                                     color: isDark ? '#ccc' : '#333',
                                                                     border: `1px solid ${isDark ? '#444' : '#ccc'}`,
                                                                     borderRadius: '3px', outline: 'none',
-                                                                    cursor: 'pointer', maxWidth: '60px',
+                                                                    cursor: 'pointer', maxWidth: '80px',
                                                                     flexShrink: 0
                                                                 }}
                                                             >
-                                                                <option value="volume">{t('arrange.vol')}</option>
-                                                                <option value="pan">{t('arrange.pan')}</option>
+                                                                {autoParams.map(p => (
+                                                                    <option key={p.key} value={p.key}>{p.label}</option>
+                                                                ))}
                                                             </select>
                                                         );
                                                     })()}
@@ -4329,9 +4672,59 @@ export default function ArrangementTimeline({
                         }}
                     >
                         <div style={{ width: `${totalWidth}px`, minHeight: `${totalTrackHeight + 60}px`, position: 'relative' }}
+                            onMouseDown={(e) => {
+                                // Ctrl+left-click drag: 2D range selection box
+                                if ((e.ctrlKey || e.metaKey) && e.button === 0) {
+                                    e.preventDefault();
+                                    const container = scrollContainerRef.current;
+                                    if (!container) return;
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const startBar = (e.clientX - rect.left) / pixelsPerBar;
+                                    const startY = e.clientY - rect.top;
+                                    setRangeSelection({ startBar, endBar: startBar, startY, endY: startY, trackIds: [] });
+                                    setRangeBoxVisible(true); // show box for new drag
+                                    setRangeDragging(true);
+
+                                    const computeTrackIds = (y1, y2) => {
+                                        const lo = Math.min(y1, y2);
+                                        const hi = Math.max(y1, y2);
+                                        const ids = [];
+                                        for (const row of trackRows) {
+                                            const el = container.querySelector(`[data-row-id="${row.id}"]`);
+                                            if (!el) continue;
+                                            const elRect = el.getBoundingClientRect();
+                                            const elTop = elRect.top - rect.top;
+                                            const elBot = elTop + elRect.height;
+                                            if (elBot > lo && elTop < hi && (row.type === 'audio' || row.type === 'midi')) {
+                                                if (row.trackId && !ids.includes(row.trackId)) ids.push(row.trackId);
+                                            }
+                                        }
+                                        return ids;
+                                    };
+
+                                    const onMove = (ev) => {
+                                        const curBar = Math.max(0, (ev.clientX - rect.left) / pixelsPerBar);
+                                        const curY = ev.clientY - rect.top;
+                                        const tids = computeTrackIds(startY, curY);
+                                        setRangeSelection(prev => prev ? { ...prev, endBar: curBar, endY: curY, trackIds: tids } : null);
+                                    };
+                                    const onUp = () => {
+                                        setRangeDragging(false);
+                                        setRangeBoxVisible(false); // hide dashed selection box, keep clip highlight
+                                        rangeJustFinishedRef.current = true;
+                                        setTimeout(() => { rangeJustFinishedRef.current = false; }, 50);
+                                        document.removeEventListener('mousemove', onMove);
+                                        document.removeEventListener('mouseup', onUp);
+                                    };
+                                    document.addEventListener('mousemove', onMove);
+                                    document.addEventListener('mouseup', onUp);
+                                }
+                            }}
                             onClick={(e) => {
                                 // Skip if a clip was clicked (clip handler already ran)
                                 if (clipClickedRef.current) { clipClickedRef.current = false; return; }
+                                if (e.ctrlKey || e.metaKey) return; // don't clear range on ctrl+click
+                                if (rangeJustFinishedRef.current) return; // don't process click after Ctrl+drag
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const clickedBar = Math.floor((e.clientX - rect.left) / pixelsPerBar);
                                 if (onSetAudioInsertionBar) onSetAudioInsertionBar(clickedBar);
@@ -4345,7 +4738,8 @@ export default function ArrangementTimeline({
                                     }
                                     cumY += r.height;
                                 }
-                                // Clear clip selections (clicking empty space deselects clips)
+                                // Clear clip selections and range selection (clicking empty space deselects)
+                                setRangeSelection(null);
                                 setSelectedNoteClipId(null);
                                 setSelectedNoteClipTrackKey(null);
                                 setSelectedDrumClipId(null);
@@ -4367,9 +4761,6 @@ export default function ArrangementTimeline({
                                     pointerEvents: 'none', boxShadow: `0 0 8px ${hexToRgba(ac, 0.4)}`
                                 }} />
                             )}
-
-                            {/* Insertion cursor removed from full-height overlay —
-                               shown only on the selected row (per-row indicator below) */}
 
                             {/* Stop Marker line */}
                             {stopMarkerPx !== null && (
@@ -4455,13 +4846,51 @@ export default function ArrangementTimeline({
                                             e.preventDefault();
                                             e.dataTransfer.dropEffect = 'copy';
                                             setDropTarget({ rowId: '__new-track-drop__', sectionId: null, splitMode: true });
+                                            // Show ghost waveform preview at cursor position
+                                            const dragItem = window.draggedItem;
+                                            if (dragItem?.audioBuffer) {
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const relX = e.clientX - rect.left;
+                                                const dropBar = relX / pixelsPerBar;
+                                                const tempo = globalTempo || 120;
+                                                const ghostBars = dragItem.audioBuffer.duration / (4 * 60 / tempo);
+                                                // Build waveform SVG (cached on dragItem)
+                                                if (!dragItem._ghostSvg) {
+                                                    try {
+                                                        const ch = dragItem.audioBuffer.getChannelData(0);
+                                                        const numBars = 80;
+                                                        const spp = ch.length / numBars;
+                                                        const pts = [];
+                                                        for (let i = 0; i < numBars; i++) {
+                                                            const s0 = Math.floor(i * spp);
+                                                            const s1 = Math.min(Math.floor((i + 1) * spp), ch.length);
+                                                            let mx = 0;
+                                                            for (let j = s0; j < s1; j += Math.max(1, Math.floor((s1 - s0) / 20))) {
+                                                                const a = Math.abs(ch[j] || 0);
+                                                                if (a > mx) mx = a;
+                                                            }
+                                                            pts.push(mx);
+                                                        }
+                                                        const rects = pts.map((p, i) => {
+                                                            const bh = Math.max(0.5, p * 45);
+                                                            return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="#4dabf7" opacity="0.7" rx="0.3"/>`;
+                                                        }).join('');
+                                                        dragItem._ghostSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
+                                                    } catch (_) {}
+                                                }
+                                                setClipDropGhost({ targetRowId: '__new-track-drop__', bar: snapBar(dropBar), widthBars: ghostBars, patternSvg: dragItem._ghostSvg || null });
+                                            }
                                         }}
                                         onDragLeave={() => {
                                             if (dropTarget?.rowId === '__new-track-drop__') setDropTarget(null);
+                                            if (clipDropGhost?.targetRowId === '__new-track-drop__') setClipDropGhost(null);
+                                            browserDragWaveSvgRef.current = null;
                                         }}
                                         onDrop={(e) => {
                                             e.preventDefault();
                                             setDropTarget(null);
+                                            setClipDropGhost(null);
+                                            browserDragWaveSvgRef.current = null;
                                             const internalItem = window.draggedItem;
                                             const files = e.dataTransfer.files;
                                             let jsonData = null;
@@ -4470,6 +4899,10 @@ export default function ArrangementTimeline({
                                                 if (raw) jsonData = JSON.parse(raw);
                                             } catch (_) { /* ignore */ }
                                             const targetSection = arrangement.find(s => s.id === activeSection) || arrangement[0];
+                                            // Calculate drop bar from cursor position
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const relX = e.clientX - rect.left;
+                                            const dropBarPos = Math.max(0, Math.round((relX / pixelsPerBar) * 100) / 100);
                                             if (targetSection && onDropAudio) {
                                                 onDropAudio({
                                                     row: { id: '__new-track-drop__', type: 'new-track-drop' },
@@ -4479,6 +4912,7 @@ export default function ArrangementTimeline({
                                                     files: files?.length > 0 ? Array.from(files) : null,
                                                     ctrlKey: true,
                                                     shiftKey: true,
+                                                    dropBar: dropBarPos,
                                                 });
                                             }
                                             window.draggedItem = null;
@@ -4492,6 +4926,28 @@ export default function ArrangementTimeline({
                                                 {t('arrange.dropToCreateTracks')}
                                             </span>
                                         )}
+                                        {/* Ghost waveform preview in new-track drop zone */}
+                                        {clipDropGhost && clipDropGhost.targetRowId === '__new-track-drop__' && (() => {
+                                            const gX = clipDropGhost.bar * pixelsPerBar;
+                                            const gW = Math.max(8, clipDropGhost.widthBars * pixelsPerBar);
+                                            return (
+                                                <div style={{
+                                                    position: 'absolute', left: `${gX}px`, top: 0,
+                                                    width: `${gW}px`, height: '60px',
+                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
+                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                    borderRadius: '3px', zIndex: 7,
+                                                    pointerEvents: 'none',
+                                                    transition: 'left 0.05s ease-out',
+                                                    overflow: 'hidden'
+                                                }}>
+                                                    {clipDropGhost.patternSvg && (
+                                                        <div style={{ width: '100%', height: '100%', opacity: 0.6 }}
+                                                            dangerouslySetInnerHTML={{ __html: clipDropGhost.patternSvg }} />
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 );
                             })()}
@@ -4594,10 +5050,8 @@ export default function ArrangementTimeline({
                                                             // Shift+Click: set loop range
                                                             if (e.shiftKey && onSetAudioLoopRange) {
                                                                 if (!audioLoopRange) {
-                                                                    // First Shift+Click: set loop start
                                                                     onSetAudioLoopRange({ startBar: clickedBar, endBar: clickedBar + 4 });
                                                                 } else {
-                                                                    // Second Shift+Click: set loop end (reorder if needed)
                                                                     const start = Math.min(audioLoopRange.startBar, clickedBar);
                                                                     const end = Math.max(audioLoopRange.startBar, clickedBar);
                                                                     if (end > start) {
@@ -4649,7 +5103,7 @@ export default function ArrangementTimeline({
                                                                 const dcEffDur = Math.max(0.01, (dcBufDur - (dc.trimStart || 0) - (dc.trimEnd || 0)) / (dc.playbackRate || 1));
                                                                 const tempo = sec?.settings?.tempo || globalTempo;
                                                                 const dcBars = dcEffDur / (4 * 60 / tempo);
-                                                                setClipDropGhost({ targetRowId: row.id, bar: Math.max(0, dropBar), widthBars: dcBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar - (draggingClipBetweenTracks.clickOffsetBars || 0)), widthBars: dcBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
                                                                 return;
                                                             }
                                                             // MIDI clip drag → only MIDI rows (block audio rows)
@@ -4658,18 +5112,66 @@ export default function ArrangementTimeline({
                                                                 e.dataTransfer.dropEffect = (e.ctrlKey || e.metaKey) ? 'copy' : 'move';
                                                                 const tempo = sec?.settings?.tempo || globalTempo;
                                                                 const midiDurBars = draggingClipBetweenTracks.durationBars || globalBars;
-                                                                setClipDropGhost({ targetRowId: row.id, bar: Math.max(0, dropBar), widthBars: midiDurBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar - (draggingClipBetweenTracks.clickOffsetBars || 0)), widthBars: midiDurBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
                                                                 return;
                                                             }
                                                             // Block cross-type drags (audio→midi, midi→audio, noteClip→audio)
                                                             if (draggingClipBetweenTracks) return;
+                                                            // Browser file drag → show ghost drop indicator on audio tracks
+                                                            if (row.type === 'audio' && (window.draggedItem || (e.dataTransfer.types && (e.dataTransfer.types.includes('application/json') || e.dataTransfer.types.includes('Files'))))) {
+                                                                e.preventDefault();
+                                                                e.dataTransfer.dropEffect = 'copy';
+                                                                const dragItem = window.draggedItem;
+                                                                // Invalidate cached SVG if drag item changed
+                                                                if (dragItem !== browserDragItemRef.current) {
+                                                                    browserDragWaveSvgRef.current = null;
+                                                                    browserDragItemRef.current = dragItem;
+                                                                }
+                                                                const tempo = sec?.settings?.tempo || globalTempo;
+                                                                const secPerBar = 4 * 60 / tempo;
+                                                                let ghostBars = 4;
+                                                                let waveSvg = browserDragWaveSvgRef.current;
+                                                                if (dragItem?.audioBuffer) {
+                                                                    ghostBars = dragItem.audioBuffer.duration / secPerBar;
+                                                                    // Build waveform SVG once and cache
+                                                                    if (!waveSvg) {
+                                                                        try {
+                                                                            const ch = dragItem.audioBuffer.getChannelData(0);
+                                                                            const numBars = 80;
+                                                                            const spp = ch.length / numBars;
+                                                                            const pts = [];
+                                                                            for (let i = 0; i < numBars; i++) {
+                                                                                const s0 = Math.floor(i * spp);
+                                                                                const s1 = Math.min(Math.floor((i + 1) * spp), ch.length);
+                                                                                let mx = 0;
+                                                                                for (let j = s0; j < s1; j += Math.max(1, Math.floor((s1 - s0) / 20))) {
+                                                                                    const a = Math.abs(ch[j] || 0);
+                                                                                    if (a > mx) mx = a;
+                                                                                }
+                                                                                pts.push(mx);
+                                                                            }
+                                                                            const color = row.color || '#4dabf7';
+                                                                            const rects = pts.map((p, i) => {
+                                                                                const bh = Math.max(0.5, p * 45);
+                                                                                return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="${color}" opacity="0.7" rx="0.3"/>`;
+                                                                            }).join('');
+                                                                            waveSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
+                                                                            browserDragWaveSvgRef.current = waveSvg;
+                                                                        } catch (_) { /* ignore */ }
+                                                                    }
+                                                                }
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar), widthBars: ghostBars, patternSvg: waveSvg || null });
+                                                                return;
+                                                            }
                                                             handleDragOver(e, row.id, sec.id);
                                                         }}
                                                         onDragLeave={(e) => {
                                                             handleDragLeave(e);
                                                             if (clipDropGhost?.targetRowId === row.id) setClipDropGhost(null);
+                                                            browserDragWaveSvgRef.current = null;
                                                         }}
                                                         onDrop={(e) => {
+                                                            browserDragWaveSvgRef.current = null;
                                                             const rect = e.currentTarget.getBoundingClientRect();
                                                             const relX = e.clientX - rect.left;
                                                             const dropBar = relX / pixelsPerBar;
@@ -4720,7 +5222,12 @@ export default function ArrangementTimeline({
                                                                         e.dataTransfer.setData('application/x-wavloom-clip', JSON.stringify({ clipId: clip.id, trackId: row.trackId }));
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
-                                                                        e.dataTransfer.setDragImage(e.currentTarget, e.clientX - elRect.left, e.clientY - elRect.top);
+                                                                        // Hide native drag image — use timeline ghost only
+                                                                        const _ghostEl = document.createElement('div');
+                                                                        _ghostEl.style.cssText = 'width:1px;height:1px;opacity:0;position:fixed;top:-100px;';
+                                                                        document.body.appendChild(_ghostEl);
+                                                                        e.dataTransfer.setDragImage(_ghostEl, 0, 0);
+                                                                        requestAnimationFrame(() => { try { document.body.removeChild(_ghostEl); } catch(_){} });
                                                                         // Build waveform SVG for ghost preview
                                                                         let waveSvg = null;
                                                                         if (clip.buffer) {
@@ -4752,7 +5259,9 @@ export default function ArrangementTimeline({
                                                                                 waveSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
                                                                             } catch (ex) { /* ignore */ }
                                                                         }
-                                                                        setDraggingClipBetweenTracks({ clip, sourceTrackId: row.trackId, sourceRowId: row.id, clipType: 'audio', patternSvg: waveSvg });
+                                                                        // Track click offset within clip for proper ghost positioning
+                                                                        const clickOffsetBars = (e.clientX - elRect.left) / pixelsPerBar;
+                                                                        setDraggingClipBetweenTracks({ clip, sourceTrackId: row.trackId, sourceRowId: row.id, clipType: 'audio', patternSvg: waveSvg, clickOffsetBars });
                                                                     }}
                                                                     onDragEnd={() => {
                                                                         setDraggingClipBetweenTracks(null);
@@ -4780,6 +5289,14 @@ export default function ArrangementTimeline({
                                                                         e.stopPropagation();
                                                                         clipClickedRef.current = true;
                                                                         setSelectedRow(row.id);
+                                                                        // Set insertion bar at click position (skip during Ctrl+drag range creation)
+                                                                        if (!e.ctrlKey && !e.metaKey && !rangeJustFinishedRef.current) {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const clickedBar = (clip.timelineBar ?? clip.startBar ?? absBar) + (e.clientX - rect.left) / pixelsPerBar;
+                                                                            if (onSetAudioInsertionBar) onSetAudioInsertionBar(clickedBar);
+                                                                            // Clear range selection box on normal click only
+                                                                            setRangeSelection(null);
+                                                                        }
                                                                         const sec = sectionAtBar(absBar);
                                                                         if (sec) onSelectSection(sec.id);
                                                                         setSelectedAudioClipTrackId(row.trackId);
@@ -4864,7 +5381,30 @@ export default function ArrangementTimeline({
                                                                         fadeInCurve={clip.fadeInCurve || 0}
                                                                         fadeOutCurve={clip.fadeOutCurve || 0}
                                                                         isDark={isDark}
+                                                                        gain={clip.gain ?? 1.0}
                                                                     />
+                                                                    {/* Range selection highlight on this clip */}
+                                                                    {rangeSelection && (() => {
+                                                                        const rLo = Math.min(rangeSelection.startBar, rangeSelection.endBar);
+                                                                        const rHi = Math.max(rangeSelection.startBar, rangeSelection.endBar);
+                                                                        const cStart = absBar;
+                                                                        const cEnd = absBar + clipBars;
+                                                                        if (rHi <= cStart || rLo >= cEnd || rHi - rLo < 0.05) return null;
+                                                                        const overlapStart = Math.max(rLo, cStart);
+                                                                        const overlapEnd = Math.min(rHi, cEnd);
+                                                                        const leftPct = ((overlapStart - cStart) / clipBars) * 100;
+                                                                        const widthPct = ((overlapEnd - overlapStart) / clipBars) * 100;
+                                                                        return (
+                                                                            <div style={{
+                                                                                position: 'absolute',
+                                                                                left: `${leftPct}%`, top: 0,
+                                                                                width: `${widthPct}%`, height: '100%',
+                                                                                background: isDark ? 'rgba(255,100,100,0.35)' : 'rgba(220,50,50,0.25)',
+                                                                                border: `1.5px solid ${isDark ? 'rgba(255,100,100,0.8)' : 'rgba(220,50,50,0.6)'}`,
+                                                                                pointerEvents: 'none', zIndex: 4, borderRadius: '2px'
+                                                                            }} />
+                                                                        );
+                                                                    })()}
                                                                     {/* Drag handle on right edge */}
                                                                     <div style={{
                                                                         position: 'absolute', right: 0, top: 0, bottom: 0, width: '6px',
@@ -5065,34 +5605,206 @@ export default function ArrangementTimeline({
                                                                 </div>
                                                             );
                                                         })()}
-                                                        {/* Automation overlay for audio lane */}
+                                                        {/* Automation overlay for audio lane — bottom half with dots and click-to-add */}
                                                         {(() => {
                                                             const autoTrackId = row.trackId || row.id;
                                                             if (!automationVisibleTracks.has(autoTrackId)) return null;
                                                             const paramKey = automationSelectedParam[autoTrackId] || 'volume';
                                                             const points = trackAutomation?.[autoTrackId]?.[paramKey] || [];
-                                                            if (points.length === 0) return null;
                                                             const cellW = totalWidth;
-                                                            const cellH = row.height - 2;
+                                                            const fullH = row.height - 2;
+                                                            const laneH = Math.floor(fullH / 2);
+                                                            const laneTop = fullH - laneH;
                                                             const totalBarsCalc = totalBars;
                                                             const toX = (bar) => (bar / totalBarsCalc) * cellW;
-                                                            const toY = (val) => cellH - (val * cellH);
-                                                            const sortedPts = [...points].sort((a, b) => a.bar - b.bar);
-                                                            let pathD = `M ${toX(sortedPts[0].bar)} ${toY(sortedPts[0].value)}`;
-                                                            for (let i = 1; i < sortedPts.length; i++) {
-                                                                pathD += ` L ${toX(sortedPts[i].bar)} ${toY(sortedPts[i].value)}`;
-                                                            }
-                                                            const fillD = pathD + ` L ${toX(sortedPts[sortedPts.length - 1].bar)} ${cellH} L ${toX(sortedPts[0].bar)} ${cellH} Z`;
+                                                            const toY = (val) => laneH - (val * laneH);
                                                             const autoColor = '#2ecc71';
+                                                            const activeColor = '#ffa94d';
+                                                            let pathD = '';
+                                                            let fillD = '';
+                                                            if (points.length > 0) {
+                                                                const sortedPts = [...points].sort((a, b) => a.bar - b.bar);
+                                                                pathD = `M ${toX(sortedPts[0].bar)} ${toY(sortedPts[0].value)}`;
+                                                                for (let i = 1; i < sortedPts.length; i++) {
+                                                                    pathD += ` L ${toX(sortedPts[i].bar)} ${toY(sortedPts[i].value)}`;
+                                                                }
+                                                                fillD = pathD + ` L ${toX(sortedPts[sortedPts.length - 1].bar)} ${laneH} L ${toX(sortedPts[0].bar)} ${laneH} Z`;
+                                                            }
                                                             return (
-                                                                <svg style={{
-                                                                    position: 'absolute', left: 0, top: 0,
-                                                                    width: cellW, height: cellH,
-                                                                    pointerEvents: 'none', zIndex: 5
-                                                                }} viewBox={`0 0 ${cellW} ${cellH}`} preserveAspectRatio="none">
-                                                                    <path d={fillD} fill={`${autoColor}18`} />
-                                                                    <path d={pathD} fill="none" stroke={autoColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                                </svg>
+                                                                <>
+                                                                    {/* SVG: background + line (no pointer events) */}
+                                                                    <svg style={{
+                                                                        position: 'absolute', left: 0, top: `${laneTop}px`,
+                                                                        width: cellW, height: laneH,
+                                                                        pointerEvents: 'none', zIndex: 5
+                                                                    }} viewBox={`0 0 ${cellW} ${laneH}`} preserveAspectRatio="none">
+                                                                        <rect x="0" y="0" width={cellW} height={laneH} fill="rgba(0,0,0,0.35)" />
+                                                                        {fillD && <path d={fillD} fill={`${autoColor}55`} />}
+                                                                        {pathD && <path d={pathD} fill="none" stroke={autoColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+                                                                    </svg>
+                                                                    {/* Click-to-add + right-click-drag-to-erase overlay */}
+                                                                    <div
+                                                                        style={{
+                                                                            position: 'absolute', left: 0, top: `${laneTop}px`,
+                                                                            width: cellW, height: laneH,
+                                                                            zIndex: 6, cursor: 'default'
+                                                                        }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const relX = e.clientX - rect.left;
+                                                                            const relY = e.clientY - rect.top;
+                                                                            const bar = (relX / cellW) * totalBarsCalc;
+                                                                            const value = 1 - (relY / laneH);
+                                                                            if (onSetTrackAutomation) {
+                                                                                onSetTrackAutomation(prev => {
+                                                                                    const updated = { ...prev };
+                                                                                    const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                    trackData[paramKey] = addAutomationPoint(
+                                                                                        trackData[paramKey] || [],
+                                                                                        { bar, value: Math.max(0, Math.min(1, value)), curve: 0 }
+                                                                                    );
+                                                                                    updated[autoTrackId] = trackData;
+                                                                                    return updated;
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                        onContextMenu={(e) => e.preventDefault()}
+                                                                        onMouseDown={(e) => {
+                                                                            // Right-click-drag to erase non-anchor dots in range
+                                                                            if (e.button !== 2) return;
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const startBar = ((e.clientX - rect.left) / cellW) * totalBarsCalc;
+                                                                            const onMove = (ev) => {
+                                                                                const curBar = ((ev.clientX - rect.left) / cellW) * totalBarsCalc;
+                                                                                if (onSetTrackAutomation) {
+                                                                                    onSetTrackAutomation(prev => {
+                                                                                        const updated = { ...prev };
+                                                                                        const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                        trackData[paramKey] = erasePointsInRange(trackData[paramKey] || [], startBar, curBar);
+                                                                                        updated[autoTrackId] = trackData;
+                                                                                        return updated;
+                                                                                    });
+                                                                                }
+                                                                            };
+                                                                            const onUp = () => {
+                                                                                document.removeEventListener('mousemove', onMove);
+                                                                                document.removeEventListener('mouseup', onUp);
+                                                                            };
+                                                                            document.addEventListener('mousemove', onMove);
+                                                                            document.addEventListener('mouseup', onUp);
+                                                                        }}
+                                                                        onDoubleClick={(e) => {
+                                                                            // Double-click lane to reset all to defaults
+                                                                            e.stopPropagation();
+                                                                            if (onSetTrackAutomation) {
+                                                                                onSetTrackAutomation(prev => {
+                                                                                    const updated = { ...prev };
+                                                                                    const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                    trackData[paramKey] = clearToAnchors(trackData[paramKey] || [], paramKey);
+                                                                                    updated[autoTrackId] = trackData;
+                                                                                    return updated;
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    {/* Draggable dot handles (above click overlay) */}
+                                                                    {points.map((pt, pi) => {
+                                                                        const dotX = toX(pt.bar);
+                                                                        const dotY = toY(pt.value);
+                                                                        const isAnchor = !!pt.anchor;
+                                                                        return (
+                                                                            <div
+                                                                                key={pi}
+                                                                                style={{
+                                                                                    position: 'absolute',
+                                                                                    left: `${dotX - 5}px`,
+                                                                                    top: `${laneTop + dotY - 5}px`,
+                                                                                    width: '10px', height: '10px',
+                                                                                    borderRadius: '50%',
+                                                                                    background: autoColor,
+                                                                                    border: isAnchor ? '2px solid #fff' : '2px solid #aaa',
+                                                                                    cursor: 'default',
+                                                                                    zIndex: 8,
+                                                                                    boxShadow: '0 0 4px rgba(0,0,0,0.5)',
+                                                                                    transition: 'background 0.15s, box-shadow 0.15s'
+                                                                                }}
+                                                                                onMouseDown={(e) => {
+                                                                                    if (e.button !== 0) return;
+                                                                                    e.stopPropagation();
+                                                                                    e.preventDefault();
+                                                                                    const dot = e.currentTarget;
+                                                                                    dot.style.background = activeColor;
+                                                                                    dot.style.boxShadow = `0 0 8px ${activeColor}`;
+                                                                                    const startX = e.clientX;
+                                                                                    const startY = e.clientY;
+                                                                                    const startBar = pt.bar;
+                                                                                    const startVal = pt.value;
+                                                                                    const onMove = (ev) => {
+                                                                                        const dx = ev.clientX - startX;
+                                                                                        const dy = ev.clientY - startY;
+                                                                                        const barDelta = (dx / cellW) * totalBarsCalc;
+                                                                                        const valDelta = -(dy / laneH);
+                                                                                        const newBar = isAnchor ? startBar : Math.max(0, startBar + barDelta);
+                                                                                        const newVal = Math.max(0, Math.min(1, startVal + valDelta));
+                                                                                        if (onSetTrackAutomation) {
+                                                                                            onSetTrackAutomation(prev => {
+                                                                                                const updated = { ...prev };
+                                                                                                const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                                trackData[paramKey] = moveAutomationPoint(
+                                                                                                    trackData[paramKey] || [], pi, newBar, newVal
+                                                                                                );
+                                                                                                updated[autoTrackId] = trackData;
+                                                                                                return updated;
+                                                                                            });
+                                                                                        }
+                                                                                    };
+                                                                                    const onUp = () => {
+                                                                                        dot.style.background = autoColor;
+                                                                                        dot.style.boxShadow = '0 0 4px rgba(0,0,0,0.5)';
+                                                                                        document.removeEventListener('mousemove', onMove);
+                                                                                        document.removeEventListener('mouseup', onUp);
+                                                                                    };
+                                                                                    document.addEventListener('mousemove', onMove);
+                                                                                    document.addEventListener('mouseup', onUp);
+                                                                                }}
+                                                                                onDoubleClick={(e) => {
+                                                                                    // Double-click dot to reset to max value
+                                                                                    e.stopPropagation();
+                                                                                    if (onSetTrackAutomation) {
+                                                                                        onSetTrackAutomation(prev => {
+                                                                                            const updated = { ...prev };
+                                                                                            const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                            const pts = [...(trackData[paramKey] || [])];
+                                                                                            if (pts[pi]) pts[pi] = { ...pts[pi], value: 1.0 };
+                                                                                            trackData[paramKey] = pts;
+                                                                                            updated[autoTrackId] = trackData;
+                                                                                            return updated;
+                                                                                        });
+                                                                                    }
+                                                                                }}
+                                                                                onContextMenu={(e) => {
+                                                                                    e.preventDefault();
+                                                                                    e.stopPropagation();
+                                                                                    // Right-click: remove non-anchor dots only
+                                                                                    if (!isAnchor && onSetTrackAutomation) {
+                                                                                        onSetTrackAutomation(prev => {
+                                                                                            const updated = { ...prev };
+                                                                                            const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                            trackData[paramKey] = removeAutomationPoint(
+                                                                                                trackData[paramKey] || [], pi
+                                                                                            );
+                                                                                            updated[autoTrackId] = trackData;
+                                                                                            return updated;
+                                                                                        });
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        );
+                                                                    })}
+                                                                </>
                                                             );
                                                         })()}
                                                     </div>
@@ -5201,7 +5913,21 @@ export default function ArrangementTimeline({
                                                                 const rect = e.currentTarget.getBoundingClientRect();
                                                                 const dropBar = Math.max(0, (e.clientX - rect.left) / pixelsPerBar);
                                                                 const midiDurBars = draggingClipBetweenTracks.durationBars || 4;
-                                                                setClipDropGhost({ targetRowId: row.id, bar: dropBar, widthBars: midiDurBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar - (draggingClipBetweenTracks.clickOffsetBars || 0)), widthBars: midiDurBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                return;
+                                                            }
+                                                            // Browser file drag → show ghost on MIDI tracks (accept all browser drags)
+                                                            if (!draggingClipBetweenTracks && (window.draggedItem || (e.dataTransfer.types && (e.dataTransfer.types.includes('application/json') || e.dataTransfer.types.includes('Files'))))) {
+                                                                e.preventDefault();
+                                                                e.dataTransfer.dropEffect = 'copy';
+                                                                const dragItem = window.draggedItem;
+                                                                {
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    const dropBar = Math.max(0, (e.clientX - rect.left) / pixelsPerBar);
+                                                                    const ghostBars = dragItem?.midiBars || 4;
+                                                                    const ghostSvg = dragItem?.midiGhostSvg || null;
+                                                                    setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar), widthBars: ghostBars, patternSvg: ghostSvg });
+                                                                }
                                                             }
                                                         }}
                                                         onDragLeave={() => {
@@ -5210,7 +5936,20 @@ export default function ArrangementTimeline({
                                                         onDrop={(e) => {
                                                             e.preventDefault();
                                                             setClipDropGhost(null);
+                                                            browserDragWaveSvgRef.current = null;
                                                             const src = draggingClipBetweenTracks;
+                                                            // Handle browser file drops (MIDI/audio from file browser)
+                                                            if (!src) {
+                                                                const internalItem = window.draggedItem;
+                                                                if (internalItem || (e.dataTransfer.types && (e.dataTransfer.types.includes('application/json') || e.dataTransfer.types.includes('Files')))) {
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    const dropBar = Math.max(0, Math.round((e.clientX - rect.left) / pixelsPerBar * 100) / 100);
+                                                                    const sec = sectionAtBar(dropBar) || arrangement[0];
+                                                                    handleDrop(e, row, sec, dropBar);
+                                                                    window.draggedItem = null;
+                                                                    return;
+                                                                }
+                                                            }
                                                             // Handle MIDI clip data (from MIDI rows)
                                                             const midiClipData = e.dataTransfer.getData('application/x-wavloom-midi-clip');
                                                             if (midiClipData && onAddMidiClip) {
@@ -5358,7 +6097,12 @@ export default function ArrangementTimeline({
                                                                         }));
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
-                                                                        e.dataTransfer.setDragImage(e.currentTarget, e.clientX - elRect.left, e.clientY - elRect.top);
+                                                                        // Hide native drag image — use timeline ghost only
+                                                                        const _ghostEl = document.createElement('div');
+                                                                        _ghostEl.style.cssText = 'width:1px;height:1px;opacity:0;position:fixed;top:-100px;';
+                                                                        document.body.appendChild(_ghostEl);
+                                                                        e.dataTransfer.setDragImage(_ghostEl, 0, 0);
+                                                                        requestAnimationFrame(() => { try { document.body.removeChild(_ghostEl); } catch(_){} });
                                                                         // Build SVG string for ghost preview
                                                                         const mSteps = (clip.bars || 4) * 32;
                                                                         const mNotes = clip.pattern || [];
@@ -5371,11 +6115,15 @@ export default function ArrangementTimeline({
                                                                             return `<rect x="${n.time}" y="${mMax - n.note}" width="${w}" height="0.8" fill="${clipColor}" opacity="0.7"/>`;
                                                                         }).join('');
                                                                         const mSvg = `<svg viewBox="0 0 ${mSteps} ${mRange}" preserveAspectRatio="none" style="width:100%;height:100%">${mRects}</svg>`;
-                                                                        setDraggingClipBetweenTracks({
-                                                                            clip, sourceTrackId: row.trackId, sourceRowId: row.id,
-                                                                            clipType: 'midi', durationBars: clip.bars || 4,
-                                                                            patternSvg: mSvg
-                                                                        });
+                                                                        {
+                                                                            const _elRect = e.currentTarget.getBoundingClientRect();
+                                                                            const _clickOff = (_elRect.width > 0) ? (e.clientX - _elRect.left) / pixelsPerBar : 0;
+                                                                            setDraggingClipBetweenTracks({
+                                                                                clip, sourceTrackId: row.trackId, sourceRowId: row.id,
+                                                                                clipType: 'midi', durationBars: clip.bars || 4,
+                                                                                patternSvg: mSvg, clickOffsetBars: _clickOff
+                                                                            });
+                                                                        }
                                                                     }}
                                                                     onDragEnd={() => {
                                                                         setDraggingClipBetweenTracks(null);
@@ -5385,6 +6133,13 @@ export default function ArrangementTimeline({
                                                                         e.stopPropagation();
                                                                         clipClickedRef.current = true;
                                                                         setSelectedRow(row.id);
+                                                                        // Set insertion bar at click position (skip during Ctrl+drag range creation)
+                                                                        if (!e.ctrlKey && !e.metaKey && !rangeJustFinishedRef.current) {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const clickedBar = (clip.timelineBar || 0) + (e.clientX - rect.left) / pixelsPerBar;
+                                                                            if (onSetAudioInsertionBar) onSetAudioInsertionBar(clickedBar);
+                                                                            setRangeSelection(null);
+                                                                        }
                                                                         setSelectedMidiClipId(clip.id);
                                                                         setSelectedMidiClipTrackId(row.trackId);
                                                                         setSelectedAudioClipId(null);
@@ -5584,13 +6339,25 @@ export default function ArrangementTimeline({
                                                                         }));
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
-                                                                        e.dataTransfer.setDragImage(e.currentTarget, e.clientX - elRect.left, e.clientY - elRect.top);
+                                                                        // Hide native drag image — use timeline ghost only
+                                                                        const _ghostEl = document.createElement('div');
+                                                                        _ghostEl.style.cssText = 'width:1px;height:1px;opacity:0;position:fixed;top:-100px;';
+                                                                        document.body.appendChild(_ghostEl);
+                                                                        e.dataTransfer.setDragImage(_ghostEl, 0, 0);
+                                                                        requestAnimationFrame(() => { try { document.body.removeChild(_ghostEl); } catch(_){} });
                                                                     }}
                                                                     onDragEnd={() => {}}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         clipClickedRef.current = true;
                                                                         setSelectedRow(row.id);
+                                                                        // Set insertion bar at click position (skip during Ctrl+drag range creation)
+                                                                        if (!e.ctrlKey && !e.metaKey && !rangeJustFinishedRef.current) {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const clickedBar = (clip.timelineBar || 0) + (e.clientX - rect.left) / pixelsPerBar;
+                                                                            if (onSetAudioInsertionBar) onSetAudioInsertionBar(clickedBar);
+                                                                            setRangeSelection(null);
+                                                                        }
                                                                         setSelectedDrumClipId(clip.id);
                                                                         setSelectedMidiClipId(null);
                                                                         setSelectedAudioClipId(null);
@@ -5793,9 +6560,11 @@ export default function ArrangementTimeline({
                                                 const editSetMap = { chords: onSetEditingChordClipId, melody: onSetEditingMelodyClipId, bass: onSetEditingBassClipId };
                                                 const removeMap = { chords: onRemoveChordClip, melody: onRemoveMelodyClip, bass: onRemoveBassClip };
                                                 const editIdMap = { chords: editingChordClipId, melody: editingMelodyClipId, bass: editingBassClipId };
-                                                const clips = clipMap[row.trackKey] || [];
+                                                const allClips = clipMap[row.trackKey] || [];
                                                 const hasDragInProgress = draggingClipBetweenTracks && (draggingClipBetweenTracks.clipType === 'noteClip' || draggingClipBetweenTracks.clipType === 'midi');
-                                                if (clips.length === 0 && !hasDragInProgress) return null;
+                                                const hasBrowserDrag = !!window.draggedItem;
+                                                if (allClips.length === 0 && !hasDragInProgress && !hasBrowserDrag) return null;
+                                                const clips = filterVisibleClips(allClips);
                                                 const onUpdate = updateMap[row.trackKey];
                                                 const onMove = moveMap[row.trackKey];
                                                 const onSetEditing = editSetMap[row.trackKey];
@@ -5822,7 +6591,19 @@ export default function ArrangementTimeline({
                                                                 const rect = e.currentTarget.getBoundingClientRect();
                                                                 const dropBar = Math.max(0, (e.clientX - rect.left) / pixelsPerBar);
                                                                 const durBars = draggingClipBetweenTracks.durationBars || 4;
-                                                                setClipDropGhost({ targetRowId: row.id, bar: dropBar, widthBars: durBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar - (draggingClipBetweenTracks.clickOffsetBars || 0)), widthBars: durBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                return;
+                                                            }
+                                                            // Browser file drag → show ghost on melodic rows (chords/melody/bass)
+                                                            if (!draggingClipBetweenTracks && (window.draggedItem || (e.dataTransfer.types && (e.dataTransfer.types.includes('application/json') || e.dataTransfer.types.includes('Files'))))) {
+                                                                e.preventDefault();
+                                                                e.dataTransfer.dropEffect = 'copy';
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                const dropBar = Math.max(0, (e.clientX - rect.left) / pixelsPerBar);
+                                                                const dragItem = window.draggedItem;
+                                                                const ghostBars = dragItem?.midiBars || 4;
+                                                                const ghostSvg = dragItem?.midiGhostSvg || null;
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar), widthBars: ghostBars, patternSvg: ghostSvg });
                                                             }
                                                         }}
                                                         onDragLeave={() => {
@@ -5832,12 +6613,79 @@ export default function ArrangementTimeline({
                                                             e.preventDefault();
                                                             setClipDropGhost(null);
                                                             const src = draggingClipBetweenTracks;
+                                                            // Browser MIDI file drop → create note clip on this melodic row
+                                                            if (!src && (window.draggedItem || (e.dataTransfer.types && (e.dataTransfer.types.includes('application/json') || e.dataTransfer.types.includes('Files'))))) {
+                                                                const addMap = { chords: onAddChordClip, melody: onAddMelodyClip, bass: onAddBassClip };
+                                                                const addFn = addMap[row.trackKey];
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                const dropBar = Math.max(0, Math.floor((e.clientX - rect.left) / pixelsPerBar));
+                                                                const internalItem = window.draggedItem;
+                                                                window.draggedItem = null;
+                                                                if (addFn && internalItem) {
+                                                                    // Use eagerly-parsed MIDI data if available (from dragStart)
+                                                                    if (internalItem.midiPattern && internalItem.midiPattern.length > 0) {
+                                                                        const baseName = (internalItem.name || 'MIDI').replace(/\.[^.]+$/, '');
+                                                                        // Snap to grid based on resolution
+                                                                        const snapRes = (globalResolution || 4);
+                                                                        const snapUnit = 1 / snapRes; // bars per snap unit (e.g. 1/4 at res=4, 1/8 at res=8)
+                                                                        const snappedBar = Math.round(dropBar / snapUnit) * snapUnit;
+                                                                        // Split existing clips to make room
+                                                                        overwriteNoteClipsInRegion(row.trackKey, snappedBar, snappedBar + internalItem.midiBars);
+                                                                        console.log(`[NoteClip] Creating clip from pre-parsed MIDI: ${internalItem.midiPattern.length} notes, ${internalItem.midiBars} bars at bar ${snappedBar}`);
+                                                                        addFn({ timelineBar: snappedBar, bars: internalItem.midiBars, pattern: internalItem.midiPattern.map(n => ({ ...n })), name: baseName, color: null });
+                                                                    } else {
+                                                                        // Async parse: read file and parse MIDI
+                                                                        (async () => {
+                                                                            try {
+                                                                                let file = null;
+                                                                                if (internalItem.nativePath && window.electronAPI?.readFile) {
+                                                                                    const buf = await window.electronAPI.readFile(internalItem.nativePath);
+                                                                                    file = new File([buf], internalItem.name);
+                                                                                } else if (internalItem.handle) {
+                                                                                    const perm = await internalItem.handle.queryPermission({ mode: 'read' });
+                                                                                    if (perm !== 'granted') await internalItem.handle.requestPermission({ mode: 'read' });
+                                                                                    file = await internalItem.handle.getFile();
+                                                                                }
+                                                                                if (!file) { console.warn('[NoteClip] Could not get file'); return; }
+                                                                                const arrayBuf = await file.arrayBuffer();
+                                                                                if (/\.midi?$/i.test(file.name)) {
+                                                                                    const { default: MIDIParser } = await import('./MIDIParser');
+                                                                                    const parser = new MIDIParser();
+                                                                                    const midiData = await parser.parseMIDIFile(arrayBuf);
+                                                                                    if (midiData?.tracks?.length > 0) {
+                                                                                        const allNotes = [];
+                                                                                        midiData.tracks.forEach(track => {
+                                                                                            allNotes.push(...parser.eventsToNotes(track.events));
+                                                                                        });
+                                                                                        const stepNotes = parser.convertToStepFormat(allNotes);
+                                                                                        if (stepNotes.length > 0) {
+                                                                                            const maxStep = Math.max(...stepNotes.map(n => n.time + (n.duration || 1)));
+                                                                                            const bars = Math.max(1, Math.ceil(maxStep / 32));
+                                                                                            const baseName = file.name.replace(/\.[^.]+$/, '');
+                                                                                            const snapRes = (globalResolution || 4);
+                                                                                            const snapUnit = 1 / snapRes;
+                                                                                            const snappedBar = Math.round(dropBar / snapUnit) * snapUnit;
+                                                                                            overwriteNoteClipsInRegion(row.trackKey, snappedBar, snappedBar + bars);
+                                                                                            console.log(`[NoteClip] Creating clip from async-parsed MIDI: ${stepNotes.length} notes, ${bars} bars at bar ${snappedBar}`);
+                                                                                            addFn({ timelineBar: snappedBar, bars, pattern: stepNotes, name: baseName, color: null });
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            } catch (err) {
+                                                                                console.warn('[NoteClip] MIDI drop failed:', err);
+                                                                            }
+                                                                        })();
+                                                                    }
+                                                                }
+                                                                return;
+                                                            }
                                                             if (src && (src.clipType === 'noteClip' || src.clipType === 'midi')) {
                                                                 const addMap = { chords: onAddChordClip, melody: onAddMelodyClip, bass: onAddBassClip };
                                                                 const noteRemoveMap = { chords: onRemoveChordClip, melody: onRemoveMelodyClip, bass: onRemoveBassClip };
                                                                 const addFn = addMap[row.trackKey];
                                                                 const rect = e.currentTarget.getBoundingClientRect();
-                                                                const dropBar = Math.max(0, Math.floor((e.clientX - rect.left) / pixelsPerBar));
+                                                                const rawBar = Math.max(0, (e.clientX - rect.left) / pixelsPerBar - (src.clickOffsetBars || 0));
+                                                                const dropBar = snapBar(rawBar);
                                                                 const srcClip = src.clip;
                                                                 const srcPattern = srcClip?.pattern || [];
                                                                 const srcBars = srcClip?.bars || 4;
@@ -5877,6 +6725,28 @@ export default function ArrangementTimeline({
                                                             const bx = sectionOffsets[si] * pixelsPerBar;
                                                             return (<div key={`nsb-${si}`} style={{ position: 'absolute', left: `${bx}px`, top: 0, width: '1px', height: '100%', background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', pointerEvents: 'none', zIndex: 0, borderLeft: '1px dashed', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />);
                                                         })}
+                                                        {/* Ghost drop preview for browser drags */}
+                                                        {clipDropGhost && clipDropGhost.targetRowId === row.id && (() => {
+                                                            const gX = clipDropGhost.bar * pixelsPerBar;
+                                                            const gW = Math.max(8, (clipDropGhost.widthBars || 4) * pixelsPerBar);
+                                                            return (
+                                                                <div style={{
+                                                                    position: 'absolute', left: `${gX}px`, top: 0,
+                                                                    width: `${gW}px`, height: '100%',
+                                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
+                                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                                    borderRadius: '3px', zIndex: 7,
+                                                                    pointerEvents: 'none',
+                                                                    transition: 'left 0.05s ease-out',
+                                                                    overflow: 'hidden'
+                                                                }}>
+                                                                    {clipDropGhost.patternSvg && (
+                                                                        <div style={{ width: '100%', height: '100%', opacity: 0.6 }}
+                                                                            dangerouslySetInnerHTML={{ __html: clipDropGhost.patternSvg }} />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                         {clips.map((clip) => {
                                                             const clipStartPx = (clip.timelineBar || 0) * pixelsPerBar;
                                                             const clipW = Math.max(8, (clip.bars || 4) * pixelsPerBar);
@@ -5899,7 +6769,12 @@ export default function ArrangementTimeline({
                                                                         }));
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
-                                                                        e.dataTransfer.setDragImage(e.currentTarget, e.clientX - elRect.left, e.clientY - elRect.top);
+                                                                        // Hide native drag image — use timeline ghost only
+                                                                        const _ghostEl = document.createElement('div');
+                                                                        _ghostEl.style.cssText = 'width:1px;height:1px;opacity:0;position:fixed;top:-100px;';
+                                                                        document.body.appendChild(_ghostEl);
+                                                                        e.dataTransfer.setDragImage(_ghostEl, 0, 0);
+                                                                        requestAnimationFrame(() => { try { document.body.removeChild(_ghostEl); } catch(_){} });
                                                                         // Build SVG string for ghost preview
                                                                         const cSteps = (clip.bars || 4) * 32;
                                                                         const cNotes = clip.pattern || [];
@@ -5912,11 +6787,15 @@ export default function ArrangementTimeline({
                                                                             return `<rect x="${n.time}" y="${nMax - n.note}" width="${w}" height="0.8" fill="${cc}" opacity="0.7"/>`;
                                                                         }).join('');
                                                                         const pSvg = `<svg viewBox="0 0 ${cSteps} ${nRange}" preserveAspectRatio="none" style="width:100%;height:100%">${svgRects}</svg>`;
+                                                                        {
+                                                                        const _elRect2 = e.currentTarget.getBoundingClientRect();
+                                                                        const _clickOff2 = (_elRect2.width > 0) ? (e.clientX - _elRect2.left) / pixelsPerBar : 0;
                                                                         setDraggingClipBetweenTracks({
                                                                             clip, sourceTrackKey: row.trackKey, sourceRowId: row.id,
                                                                             clipType: 'noteClip', durationBars: clip.bars || 4,
-                                                                            patternSvg: pSvg
+                                                                            patternSvg: pSvg, clickOffsetBars: _clickOff2
                                                                         });
+                                                                        }
                                                                     }}
                                                                     onDragEnd={() => {
                                                                         setDraggingClipBetweenTracks(null);
@@ -5927,6 +6806,13 @@ export default function ArrangementTimeline({
                                                                         clipClickedRef.current = true;
                                                                         console.log('[NoteClip Click] clipId:', clip.id, 'trackKey:', row.trackKey, 'rowId:', row.id);
                                                                         setSelectedRow(row.id);
+                                                                        // Set insertion bar at click position (skip during Ctrl+drag range creation)
+                                                                        if (!e.ctrlKey && !e.metaKey && !rangeJustFinishedRef.current) {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const clickedBar = (clip.timelineBar || 0) + (e.clientX - rect.left) / pixelsPerBar;
+                                                                            if (onSetAudioInsertionBar) onSetAudioInsertionBar(clickedBar);
+                                                                            setRangeSelection(null);
+                                                                        }
                                                                         setSelectedNoteClipId(clip.id);
                                                                         setSelectedNoteClipTrackKey(row.trackKey);
                                                                         setSelectedMidiClipId(null);
@@ -6024,6 +6910,29 @@ export default function ArrangementTimeline({
                                                                         onMouseEnter={(e) => { e.currentTarget.style.background = `${cc}44`; }}
                                                                         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                                                     />
+                                                                    {/* Range selection highlight overlay */}
+                                                                    {rangeSelection && (() => {
+                                                                        const rLo = Math.min(rangeSelection.startBar, rangeSelection.endBar);
+                                                                        const rHi = Math.max(rangeSelection.startBar, rangeSelection.endBar);
+                                                                        const cStart = clip.timelineBar || 0;
+                                                                        const cBars = clip.bars || 4;
+                                                                        const cEnd = cStart + cBars;
+                                                                        if (rHi <= cStart || rLo >= cEnd) return null;
+                                                                        const overlapStart = Math.max(rLo, cStart);
+                                                                        const overlapEnd = Math.min(rHi, cEnd);
+                                                                        const leftPct = ((overlapStart - cStart) / cBars) * 100;
+                                                                        const widthPct = ((overlapEnd - overlapStart) / cBars) * 100;
+                                                                        return (
+                                                                            <div style={{
+                                                                                position: 'absolute',
+                                                                                left: `${leftPct}%`, top: 0,
+                                                                                width: `${widthPct}%`, height: '100%',
+                                                                                background: isDark ? 'rgba(255,100,100,0.35)' : 'rgba(220,50,50,0.25)',
+                                                                                border: `1px solid ${isDark ? 'rgba(255,100,100,0.7)' : 'rgba(220,50,50,0.5)'}`,
+                                                                                pointerEvents: 'none', zIndex: 6, borderRadius: '2px'
+                                                                            }} />
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             );
                                                         })}
@@ -6054,9 +6963,10 @@ export default function ArrangementTimeline({
                                             })()}
                                             {/* ── Drum lane clips (individual drum rows: 808, kick, snare, etc.) ── */}
                                             {row.type === 'drum' && row.drumId && (() => {
-                                                const clips = drumLaneClips[row.drumId] || [];
+                                                const allDrumClips = drumLaneClips[row.drumId] || [];
                                                 const hasDrumDragInProgress = draggingClipBetweenTracks && draggingClipBetweenTracks.clipType === 'drumLaneClip';
-                                                if (clips.length === 0 && !hasDrumDragInProgress) return null;
+                                                if (allDrumClips.length === 0 && !hasDrumDragInProgress) return null;
+                                                const clips = filterVisibleClips(allDrumClips);
                                                 const clipColor = row.color || '#ff6b6b';
                                                 const cellH = row.height - 2;
                                                 return (
@@ -6081,7 +6991,7 @@ export default function ArrangementTimeline({
                                                                 const rect = e.currentTarget.getBoundingClientRect();
                                                                 const dropBar = Math.max(0, (e.clientX - rect.left) / pixelsPerBar);
                                                                 const durBars = draggingClipBetweenTracks.durationBars || 4;
-                                                                setClipDropGhost({ targetRowId: row.id, bar: dropBar, widthBars: durBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
+                                                                setClipDropGhost({ targetRowId: row.id, bar: snapBar(dropBar - (draggingClipBetweenTracks.clickOffsetBars || 0)), widthBars: durBars, patternSvg: draggingClipBetweenTracks.patternSvg || null });
                                                             }
                                                         }}
                                                         onDragLeave={() => {
@@ -6137,7 +7047,12 @@ export default function ArrangementTimeline({
                                                                         }));
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
-                                                                        e.dataTransfer.setDragImage(e.currentTarget, e.clientX - elRect.left, e.clientY - elRect.top);
+                                                                        // Hide native drag image — use timeline ghost only
+                                                                        const _ghostEl = document.createElement('div');
+                                                                        _ghostEl.style.cssText = 'width:1px;height:1px;opacity:0;position:fixed;top:-100px;';
+                                                                        document.body.appendChild(_ghostEl);
+                                                                        e.dataTransfer.setDragImage(_ghostEl, 0, 0);
+                                                                        requestAnimationFrame(() => { try { document.body.removeChild(_ghostEl); } catch(_){} });
                                                                         // Build drum pattern SVG for ghost — piano-roll style
                                                                         let dlSvg = null;
                                                                         if (laneData && laneData.lanes) {
@@ -6168,6 +7083,13 @@ export default function ArrangementTimeline({
                                                                         clipClickedRef.current = true;
                                                                         console.log('[DrumLaneClip Click] clipId:', clip.id, 'drumId:', row.drumId, 'rowId:', row.id);
                                                                         setSelectedRow(row.id);
+                                                                        // Set insertion bar at click position (skip during Ctrl+drag range creation)
+                                                                        if (!e.ctrlKey && !e.metaKey && !rangeJustFinishedRef.current) {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const clickedBar = (clip.timelineBar || 0) + (e.clientX - rect.left) / pixelsPerBar;
+                                                                            if (onSetAudioInsertionBar) onSetAudioInsertionBar(clickedBar);
+                                                                            setRangeSelection(null);
+                                                                        }
                                                                         setSelectedDrumClipId(clip.id);
                                                                         setSelectedDrumLaneClipDrumId(row.drumId);
                                                                         setSelectedMidiClipId(null);
@@ -6618,7 +7540,30 @@ export default function ArrangementTimeline({
                                                                             fadeInCurve={ac.fadeInCurve || 0}
                                                                             fadeOutCurve={ac.fadeOutCurve || 0}
                                                                             isDark={isDark}
+                                                                            gain={ac.gain ?? 1.0}
                                                                         />
+                                                                        {/* Range selection highlight */}
+                                                                        {rangeSelection && (() => {
+                                                                            const rLo = Math.min(rangeSelection.startBar, rangeSelection.endBar);
+                                                                            const rHi = Math.max(rangeSelection.startBar, rangeSelection.endBar);
+                                                                            const cStart = absBar;
+                                                                            const cEnd = absBar + clipBars;
+                                                                            if (rHi <= cStart || rLo >= cEnd || rHi - rLo < 0.05) return null;
+                                                                            const overlapStart = Math.max(rLo, cStart);
+                                                                            const overlapEnd = Math.min(rHi, cEnd);
+                                                                            const leftPct = ((overlapStart - cStart) / clipBars) * 100;
+                                                                            const widthPct = ((overlapEnd - overlapStart) / clipBars) * 100;
+                                                                            return (
+                                                                                <div style={{
+                                                                                    position: 'absolute',
+                                                                                    left: `${leftPct}%`, top: 0,
+                                                                                    width: `${widthPct}%`, height: '100%',
+                                                                                    background: isDark ? 'rgba(255,100,100,0.35)' : 'rgba(220,50,50,0.25)',
+                                                                                    border: `1.5px solid ${isDark ? 'rgba(255,100,100,0.8)' : 'rgba(220,50,50,0.6)'}`,
+                                                                                    pointerEvents: 'none', zIndex: 4, borderRadius: '2px'
+                                                                                }} />
+                                                                            );
+                                                                        })()}
                                                                         {/* Drag handle on right edge */}
                                                                         <div style={{
                                                                             position: 'absolute', right: 0, top: 0, bottom: 0, width: '6px',
@@ -6825,7 +7770,7 @@ export default function ArrangementTimeline({
                                                                 />
                                                             </div>
                                                         )}
-                                                        {/* ── Automation Lane SVG Overlay ── */}
+                                                        {/* ── Automation Lane — bottom half: SVG + click + dots ── */}
                                                         {(() => {
                                                             const autoTrackId = row.type === 'drum' || row.type === 'drums-all' ? 'drums'
                                                                 : row.type === 'melodic' ? (row.trackKey || row.id)
@@ -6834,7 +7779,6 @@ export default function ArrangementTimeline({
                                                             const paramKey = automationSelectedParam[autoTrackId] || 'volume';
                                                             const points = trackAutomation?.[autoTrackId]?.[paramKey] || [];
                                                             const sectionBars = section.bars;
-                                                            // Calculate section start bar for absolute positioning
                                                             let sectionStartBar = 0;
                                                             for (const s of arrangement) {
                                                                 if (s.id === section.id) break;
@@ -6842,19 +7786,19 @@ export default function ArrangementTimeline({
                                                             }
                                                             const sectionEndBar = sectionStartBar + sectionBars;
                                                             const cellW = Math.max(1, w - 2);
-                                                            const cellH = row.height - 2;
-                                                            // Filter points within this section's range (with margin)
+                                                            const fullH = row.height - 2;
+                                                            const laneH = Math.floor(fullH / 2);
+                                                            const laneTop = fullH - laneH;
                                                             const visiblePoints = points.filter(p =>
                                                                 p.bar >= sectionStartBar - 0.5 && p.bar <= sectionEndBar + 0.5
                                                             );
-                                                            // Build SVG path for the automation line
                                                             const toX = (bar) => ((bar - sectionStartBar) / sectionBars) * cellW;
-                                                            const toY = (val) => cellH - (val * cellH);
+                                                            const toY = (val) => laneH - (val * laneH);
+                                                            const autoColor = '#2ecc71';
+                                                            const activeColor = '#ffa94d';
                                                             let pathD = '';
                                                             if (points.length > 0) {
-                                                                // Draw from section start to section end
                                                                 const sortedPts = [...points].sort((a, b) => a.bar - b.bar);
-                                                                // Get value at section start
                                                                 const startVal = interpolateAutomation(sortedPts, sectionStartBar);
                                                                 const endVal = interpolateAutomation(sortedPts, sectionEndBar);
                                                                 const allPts = [];
@@ -6862,7 +7806,6 @@ export default function ArrangementTimeline({
                                                                 visiblePoints.forEach(p => allPts.push(p));
                                                                 if (endVal !== null) allPts.push({ bar: sectionEndBar, value: endVal });
                                                                 allPts.sort((a, b) => a.bar - b.bar);
-                                                                // Remove duplicates at same bar position
                                                                 const uniquePts = [];
                                                                 for (const p of allPts) {
                                                                     if (uniquePts.length === 0 || Math.abs(p.bar - uniquePts[uniquePts.length - 1].bar) > 0.001) {
@@ -6876,44 +7819,121 @@ export default function ArrangementTimeline({
                                                                     }
                                                                 }
                                                             }
-                                                            // Fill path (area under curve)
                                                             let fillD = '';
                                                             if (pathD) {
-                                                                fillD = pathD + ` L ${toX(points.length > 0 ? Math.min(sectionEndBar, Math.max(...points.map(p => p.bar), sectionEndBar)) : sectionEndBar)} ${cellH} L ${toX(sectionStartBar)} ${cellH} Z`;
+                                                                fillD = pathD + ` L ${toX(points.length > 0 ? Math.min(sectionEndBar, Math.max(...points.map(p => p.bar), sectionEndBar)) : sectionEndBar)} ${laneH} L ${toX(sectionStartBar)} ${laneH} Z`;
                                                             }
-                                                            const autoColor = '#2ecc71';
                                                             return (
-                                                                <svg
-                                                                    style={{
-                                                                        position: 'absolute', left: 0, top: 0,
-                                                                        width: cellW, height: cellH,
-                                                                        pointerEvents: 'none', zIndex: 5
-                                                                    }}
-                                                                    viewBox={`0 0 ${cellW} ${cellH}`}
-                                                                    preserveAspectRatio="none"
-                                                                >
-                                                                    {/* Fill under curve */}
-                                                                    {fillD && (
-                                                                        <path d={fillD} fill={`${autoColor}18`} />
-                                                                    )}
-                                                                    {/* Automation line */}
-                                                                    {pathD && (
-                                                                        <path d={pathD} fill="none" stroke={autoColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                                    )}
-                                                                    {/* Automation points (interactive) */}
+                                                                <>
+                                                                    {/* SVG: background + line (no pointer events) */}
+                                                                    <svg
+                                                                        style={{
+                                                                            position: 'absolute', left: 0, top: `${laneTop}px`,
+                                                                            width: cellW, height: laneH,
+                                                                            pointerEvents: 'none', zIndex: 5
+                                                                        }}
+                                                                        viewBox={`0 0 ${cellW} ${laneH}`}
+                                                                        preserveAspectRatio="none"
+                                                                    >
+                                                                        <rect x="0" y="0" width={cellW} height={laneH} fill="rgba(0,0,0,0.35)" />
+                                                                        {fillD && <path d={fillD} fill={`${autoColor}55`} />}
+                                                                        {pathD && <path d={pathD} fill="none" stroke={autoColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+                                                                    </svg>
+                                                                    {/* Click-to-add + right-click-drag-to-erase overlay */}
+                                                                    <div
+                                                                        style={{
+                                                                            position: 'absolute', left: 0, top: `${laneTop}px`,
+                                                                            width: cellW, height: laneH,
+                                                                            zIndex: 6, cursor: 'default'
+                                                                        }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const relX = e.clientX - rect.left;
+                                                                            const relY = e.clientY - rect.top;
+                                                                            const bar = sectionStartBar + (relX / cellW) * sectionBars;
+                                                                            const value = 1 - (relY / laneH);
+                                                                            if (onSetTrackAutomation) {
+                                                                                onSetTrackAutomation(prev => {
+                                                                                    const updated = { ...prev };
+                                                                                    const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                    trackData[paramKey] = addAutomationPoint(
+                                                                                        trackData[paramKey] || [],
+                                                                                        { bar, value: Math.max(0, Math.min(1, value)), curve: 0 }
+                                                                                    );
+                                                                                    updated[autoTrackId] = trackData;
+                                                                                    return updated;
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                        onContextMenu={(e) => e.preventDefault()}
+                                                                        onMouseDown={(e) => {
+                                                                            if (e.button !== 2) return;
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            const startBar = sectionStartBar + ((e.clientX - rect.left) / cellW) * sectionBars;
+                                                                            const onMove = (ev) => {
+                                                                                const curBar = sectionStartBar + ((ev.clientX - rect.left) / cellW) * sectionBars;
+                                                                                if (onSetTrackAutomation) {
+                                                                                    onSetTrackAutomation(prev => {
+                                                                                        const updated = { ...prev };
+                                                                                        const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                        trackData[paramKey] = erasePointsInRange(trackData[paramKey] || [], startBar, curBar);
+                                                                                        updated[autoTrackId] = trackData;
+                                                                                        return updated;
+                                                                                    });
+                                                                                }
+                                                                            };
+                                                                            const onUp = () => {
+                                                                                document.removeEventListener('mousemove', onMove);
+                                                                                document.removeEventListener('mouseup', onUp);
+                                                                            };
+                                                                            document.addEventListener('mousemove', onMove);
+                                                                            document.addEventListener('mouseup', onUp);
+                                                                        }}
+                                                                        onDoubleClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (onSetTrackAutomation) {
+                                                                                onSetTrackAutomation(prev => {
+                                                                                    const updated = { ...prev };
+                                                                                    const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                    trackData[paramKey] = clearToAnchors(trackData[paramKey] || [], paramKey);
+                                                                                    updated[autoTrackId] = trackData;
+                                                                                    return updated;
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    {/* Draggable dot handles (above click overlay) */}
                                                                     {visiblePoints.map((pt, pi) => {
                                                                         const ptIdx = points.indexOf(pt);
-                                                                        const cx = toX(pt.bar);
-                                                                        const cy = toY(pt.value);
+                                                                        const dotX = toX(pt.bar);
+                                                                        const dotY = toY(pt.value);
+                                                                        const isAnchor = !!pt.anchor;
                                                                         return (
-                                                                            <circle
+                                                                            <div
                                                                                 key={pi}
-                                                                                cx={cx} cy={cy} r={4}
-                                                                                fill={autoColor} stroke="#fff" strokeWidth="1.5"
-                                                                                style={{ pointerEvents: 'all', cursor: 'grab' }}
+                                                                                style={{
+                                                                                    position: 'absolute',
+                                                                                    left: `${dotX - 5}px`,
+                                                                                    top: `${laneTop + dotY - 5}px`,
+                                                                                    width: '10px', height: '10px',
+                                                                                    borderRadius: '50%',
+                                                                                    background: autoColor,
+                                                                                    border: isAnchor ? '2px solid #fff' : '2px solid #aaa',
+                                                                                    cursor: 'default',
+                                                                                    zIndex: 8,
+                                                                                    boxShadow: '0 0 4px rgba(0,0,0,0.5)',
+                                                                                    transition: 'background 0.15s, box-shadow 0.15s'
+                                                                                }}
                                                                                 onMouseDown={(e) => {
+                                                                                    if (e.button !== 0) return;
                                                                                     e.stopPropagation();
                                                                                     e.preventDefault();
+                                                                                    const dot = e.currentTarget;
+                                                                                    dot.style.background = activeColor;
+                                                                                    dot.style.boxShadow = `0 0 8px ${activeColor}`;
                                                                                     const startX = e.clientX;
                                                                                     const startY = e.clientY;
                                                                                     const startBar = pt.bar;
@@ -6922,8 +7942,8 @@ export default function ArrangementTimeline({
                                                                                         const dx = ev.clientX - startX;
                                                                                         const dy = ev.clientY - startY;
                                                                                         const barDelta = (dx / cellW) * sectionBars;
-                                                                                        const valDelta = -(dy / cellH);
-                                                                                        const newBar = Math.max(0, startBar + barDelta);
+                                                                                        const valDelta = -(dy / laneH);
+                                                                                        const newBar = isAnchor ? startBar : Math.max(0, startBar + barDelta);
                                                                                         const newVal = Math.max(0, Math.min(1, startVal + valDelta));
                                                                                         if (onSetTrackAutomation) {
                                                                                             onSetTrackAutomation(prev => {
@@ -6938,16 +7958,32 @@ export default function ArrangementTimeline({
                                                                                         }
                                                                                     };
                                                                                     const onUp = () => {
+                                                                                        dot.style.background = autoColor;
+                                                                                        dot.style.boxShadow = '0 0 4px rgba(0,0,0,0.5)';
                                                                                         document.removeEventListener('mousemove', onMove);
                                                                                         document.removeEventListener('mouseup', onUp);
                                                                                     };
                                                                                     document.addEventListener('mousemove', onMove);
                                                                                     document.addEventListener('mouseup', onUp);
                                                                                 }}
+                                                                                onDoubleClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    if (onSetTrackAutomation) {
+                                                                                        onSetTrackAutomation(prev => {
+                                                                                            const updated = { ...prev };
+                                                                                            const trackData = { ...(updated[autoTrackId] || {}) };
+                                                                                            const pts = [...(trackData[paramKey] || [])];
+                                                                                            if (pts[ptIdx]) pts[ptIdx] = { ...pts[ptIdx], value: 1.0 };
+                                                                                            trackData[paramKey] = pts;
+                                                                                            updated[autoTrackId] = trackData;
+                                                                                            return updated;
+                                                                                        });
+                                                                                    }
+                                                                                }}
                                                                                 onContextMenu={(e) => {
                                                                                     e.preventDefault();
                                                                                     e.stopPropagation();
-                                                                                    if (onSetTrackAutomation) {
+                                                                                    if (!isAnchor && onSetTrackAutomation) {
                                                                                         onSetTrackAutomation(prev => {
                                                                                             const updated = { ...prev };
                                                                                             const trackData = { ...(updated[autoTrackId] || {}) };
@@ -6962,56 +7998,11 @@ export default function ArrangementTimeline({
                                                                             />
                                                                         );
                                                                     })}
-                                                                </svg>
+                                                                </>
                                                             );
                                                         })()}
-                                                        {/* Click-to-add automation point overlay */}
-                                                        {(() => {
-                                                            const autoTrackId = row.type === 'drum' || row.type === 'drums-all' ? 'drums'
-                                                                : row.type === 'melodic' ? (row.trackKey || row.id)
-                                                                : (row.trackId || row.id);
-                                                            if (!automationVisibleTracks.has(autoTrackId)) return null;
-                                                            const paramKey = automationSelectedParam[autoTrackId] || 'volume';
-                                                            const sectionBars = section.bars;
-                                                            let sectionStartBar = 0;
-                                                            for (const s of arrangement) {
-                                                                if (s.id === section.id) break;
-                                                                sectionStartBar += s.bars;
-                                                            }
-                                                            const cellW = Math.max(1, w - 2);
-                                                            const cellH = row.height - 2;
-                                                            return (
-                                                                <div
-                                                                    style={{
-                                                                        position: 'absolute', left: 0, top: 0,
-                                                                        width: cellW, height: cellH,
-                                                                        zIndex: 6, cursor: 'crosshair'
-                                                                    }}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                                        const relX = e.clientX - rect.left;
-                                                                        const relY = e.clientY - rect.top;
-                                                                        const bar = sectionStartBar + (relX / cellW) * sectionBars;
-                                                                        const value = 1 - (relY / cellH);
-                                                                        if (onSetTrackAutomation) {
-                                                                            onSetTrackAutomation(prev => {
-                                                                                const updated = { ...prev };
-                                                                                const trackData = { ...(updated[autoTrackId] || {}) };
-                                                                                trackData[paramKey] = addAutomationPoint(
-                                                                                    trackData[paramKey] || [],
-                                                                                    { bar, value: Math.max(0, Math.min(1, value)), curve: 0 }
-                                                                                );
-                                                                                updated[autoTrackId] = trackData;
-                                                                                return updated;
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            );
-                                                        })()}
-                                                        {/* Audio insertion point indicator — only on selected row, blinking */}
-                                                        {row.type === 'audio' && audioInsertionBar != null && selectedRow === row.id && !globalIsPlaying && !isRecording && (() => {
+                                                        {/* Playback start marker — only on selected row, blinking */}
+                                                        {(row.type === 'audio' || row.type === 'midi' || row.type === 'melodic' || row.type === 'drums-all') && audioInsertionBar != null && selectedRow === row.id && !globalIsPlaying && !isRecording && (() => {
                                                             const sectionBars = section.bars;
                                                             let sectionStartBarCalc = 0;
                                                             for (const s of arrangement) {
@@ -7030,7 +8021,15 @@ export default function ArrangementTimeline({
                                                                     pointerEvents: 'none',
                                                                     boxShadow: '0 0 6px #ffa94d',
                                                                     animation: 'blink 1s step-end infinite'
-                                                                }} />
+                                                                }}>
+                                                                    <div style={{
+                                                                        position: 'absolute', top: '-5px', left: '-4px',
+                                                                        width: 0, height: 0,
+                                                                        borderLeft: '5px solid transparent',
+                                                                        borderRight: '5px solid transparent',
+                                                                        borderTop: '5px solid #ffa94d'
+                                                                    }} />
+                                                                </div>
                                                             );
                                                         })()}
                                                     </div>
@@ -7073,17 +8072,19 @@ export default function ArrangementTimeline({
                     onMouseDown={handleDetailDividerMouseDown}
                     onDoubleClick={handleDetailDividerDoubleClick}
                     style={{
-                        height: '5px', flexShrink: 0,
+                        height: '6px', flexShrink: 0,
                         cursor: 'ns-resize',
-                        background: isDark ? '#222' : '#ddd',
-                        borderTop: `1px solid ${isDark ? `${ac}22` : `${ac}33`}`,
-                        borderBottom: `1px solid ${isDark ? `${ac}22` : `${ac}33`}`,
+                        background: isDark
+                            ? `linear-gradient(to bottom, ${ac}33, #222, ${ac}33)`
+                            : `linear-gradient(to bottom, ${ac}44, #ddd, ${ac}44)`,
+                        borderTop: `1px solid ${isDark ? `${ac}44` : `${ac}55`}`,
+                        borderBottom: `1px solid ${isDark ? `${ac}44` : `${ac}55`}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                 >
                     <div style={{
-                        width: '30px', height: '2px', borderRadius: '1px',
-                        background: isDark ? '#555' : '#aaa',
+                        width: '40px', height: '2px', borderRadius: '1px',
+                        background: isDark ? `${ac}88` : `${ac}aa`,
                     }} />
                 </div>
             )}
@@ -7116,11 +8117,55 @@ export default function ArrangementTimeline({
                 </div>
             )}
 
+            {/* ── Main Mix Panel Toggle Bar ── */}
+            {showMixer && (
+                <div
+                    onClick={() => setShowMixer(false)}
+                    style={{
+                        height: '18px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        cursor: 'pointer', userSelect: 'none',
+                        background: isDark ? '#1a1a24' : '#e8e8f0',
+                        borderTop: `1px solid ${isDark ? '#9775fa22' : '#9775fa33'}`,
+                        color: '#9775fa', fontSize: '10px', fontWeight: '700', letterSpacing: '0.5px',
+                        transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = isDark ? '#222230' : '#dddde8'}
+                    onMouseLeave={e => e.currentTarget.style.background = isDark ? '#1a1a24' : '#e8e8f0'}
+                >
+                    <span style={{ fontSize: '8px' }}>{'\u25BC'}</span>
+                    <span>MAIN MIX</span>
+                    <span style={{ fontSize: '8px' }}>{'\u25BC'}</span>
+                </div>
+            )}
+
+            {/* ── Main Mix Panel Draggable Divider (double-click to maximize/restore) ── */}
+            {showMixer && (
+                <div
+                    onMouseDown={handleMixerDividerMouseDown}
+                    onDoubleClick={handleMixerDividerDoubleClick}
+                    style={{
+                        height: '6px', flexShrink: 0,
+                        cursor: 'ns-resize',
+                        background: isDark
+                            ? 'linear-gradient(to bottom, #9775fa33, #222, #9775fa33)'
+                            : 'linear-gradient(to bottom, #9775fa44, #ddd, #9775fa44)',
+                        borderTop: `1px solid ${isDark ? '#9775fa44' : '#9775fa55'}`,
+                        borderBottom: `1px solid ${isDark ? '#9775fa44' : '#9775fa55'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                >
+                    <div style={{
+                        width: '40px', height: '2px', borderRadius: '1px',
+                        background: isDark ? '#9775fa88' : '#9775faaa',
+                    }} />
+                </div>
+            )}
+
             {/* Main Mixer Panel — toggled by MIX button */}
             {showMixer && (
                 <div style={{
-                    minHeight: '180px', maxHeight: '260px',
-                    borderTop: `2px solid ${isDark ? '#9775fa44' : '#9775fa66'}`,
+                    height: `${mixerPanelHeight}px`,
                     display: 'flex', overflow: 'auto', flexShrink: 0,
                 }}>
                     <ArrangementMixer
@@ -7610,6 +8655,32 @@ export default function ArrangementTimeline({
             )}
 
             {/* Focused Audio Clip Waveform Editor */}
+            {/* 2D Range Selection Box Overlay */}
+            {rangeSelection && rangeBoxVisible && (() => {
+                const lo = Math.min(rangeSelection.startBar, rangeSelection.endBar);
+                const hi = Math.max(rangeSelection.startBar, rangeSelection.endBar);
+                const topY = Math.min(rangeSelection.startY || 0, rangeSelection.endY || 0);
+                const botY = Math.max(rangeSelection.startY || 0, rangeSelection.endY || 0);
+                if (hi - lo < 0.05 && botY - topY < 5) return null;
+                const sc = scrollContainerRef.current;
+                if (!sc) return null;
+                const scRect = sc.getBoundingClientRect();
+                const leftPx = lo * pixelsPerBar - (sc.scrollLeft || 0) + scRect.left;
+                const widthPx = (hi - lo) * pixelsPerBar;
+                const topPx = topY - (sc.scrollTop || 0) + scRect.top;
+                const heightPx = botY - topY;
+                return (
+                    <div style={{
+                        position: 'fixed', left: `${leftPx}px`, top: `${topPx}px`,
+                        width: `${widthPx}px`, height: `${heightPx}px`,
+                        border: `1.5px dashed ${isDark ? 'rgba(77,171,247,0.7)' : 'rgba(50,120,200,0.6)'}`,
+                        background: isDark ? 'rgba(77,171,247,0.08)' : 'rgba(50,120,200,0.06)',
+                        borderRadius: '2px',
+                        zIndex: 50, pointerEvents: 'none'
+                    }} />
+                );
+            })()}
+
             {focusedAudioClip && (
                 <WaveformEditor
                     clip={focusedAudioClip.clip}
@@ -7629,6 +8700,31 @@ export default function ArrangementTimeline({
                     trackAutomation={trackAutomation}
                     onSetTrackAutomation={onSetTrackAutomation}
                     tempo={globalTempo}
+                    onSliceToArrangement={({ buffers, names, mode, trackId: tid, afterClipId }) => {
+                        if (!onAddClip) return;
+                        const clip = focusedAudioClip.clip;
+                        const baseBar = clip.startBar || clip.timelineBar || 0;
+                        const tempo = globalTempo || 120;
+                        const secPerBar = (4 * 60) / tempo;
+                        if (mode === 'separate') {
+                            // Place each buffer sequentially after the original clip position
+                            let currentBar = baseBar;
+                            buffers.forEach((buf, i) => {
+                                const durationBars = buf.duration / secPerBar;
+                                if (onUpdateClip && i === 0) {
+                                    // Replace original clip with first slice
+                                    onUpdateClip(tid, clip.id, { buffer: buf, name: names[i] });
+                                } else {
+                                    // Add subsequent slices as new clips
+                                    onAddClip(tid, null, buf, names[i], {
+                                        startBar: currentBar
+                                    });
+                                }
+                                currentBar += durationBars;
+                            });
+                        }
+                        setFocusedAudioClip(null);
+                    }}
                 />
             )}
 

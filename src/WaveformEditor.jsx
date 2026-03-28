@@ -14,7 +14,8 @@ import { interpolateAutomation, addAutomationPoint, removeAutomationPoint, moveA
 export default function WaveformEditor({
     clip, trackName, sectionName, isDark, onClose, onUpdate,
     globalTempo, sampler, onLoadSlicedInstrument, accentColors,
-    trackAutomation, onSetTrackAutomation, trackId, tempo}) {
+    trackAutomation, onSetTrackAutomation, trackId, tempo,
+    onSliceToArrangement}) {
     const ac = accentColors?.accent || '#ff6b6b';
     const acSec = accentColors?.secondary || '#ff9f43';
     const acGrad = accentColors?.gradient || 'linear-gradient(135deg, #ff6b6b, #ff9f43)';
@@ -28,6 +29,7 @@ export default function WaveformEditor({
     const [fadeOut, setFadeOut] = useState(clip.fadeOut || 0); // seconds
     const [trimStart, setTrimStart] = useState(clip.trimStart || 0);
     const [trimEnd, setTrimEnd] = useState(clip.trimEnd || 0);
+    const [gain, setGain] = useState(clip.gain ?? 1.0); // linear gain 0-2 (0dB = 1.0)
     const [fadeInCurve, setFadeInCurve] = useState(clip.fadeInCurve ?? 0.5); // 0-1, vertical curve midpoint
     const [fadeOutCurve, setFadeOutCurve] = useState(clip.fadeOutCurve ?? 0.5);
 
@@ -82,13 +84,19 @@ export default function WaveformEditor({
             fadeOutCurve,
             trimStart,
             trimEnd,
+            gain,
             timeStretch,
             originalBpm
         });
-    }, [clipName, reversed, pitch, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, trimStart, trimEnd, timeStretch, originalBpm, onUpdate]);
+    }, [clipName, reversed, pitch, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, trimStart, trimEnd, gain, timeStretch, originalBpm, onUpdate]);
 
-    // Auto-apply on change
-    useEffect(() => { applyChanges(); }, [applyChanges]);
+    // Auto-apply on change (debounced to reduce re-render churn during slider drags)
+    const applyTimeoutRef = useRef(null);
+    useEffect(() => {
+        if (applyTimeoutRef.current) clearTimeout(applyTimeoutRef.current);
+        applyTimeoutRef.current = setTimeout(applyChanges, 50);
+        return () => clearTimeout(applyTimeoutRef.current);
+    }, [applyChanges]);
 
     // Draw waveform
     useEffect(() => {
@@ -124,23 +132,41 @@ export default function WaveformEditor({
             ctx.fillRect(w - trimEndPx, 0, trimEndPx, h);
         }
 
-        // Draw fade regions (warm orange tint)
+        // Draw fade regions (warm orange tint) + bell curve lines (matching arrangement view)
         if (fadeIn > 0) {
             const fadePx = (fadeIn / duration) * w;
             const grad = ctx.createLinearGradient(trimStartPx, 0, trimStartPx + fadePx, 0);
-            grad.addColorStop(0, isDark ? 'rgba(255,159,67,0.25)' : 'rgba(230,150,40,0.15)');
+            grad.addColorStop(0, isDark ? 'rgba(255,159,67,0.35)' : 'rgba(230,150,40,0.2)');
             grad.addColorStop(1, 'transparent');
             ctx.fillStyle = grad;
             ctx.fillRect(trimStartPx, 0, fadePx, h);
+            // Bell curve line
+            ctx.strokeStyle = isDark ? 'rgba(255,159,67,0.8)' : 'rgba(230,150,40,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(trimStartPx, h);
+            const fiCpX = trimStartPx + fadePx * 0.5;
+            const fiCpY = h * (0.5 - fadeInCurve * 0.5);
+            ctx.quadraticCurveTo(fiCpX, fiCpY, trimStartPx + fadePx, 0);
+            ctx.stroke();
         }
         if (fadeOut > 0) {
             const fadePx = (fadeOut / duration) * w;
             const fadeStart = w - trimEndPx - fadePx;
             const grad = ctx.createLinearGradient(fadeStart, 0, fadeStart + fadePx, 0);
             grad.addColorStop(0, 'transparent');
-            grad.addColorStop(1, isDark ? 'rgba(255,159,67,0.25)' : 'rgba(230,150,40,0.15)');
+            grad.addColorStop(1, isDark ? 'rgba(255,159,67,0.35)' : 'rgba(230,150,40,0.2)');
             ctx.fillStyle = grad;
             ctx.fillRect(fadeStart, 0, fadePx, h);
+            // Bell curve line
+            ctx.strokeStyle = isDark ? 'rgba(255,159,67,0.8)' : 'rgba(230,150,40,0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(fadeStart, 0);
+            const foCpX = fadeStart + fadePx * 0.5;
+            const foCpY = h * (0.5 - fadeOutCurve * 0.5);
+            ctx.quadraticCurveTo(foCpX, foCpY, w - trimEndPx, h);
+            ctx.stroke();
         }
 
         // Draw waveform (orange)
@@ -157,7 +183,7 @@ export default function WaveformEditor({
                 const abs = Math.abs(channelData[idx] || 0);
                 if (abs > max) max = abs;
             }
-            const barH = max * mid * 0.9;
+            const barH = max * mid * 0.9 * Math.min(gain, 2);
             if (barH < 0.5) continue;
             ctx.globalAlpha = 0.8;
             ctx.fillRect(px, mid - barH, 1, barH * 2);
@@ -170,9 +196,60 @@ export default function WaveformEditor({
         ctx.moveTo(0, mid);
         ctx.lineTo(w, mid);
         ctx.stroke();
-    }, [buffer, reversed, trimStart, trimEnd, fadeIn, fadeOut, duration, isDark, waveColor]);
+    }, [buffer, reversed, trimStart, trimEnd, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, duration, isDark, waveColor, gain]);
 
-    // Keyboard: ESC to close (capture phase so it fires before arrangement handler)
+    // Preview playback state
+    const previewRef = useRef(null);
+    const previewAnimRef = useRef(null);
+    const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+    const [previewPlayheadPos, setPreviewPlayheadPos] = useState(null);
+
+    const playPreview = useCallback(() => {
+        if (!sampler || !buffer) return;
+        // Stop any existing preview — source.stop() triggers onended cleanup
+        if (previewRef.current) {
+            try { previewRef.current.source?.stop(); } catch (_) {}
+            previewRef.current = null;
+        }
+        const rate = Math.pow(2, pitch / 12);
+        const result = sampler.playAudioClip(buffer, 'preview', 0, rate, trimStart, duration - trimStart - trimEnd);
+        previewRef.current = result;
+        setIsPreviewPlaying(true);
+
+        // Animate playhead
+        if (previewAnimRef.current) cancelAnimationFrame(previewAnimRef.current);
+        const startTime = performance.now();
+        const playDurMs = ((duration - trimStart - trimEnd) / rate) * 1000;
+        const animate = () => {
+            const elapsed = performance.now() - startTime;
+            const progress = Math.min(1, elapsed / playDurMs);
+            setPreviewPlayheadPos(progress);
+            if (progress < 1) {
+                previewAnimRef.current = requestAnimationFrame(animate);
+            } else {
+                setPreviewPlayheadPos(null);
+                setIsPreviewPlaying(false);
+                previewAnimRef.current = null;
+                previewRef.current = null;
+            }
+        };
+        previewAnimRef.current = requestAnimationFrame(animate);
+    }, [sampler, buffer, pitch, trimStart, trimEnd, duration]);
+
+    const stopPreview = useCallback(() => {
+        if (previewRef.current) {
+            try { previewRef.current.source?.stop(); } catch (_) {}
+            previewRef.current = null;
+        }
+        if (previewAnimRef.current) {
+            cancelAnimationFrame(previewAnimRef.current);
+            previewAnimRef.current = null;
+        }
+        setPreviewPlayheadPos(null);
+        setIsPreviewPlaying(false);
+    }, []);
+
+    // Keyboard: ESC to close, Space to toggle preview (capture phase)
     useEffect(() => {
         const handler = (e) => {
             if (e.key === 'Escape') {
@@ -181,13 +258,25 @@ export default function WaveformEditor({
                 if (showSlicer) {
                     setShowSlicer(false);
                 } else {
+                    stopPreview();
                     onClose();
+                }
+                return;
+            }
+            // Spacebar: toggle preview play/stop (works in both editor and slicer views)
+            if (e.key === ' ') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (isPreviewPlaying) {
+                    stopPreview();
+                } else {
+                    playPreview();
                 }
             }
         };
         window.addEventListener('keydown', handler, true);
         return () => window.removeEventListener('keydown', handler, true);
-    }, [onClose, showSlicer]);
+    }, [onClose, showSlicer, isPreviewPlaying, playPreview, stopPreview]);
 
     const sliderStyleId = 'waveform-editor-slider-styles';
     useEffect(() => {
@@ -303,6 +392,19 @@ export default function WaveformEditor({
         }
     }, [onLoadSlicedInstrument]);
 
+    // Slicer → arrangement: replace current clip or add separate clips
+    const handleSliceToArrangement = useCallback(({ buffers, names, mode }) => {
+        if (mode === 'replace' && buffers.length === 1 && onUpdate) {
+            // Replace current clip's buffer with the slice
+            onUpdate({ buffer: buffers[0], name: names[0] });
+            setShowSlicer(false);
+        } else if (onSliceToArrangement) {
+            // Send multiple clips to arrangement
+            onSliceToArrangement({ buffers, names, mode, trackId, afterClipId: clip.id });
+            setShowSlicer(false);
+        }
+    }, [onUpdate, onSliceToArrangement, trackId, clip.id]);
+
     // === Automation overlay data ===
     const effectiveTempo = tempo || globalTempo || 120;
     const secondsPerBar = (4 * 60) / effectiveTempo;
@@ -408,8 +510,10 @@ export default function WaveformEditor({
                     isDark={isDark}
                     onClose={() => setShowSlicer(false)}
                     onLoadToGenerator={handleSlicerLoad}
+                    onSendToArrangement={handleSliceToArrangement}
                     sampler={sampler}
                     globalTempo={globalTempo}
+                    trackId={trackId}
                 />
             </div>
         );
@@ -487,6 +591,16 @@ export default function WaveformEditor({
                 background: isDark ? '#080808' : '#fffcf7'
             }}>
                 <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+
+                {/* Preview playhead line */}
+                {previewPlayheadPos !== null && (
+                    <div style={{
+                        position: 'absolute', left: `${previewPlayheadPos * 100}%`, top: 0,
+                        width: '2px', height: '100%',
+                        background: '#fff', zIndex: 10, pointerEvents: 'none',
+                        boxShadow: '0 0 6px rgba(255,255,255,0.5)'
+                    }} />
+                )}
 
                 {/* Fade drag handle overlay */}
                 {duration > 0 && canvasWidth > 0 && (() => {
@@ -779,6 +893,14 @@ export default function WaveformEditor({
 
                 <div style={{ width: '1px', height: '40px', background: borderColor, flexShrink: 0 }} />
 
+                {/* Play/Stop preview button */}
+                <button onClick={isPreviewPlaying ? stopPreview : playPreview} style={{
+                    ...pillBtn(isPreviewPlaying, '#22c55e'),
+                    fontWeight: '900', display: 'flex', alignItems: 'center', gap: '4px'
+                }}>
+                    {isPreviewPlaying ? '■ STOP' : '▶ PLAY'}
+                </button>
+
                 {/* Slicer button */}
                 <button onClick={() => setShowSlicer(true)} style={pillBtn(false, acSec)}>
                     SLICER
@@ -786,9 +908,62 @@ export default function WaveformEditor({
 
                 <div style={{ width: '1px', height: '40px', background: borderColor, flexShrink: 0 }} />
 
-                <SliderControl label="PITCH" value={pitch} min={-12} max={12} step={1} unit=" st" onChange={setPitch} />
-                <SliderControl label="TRIM START" value={trimStart} min={0} max={Math.max(0.01, duration * 0.9)} step={0.01} unit="s" onChange={setTrimStart} />
-                <SliderControl label="TRIM END" value={trimEnd} min={0} max={Math.max(0.01, duration * 0.9)} step={0.01} unit="s" onChange={setTrimEnd} />
+                {/* Gain fader — vertical */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', minWidth: '50px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '700', color: mutedText, letterSpacing: '0.5px' }}>GAIN</span>
+                    <input
+                        type="range" min={0} max={2} step={0.01} value={gain}
+                        onChange={(e) => setGain(parseFloat(e.target.value))}
+                        className={`wf-slider ${isDark ? 'dark-slider' : 'light-slider'}`}
+                        style={{ writingMode: 'vertical-lr', direction: 'rtl', height: '60px', width: '6px' }}
+                    />
+                    <span style={{ fontSize: '9px', fontWeight: '600', color: accentColor }}>
+                        {gain === 0 ? '-∞' : `${(20 * Math.log10(gain)).toFixed(1)}`} dB
+                    </span>
+                </div>
+
+                <div style={{ width: '1px', height: '40px', background: borderColor, flexShrink: 0 }} />
+
+                {/* Pitch knob — rotary style */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', minWidth: '60px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '700', color: mutedText, letterSpacing: '0.5px' }}>PITCH</span>
+                    <div
+                        style={{
+                            width: '36px', height: '36px', borderRadius: '50%',
+                            background: isDark ? 'rgba(255,255,255,0.04)' : '#ece6de',
+                            border: `2px solid ${isDark ? 'rgba(255,159,67,0.3)' : 'rgba(200,160,80,0.4)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'ns-resize', position: 'relative', userSelect: 'none'
+                        }}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            const startY = e.clientY;
+                            const startPitch = pitch;
+                            const onMove = (ev) => {
+                                const dy = startY - ev.clientY;
+                                const newPitch = Math.round(Math.max(-12, Math.min(12, startPitch + dy / 8)));
+                                setPitch(newPitch);
+                            };
+                            const onUp = () => {
+                                document.removeEventListener('mousemove', onMove);
+                                document.removeEventListener('mouseup', onUp);
+                            };
+                            document.addEventListener('mousemove', onMove);
+                            document.addEventListener('mouseup', onUp);
+                        }}
+                        onDoubleClick={() => setPitch(0)}
+                    >
+                        <div style={{
+                            width: '2px', height: '14px', background: accentColor,
+                            borderRadius: '1px', transformOrigin: 'bottom center',
+                            transform: `rotate(${pitch * 12}deg)`,
+                            position: 'absolute', top: '4px'
+                        }} />
+                    </div>
+                    <span style={{ fontSize: '9px', fontWeight: '600', color: accentColor }}>
+                        {pitch > 0 ? '+' : ''}{pitch} st
+                    </span>
+                </div>
             </div>
         </div>
     );

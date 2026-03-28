@@ -64,7 +64,10 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     const [expandedFolders, setExpandedFolders] = useState({});
     const [folderFiles, setFolderFiles] = useState({}); // Map folderName -> files[]
     // Expose folderFiles globally so arrangement bounce can search for matching MIDI
-    useEffect(() => { window.__wavloomFolderFiles = folderFiles; }, [folderFiles]);
+    useEffect(() => {
+        window.__wavloomFolderFiles = folderFiles;
+        return () => { window.__wavloomFolderFiles = null; };
+    }, [folderFiles]);
     const [searchQuery, setSearchQuery] = useState('');
     const [contextMenu, setContextMenu] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -104,7 +107,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     const [selectedVst3PluginUid, setSelectedVst3PluginUid] = useState(null);
 
     // ===== Built-in Audio Effects Browser State =====
-    const [builtinSections, setBuiltinSections] = useState({ audioEffects: true, midiEffects: false });
+    const [builtinSections, setBuiltinSections] = useState({ audioEffects: false, midiEffects: false });
     const [builtinCatExpanded, setBuiltinCatExpanded] = useState({});
 
     const toggleBuiltinSection = useCallback((key) => {
@@ -952,47 +955,30 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
             countFiles(manifest.folders || []);
             setFactoryLoadProgress({ loaded: 0, total: totalFiles, currentFile: '', status: t('browser.loadingSamples') });
 
-            // Get or create AudioContext
-            let audioCtx;
-            if (window.audioEngine && window.audioEngine.audioContext) {
-                audioCtx = window.audioEngine.audioContext;
-            } else {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-
             let loaded = 0;
 
-            // Build folder tree with decoded audio
-            const buildTree = async (manifestFolders, basePath) => {
+            // Build folder tree with metadata only (audio decoded lazily on first use)
+            const buildTree = (manifestFolders, basePath) => {
                 const result = [];
                 for (const folder of manifestFolders) {
                     const folderPath = `${basePath}/${folder.name}`;
                     const files = [];
                     for (const fileName of (folder.files || [])) {
                         const filePath = `${folderPath}/${fileName}`;
-                        setFactoryLoadProgress(prev => ({ ...prev, currentFile: fileName }));
-                        try {
-                            const audioRes = await fetch(filePath);
-                            if (audioRes.ok) {
-                                const arrayBuf = await audioRes.arrayBuffer();
-                                const audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
-                                files.push({
-                                    name: fileName,
-                                    path: filePath,
-                                    kind: 'file',
-                                    type: 'audio',
-                                    audioBuffer,
-                                    isFactory: true
-                                });
-                            }
-                        } catch (e) {
-                            console.warn('[Factory] Failed to load:', filePath, e);
-                        }
+                        files.push({
+                            name: fileName,
+                            path: filePath,
+                            kind: 'file',
+                            type: 'audio',
+                            audioBuffer: null, // decoded lazily on first click/use
+                            _audioUrl: filePath,
+                            isFactory: true
+                        });
                         loaded++;
-                        setFactoryLoadProgress(prev => ({ ...prev, loaded, status: t('browser.loadingSamplesProgress', { loaded, total: totalFiles }) }));
                     }
+                    setFactoryLoadProgress(prev => ({ ...prev, loaded, status: t('browser.loadingSamplesProgress', { loaded, total: totalFiles }) }));
 
-                    const children = folder.children ? await buildTree(folder.children, folderPath) : [];
+                    const children = folder.children ? buildTree(folder.children, folderPath) : [];
                     result.push({
                         name: folder.name,
                         path: folderPath,
@@ -1004,7 +990,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                 return result;
             };
 
-            const tree = await buildTree(manifest.folders || [], '/Factory Library');
+            const tree = buildTree(manifest.folders || [], '/Factory Library');
             setFactoryFolders(tree);
             window.factoryFolders = tree; // Expose for drum slot randomize
             setFactoryLoaded(true);
@@ -1020,7 +1006,22 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     // Handle clicking a factory file
     const handleFactoryFileClick = async (item) => {
         if (onFileSelect) onFileSelect(item);
-        if (!item.audioBuffer || !window.audioEngine) return;
+        if (!window.audioEngine) return;
+
+        // Lazy-decode factory audio on first use
+        if (!item.audioBuffer && item._audioUrl) {
+            try {
+                const audioCtx = window.audioEngine.audioContext;
+                const res = await fetch(item._audioUrl);
+                if (!res.ok) return;
+                const arrayBuf = await res.arrayBuffer();
+                item.audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
+            } catch (e) {
+                console.warn('[Factory] Lazy decode failed:', item._audioUrl, e);
+                return;
+            }
+        }
+        if (!item.audioBuffer) return;
 
         // Stop generator playback so explorer audio takes over instantly
         if (onStopGeneratorPlayback) onStopGeneratorPlayback();
@@ -1389,7 +1390,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     nativeFolders.forEach(folder => {
                         if (!scannedFolders.current.has(folder.name)) {
                             scannedFolders.current.add(folder.name);
-                            performScan(folder, { silent: true, autoExpand: true });
+                            performScan(folder, { silent: true, autoExpand: false });
                         }
                     });
                     return; // Skip IndexedDB if we have native folders
@@ -1407,7 +1408,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                 f.forEach(folder => {
                     if (!scannedFolders.current.has(folder.name)) {
                         scannedFolders.current.add(folder.name);
-                        performScan(folder, { silent: true, autoExpand: true });
+                        performScan(folder, { silent: true, autoExpand: false });
                     }
                 });
             } catch (e) {
@@ -1758,6 +1759,9 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         stopAllPreviewAudio();
         setIsPlaying(false);
         setIsMidiPlaying(false);
+        // Select/highlight the dragged file in the browser
+        if (onFileSelect) onFileSelect(item);
+        setPreviewItem(item);
 
         // item: { name, type, kind, handle, ... }
         e.dataTransfer.setData("application/json", JSON.stringify({
@@ -1766,7 +1770,97 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
             type: item.type
         }));
         e.dataTransfer.effectAllowed = "copy";
-        window.draggedItem = item; // Store actual object including handle for drop handlers
+        // Hide native drag text — use a tiny transparent element so only the timeline ghost shows
+        const ghostEl = document.createElement('div');
+        ghostEl.style.cssText = 'width:1px;height:1px;opacity:0;position:fixed;top:-100px;';
+        document.body.appendChild(ghostEl);
+        e.dataTransfer.setDragImage(ghostEl, 0, 0);
+        requestAnimationFrame(() => document.body.removeChild(ghostEl));
+        // Attach decoded audio/MIDI data if available (from preview playback) for ghost sizing
+        const dragItem = { ...item };
+        // Attach MIDI preview data if this was the previewed file
+        if (item.midiNotes && item.midiNotes.length > 0 && /\.midi?$/i.test(item.name)) {
+            const parser = new MIDIParser();
+            const stepNotes = parser.convertToStepFormat(item.midiNotes);
+            if (stepNotes.length > 0) {
+                const maxStep = Math.max(...stepNotes.map(n => n.time + (n.duration || 1)));
+                const bars = Math.max(1, Math.ceil(maxStep / 32));
+                dragItem.midiPattern = stepNotes;
+                dragItem.midiBars = bars;
+                const noteMin = Math.min(...stepNotes.map(n => n.note));
+                const noteMax = Math.max(...stepNotes.map(n => n.note));
+                const nRange = Math.max(1, noteMax - noteMin + 1);
+                const totalSteps = bars * 32;
+                const rects = stepNotes.map(n => {
+                    const x = (n.time / totalSteps) * 100;
+                    const w = Math.max(0.3, ((n.duration || 1) / totalSteps) * 100);
+                    const y = ((noteMax - n.note) / nRange) * 100;
+                    const h = Math.max(1, (1 / nRange) * 100);
+                    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#70a1ff" opacity="0.8" rx="0.2"/>`;
+                }).join('');
+                dragItem.midiGhostSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
+            }
+        }
+        if (previewBuffer && previewItem && previewItem.name === item.name && previewItem.path === item.path) {
+            dragItem.audioBuffer = previewBuffer;
+        }
+        window.draggedItem = dragItem;
+
+        // Eagerly decode audio for ghost waveform if not already decoded
+        if (!dragItem.audioBuffer && /\.(wav|mp3|ogg|flac|aac|webm|m4a)$/i.test(item.name)) {
+            (async () => {
+                try {
+                    const file = await getFileFromItem(item);
+                    if (!file || window.draggedItem !== dragItem) return;
+                    const ctx = window.audioEngine?.audioContext || new (window.AudioContext || window.webkitAudioContext)();
+                    const arrayBuf = await file.arrayBuffer();
+                    const buf = await ctx.decodeAudioData(arrayBuf);
+                    if (window.draggedItem === dragItem) {
+                        dragItem.audioBuffer = buf;
+                    }
+                } catch (_) { /* ignore decode errors */ }
+            })();
+        }
+
+        // Eagerly parse MIDI for ghost sizing and pattern SVG
+        if (/\.midi?$/i.test(item.name)) {
+            (async () => {
+                try {
+                    const file = await getFileFromItem(item);
+                    if (!file || window.draggedItem !== dragItem) return;
+                    const arrayBuf = await file.arrayBuffer();
+                    const parser = new MIDIParser();
+                    const midiData = await parser.parseMIDIFile(arrayBuf);
+                    if (midiData?.tracks?.length > 0 && window.draggedItem === dragItem) {
+                        const allNotes = [];
+                        midiData.tracks.forEach(track => {
+                            const notes = parser.eventsToNotes(track.events);
+                            allNotes.push(...notes);
+                        });
+                        const stepNotes = parser.convertToStepFormat(allNotes);
+                        if (stepNotes.length > 0) {
+                            const maxStep = Math.max(...stepNotes.map(n => n.time + (n.duration || 1)));
+                            const bars = Math.max(1, Math.ceil(maxStep / 32));
+                            dragItem.midiPattern = stepNotes;
+                            dragItem.midiBars = bars;
+                            // Build pattern SVG for ghost preview
+                            const noteMin = Math.min(...stepNotes.map(n => n.note));
+                            const noteMax = Math.max(...stepNotes.map(n => n.note));
+                            const nRange = Math.max(1, noteMax - noteMin + 1);
+                            const totalSteps = bars * 32;
+                            const rects = stepNotes.map(n => {
+                                const x = (n.time / totalSteps) * 100;
+                                const w = Math.max(0.3, ((n.duration || 1) / totalSteps) * 100);
+                                const y = ((noteMax - n.note) / nRange) * 100;
+                                const h = Math.max(1, (1 / nRange) * 100);
+                                return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#70a1ff" opacity="0.8" rx="0.2"/>`;
+                            }).join('');
+                            dragItem.midiGhostSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
+                        }
+                    }
+                } catch (_) { /* ignore parse errors */ }
+            })();
+        }
     };
 
     // Filter Logic
@@ -3710,6 +3804,18 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                         if (window.electronAPI.folders.unwatch) {
                                             window.electronAPI.folders.unwatch(contextMenu.item.nativePath);
                                         }
+                                    }
+                                    // Release cached audio buffers for files in the removed folder
+                                    const removedFiles = folderFiles[contextMenu.item.name];
+                                    if (removedFiles && window.audioEngine) {
+                                        const clearBufs = (items) => {
+                                            if (!items) return;
+                                            (Array.isArray(items) ? items : [items]).forEach(item => {
+                                                if (item.name) window.audioEngine.clearBuffer(item.name);
+                                                if (item.children) clearBufs(item.children);
+                                            });
+                                        };
+                                        clearBufs(removedFiles);
                                     }
                                     setFolders(prev => prev.filter(f => f.name !== contextMenu.item.name));
                                     setFolderFiles(prev => {

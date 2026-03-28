@@ -41,8 +41,12 @@ export default function SampleSlicerEditor({
     isDark = true,
     onClose,
     onLoadToGenerator,
+    onSendToArrangement,  // ({ buffers: AudioBuffer[], names: string[], mode: 'replace'|'separate'|'joined' }) => void
     sampler,
-    globalTempo, accentColors}) {
+    globalTempo, accentColors, trackId}) {
+    // Use the actual track bus for playback (same path as arrangement)
+    // Always use 'preview' bus for slicer — simpler audio graph, gain=1.0
+    const playbackTrackId = 'preview';
     const ac = accentColors?.accent || '#ff6b6b';
     const acSec = accentColors?.secondary || '#ff9f43';
     const acGrad = accentColors?.gradient || 'linear-gradient(135deg, #ff6b6b, #ff9f43)';
@@ -50,15 +54,21 @@ export default function SampleSlicerEditor({
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
 
+    // Default keyboard keys mapped to slice indices
+    const DEFAULT_SLICE_KEYS = ['a', 's', 'd', 'f', 'j', 'k', 'l', ';'];
+
     // Slicer state
     const [sliceCount, setSliceCount] = useState(8);
     const [sliceMethod, setSliceMethod] = useState('equal'); // 'equal' | 'transient'
     const [sliceRootNote, setSliceRootNote] = useState(48); // C3
-    const [selectedSlice, setSelectedSlice] = useState(null);
+    const [selectedSlice, setSelectedSlice] = useState(null); // last clicked slice for audition highlight
+    const [selectedSlices, setSelectedSlices] = useState(new Set()); // multi-select for export
     const [perSliceSettings, setPerSliceSettings] = useState([]);
     const [playingSlice, setPlayingSlice] = useState(null);
     const [draggingBoundary, setDraggingBoundary] = useState(null);
     const [customBoundaries, setCustomBoundaries] = useState(null); // null = auto-computed
+    const [selectedBoundaryIdx, setSelectedBoundaryIdx] = useState(null); // which boundary line is selected
+    const [sliceKeyMap, setSliceKeyMap] = useState(() => [...DEFAULT_SLICE_KEYS]); // per-slice key assignments
 
     const duration = buffer ? buffer.duration : 0;
 
@@ -146,11 +156,14 @@ export default function SampleSlicerEditor({
             const x1 = (slice.start / duration) * w;
             const x2 = (slice.end / duration) * w;
             const isSelected = selectedSlice === i;
+            const isMultiSelected = selectedSlices.has(i);
             const isPlaying = playingSlice === i;
 
             let fillColor = SLICE_COLORS[i % SLICE_COLORS.length];
             if (isPlaying) {
                 fillColor = isDark ? 'rgba(77,171,247,0.25)' : 'rgba(77,171,247,0.20)';
+            } else if (isMultiSelected) {
+                fillColor = isDark ? 'rgba(46,204,113,0.22)' : 'rgba(39,174,96,0.18)';
             } else if (isSelected) {
                 fillColor = isDark ? 'rgba(77,171,247,0.18)' : 'rgba(77,171,247,0.15)';
             }
@@ -168,15 +181,25 @@ export default function SampleSlicerEditor({
             ctx.fillStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)';
             ctx.font = '8px monospace';
             ctx.fillText(midiToName(sliceRootNote + i), labelX, 26);
+
+            // Keyboard key label
+            if (sliceKeyMap[i]) {
+                ctx.fillStyle = isDark ? 'rgba(77,171,247,0.6)' : 'rgba(50,120,200,0.5)';
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText(sliceKeyMap[i].toUpperCase(), labelX, h - 8);
+            }
         });
 
-        // Draw boundary lines (dashed)
+        // Draw boundary lines (dashed, selected = highlighted)
         sliceBoundaries.forEach((slice, i) => {
             if (i === 0) return; // skip first start
             const x = (slice.start / duration) * w;
-            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)';
-            ctx.setLineDash([4, 3]);
-            ctx.lineWidth = 1;
+            const isSelected = selectedBoundaryIdx === i;
+            ctx.strokeStyle = isSelected
+                ? (isDark ? '#ff6b6b' : '#e04040')
+                : (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)');
+            ctx.setLineDash(isSelected ? [] : [4, 3]);
+            ctx.lineWidth = isSelected ? 2.5 : 1;
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, h);
@@ -210,74 +233,250 @@ export default function SampleSlicerEditor({
         ctx.moveTo(0, mid);
         ctx.lineTo(w, mid);
         ctx.stroke();
-    }, [buffer, sliceBoundaries, selectedSlice, playingSlice, duration, isDark, sliceRootNote]);
+    }, [buffer, sliceBoundaries, selectedSlice, selectedSlices, playingSlice, duration, isDark, sliceRootNote, selectedBoundaryIdx, sliceKeyMap]);
 
-    // Click waveform to audition slice
+    // Track active preview source for clean stop
+    const activePreviewRef = useRef(null);
+
+    // Playhead position state (0-1 within the full waveform)
+    const [playheadPos, setPlayheadPos] = useState(null);
+    const playheadAnimRef = useRef(null);
+
+    // Reusable slice playback function — uses sampler's AudioContext to avoid glitches
+    const playSliceByIndex = useCallback(async (idx) => {
+        if (idx < 0 || idx >= sliceBoundaries.length || !sampler || !buffer) return;
+        const _sl = sliceBoundaries[idx];
+        console.log(`[Slicer] playSlice idx=${idx}, range=${_sl.start.toFixed(3)}→${_sl.end.toFixed(3)}s (${(_sl.end - _sl.start).toFixed(3)}s), ctxState=${sampler.audioContext?.state}, _audioActive=${sampler._audioActive}, _audioClipsPlaying=${sampler._audioClipsPlaying}, hotSwapInterval=${!!sampler._resetInterval}`);
+        // Context should already be running (kept alive on mount)
+        if (sampler.audioContext?.state === 'suspended') {
+            await sampler.audioContext.resume();
+        }
+        setSelectedSlice(idx);
+        setPlayingSlice(idx);
+
+        // Stop previous preview immediately but cleanly
+        if (activePreviewRef.current) {
+            try {
+                const prev = activePreviewRef.current;
+                const pCtx = prev.source?.context;
+                if (pCtx && pCtx.state !== 'closed') {
+                    const now = pCtx.currentTime;
+                    // Immediate zero-crossing fade (3ms) — fast enough for percussion
+                    if (prev.gainNode) {
+                        prev.gainNode.gain.cancelScheduledValues(now);
+                        prev.gainNode.gain.setValueAtTime(prev.gainNode.gain.value, now);
+                        prev.gainNode.gain.linearRampToValueAtTime(0, now + 0.003);
+                    }
+                    prev.source.stop(now + 0.005);
+                } else {
+                    prev.source?.stop();
+                }
+            } catch (_) {}
+            activePreviewRef.current = null;
+        }
+
+        const slice = sliceBoundaries[idx];
+        const sliceSettings = perSliceSettings[idx] || {};
+        const sliceDur = slice.end - slice.start;
+        const pitchRate = Math.pow(2, (sliceSettings.pitch || 0) / 12);
+
+        // Use SAME playback path as arrangement view: sampler.playAudioClip()
+        // Play on dedicated slicer AudioContext (shared context is suspended)
+        const ctx = slicerCtxRef.current;
+        if (!ctx || ctx.state === 'closed') return;
+        if (ctx.state === 'suspended') await ctx.resume();
+        const source = ctx.createBufferSource();
+        const gainNode = ctx.createGain();
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        gainNode.gain.setValueAtTime(1, ctx.currentTime);
+        if (sliceSettings.reversed) {
+            const sampleRate = buffer.sampleRate;
+            const startFrame = Math.floor(slice.start * sampleRate);
+            const endFrame = Math.floor(slice.end * sampleRate);
+            const frameCount = endFrame - startFrame;
+            if (frameCount > 0) {
+                const subBuf = ctx.createBuffer(buffer.numberOfChannels, frameCount, sampleRate);
+                for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                    const srcData = buffer.getChannelData(ch);
+                    const dst = subBuf.getChannelData(ch);
+                    for (let j = 0; j < frameCount; j++) dst[j] = srcData[endFrame - 1 - j];
+                }
+                source.buffer = subBuf;
+                source.playbackRate.value = pitchRate;
+                source.start(0);
+            }
+        } else {
+            source.buffer = buffer;
+            source.playbackRate.value = pitchRate;
+            source.start(0, slice.start, sliceDur);
+        }
+        source.onended = () => { try { source.disconnect(); gainNode.disconnect(); } catch(_){} };
+        activePreviewRef.current = { source, gainNode };
+        console.log(`[Slicer] Slice ${idx} playback started, result:`, activePreviewRef.current ? 'OK' : 'NULL');
+        // Animate playhead across the slice
+        // Animate playhead using DOM directly (no React state updates = no re-renders = no audio stutter)
+        if (playheadAnimRef.current) cancelAnimationFrame(playheadAnimRef.current);
+        const animStartTime = performance.now();
+        const playDurMs = (sliceDur / pitchRate) * 1000;
+        const animatePlayhead = () => {
+            // Mimic arrangement tick loop: read audioContext.currentTime every frame
+            // AND do enough work to prevent Windows from deprioritizing the process.
+            // Without this, Realtek WASAPI drops audio buffers when the process is "idle".
+            const ctx = sampler?.audioContext;
+            if (ctx) {
+                if (ctx.state !== 'running') ctx.resume();
+                // Force audio clock sync — read currentTime to keep audio thread engaged
+                const t = ctx.currentTime;
+                // Tiny busy-work to keep process priority high (prevents OS throttling)
+                let x = 0; for (let i = 0; i < 100; i++) x += Math.sin(t + i);
+                void x;
+            }
+            const elapsed = performance.now() - animStartTime;
+            const progress = Math.min(1, elapsed / playDurMs);
+            const pos = (slice.start + progress * (slice.end - slice.start)) / duration;
+            const el = document.getElementById('slicer-playhead');
+            if (el) el.style.left = `${pos * 100}%`;
+            if (progress < 1) {
+                playheadAnimRef.current = requestAnimationFrame(animatePlayhead);
+            } else {
+                if (el) el.style.display = 'none';
+                playheadAnimRef.current = null;
+            }
+        };
+        const el = document.getElementById('slicer-playhead');
+        if (el) { el.style.display = 'block'; el.style.left = '0%'; }
+        playheadAnimRef.current = requestAnimationFrame(animatePlayhead);
+
+        setTimeout(() => {
+            console.log(`[Slicer] Slice ${idx} playback timeout — cleaning up`);
+            setPlayingSlice(null); activePreviewRef.current = null;
+        }, playDurMs + 150);
+    }, [buffer, sliceBoundaries, perSliceSettings, sampler, duration]);
+
+    // Play the entire audio clip from start to end
+    const playFullClip = useCallback(async () => {
+        if (!sampler || !buffer) return;
+        console.log(`[Slicer] playFullClip duration=${duration?.toFixed(3)}s, bufDur=${buffer.duration?.toFixed(3)}s, ctxState=${sampler.audioContext?.state}, _audioActive=${sampler._audioActive}, _audioClipsPlaying=${sampler._audioClipsPlaying}, hotSwapInterval=${!!sampler._resetInterval}`);
+        // Context should already be running (kept alive on mount)
+        if (sampler.audioContext?.state === 'suspended') {
+            await sampler.audioContext.resume();
+        }
+        // Stop previous with anti-click fade
+        if (activePreviewRef.current) {
+            try {
+                const prev = activePreviewRef.current;
+                const pCtx = prev.source?.context;
+                if (pCtx && pCtx.state !== 'closed' && prev.gainNode) {
+                    const now = pCtx.currentTime;
+                    prev.gainNode.gain.setValueAtTime(prev.gainNode.gain.value, now);
+                    prev.gainNode.gain.linearRampToValueAtTime(0, now + 0.01);
+                    prev.source.stop(now + 0.02);
+                } else {
+                    prev.source?.stop();
+                }
+            } catch (_) {}
+            activePreviewRef.current = null;
+        }
+        // Use SAME playback path as arrangement view: sampler.playAudioClip()
+        // Play on dedicated slicer AudioContext
+        const ctx = slicerCtxRef.current;
+        if (!ctx || ctx.state === 'closed') return;
+        if (ctx.state === 'suspended') await ctx.resume();
+        const source = ctx.createBufferSource();
+        const gainNode = ctx.createGain();
+        source.buffer = buffer;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        gainNode.gain.setValueAtTime(1, ctx.currentTime);
+        source.start(0);
+        source.onended = () => {
+            try { source.disconnect(); gainNode.disconnect(); } catch(_){}
+            setPlayingSlice(null);
+        };
+        activePreviewRef.current = { source, gainNode };
+        setPlayingSlice(-1); // -1 = full clip
+
+        // Animate playhead using DOM directly (no React re-renders)
+        if (playheadAnimRef.current) cancelAnimationFrame(playheadAnimRef.current);
+        const animStartTime = performance.now();
+        const playDurMs = duration * 1000;
+        const animatePlayhead = () => {
+            const ctx = sampler?.audioContext;
+            if (ctx) {
+                if (ctx.state !== 'running') ctx.resume();
+                const t = ctx.currentTime;
+                let x = 0; for (let i = 0; i < 100; i++) x += Math.sin(t + i);
+                void x;
+            }
+            const elapsed = performance.now() - animStartTime;
+            const progress = Math.min(1, elapsed / playDurMs);
+            const el = document.getElementById('slicer-playhead');
+            if (el) el.style.left = `${progress * 100}%`;
+            if (progress < 1) {
+                playheadAnimRef.current = requestAnimationFrame(animatePlayhead);
+            } else {
+                if (el) el.style.display = 'none';
+                playheadAnimRef.current = null;
+            }
+        };
+        const phEl = document.getElementById('slicer-playhead');
+        if (phEl) { phEl.style.display = 'block'; phEl.style.left = '0%'; }
+        playheadAnimRef.current = requestAnimationFrame(animatePlayhead);
+        setTimeout(() => {
+            setPlayingSlice(null); activePreviewRef.current = null;
+            // Release AudioContext after playback finishes
+            if (window.__samplerRef?.setAudioActive) window.__samplerRef.setAudioActive(false);
+            if (window.__samplerRef?._scheduleIdleSuspend) window.__samplerRef._scheduleIdleSuspend();
+        }, playDurMs + 150);
+    }, [buffer, sampler, duration]);
+
+    // Click waveform to audition slice; Ctrl+click to toggle multi-select
     const handleCanvasClick = useCallback((e) => {
         if (!buffer || !containerRef.current || draggingBoundary !== null) return;
         const rect = containerRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const time = (x / rect.width) * duration;
 
-        // Find which slice was clicked
         const idx = sliceBoundaries.findIndex(s => time >= s.start && time < s.end);
         if (idx === -1) return;
 
-        setSelectedSlice(idx);
-
-        // Audition the slice
-        if (sampler && buffer) {
-            setPlayingSlice(idx);
-            const slice = sliceBoundaries[idx];
-            const sliceSettings = perSliceSettings[idx] || {};
-            const sliceDur = slice.end - slice.start;
-
-            // Use playAudioClip for preview
-            const pitchRate = Math.pow(2, (sliceSettings.pitch || 0) / 12);
-
-            if (sliceSettings.reversed) {
-                // Create reversed sub-buffer for preview
-                const sampleRate = buffer.sampleRate;
-                const startFrame = Math.floor(slice.start * sampleRate);
-                const endFrame = Math.floor(slice.end * sampleRate);
-                const frameCount = endFrame - startFrame;
-                if (frameCount > 0) {
-                    const subBuf = new AudioContext().createBuffer(
-                        buffer.numberOfChannels, frameCount, sampleRate
-                    );
-                    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
-                        const src = buffer.getChannelData(ch);
-                        const dst = subBuf.getChannelData(ch);
-                        for (let j = 0; j < frameCount; j++) {
-                            dst[j] = src[endFrame - 1 - j];
-                        }
-                    }
-                    sampler.playAudioClip(subBuf, 'preview', 0, pitchRate, 0, 0);
-                }
-            } else {
-                sampler.playAudioClip(buffer, 'preview', 0, pitchRate, slice.start, sliceDur);
-            }
-
-            setTimeout(() => setPlayingSlice(null), sliceDur * 1000 + 100);
+        if (e.ctrlKey || e.metaKey) {
+            // Toggle multi-select
+            setSelectedSlices(prev => {
+                const next = new Set(prev);
+                if (next.has(idx)) next.delete(idx);
+                else next.add(idx);
+                return next;
+            });
+        } else {
+            setSelectedSlices(new Set([idx]));
         }
-    }, [buffer, duration, sliceBoundaries, perSliceSettings, sampler, draggingBoundary]);
+        playSliceByIndex(idx);
+    }, [buffer, duration, sliceBoundaries, perSliceSettings, sampler, draggingBoundary, playSliceByIndex]);
 
-    // Drag boundary handlers
+    // Drag boundary handlers + select boundary on click
     const handleCanvasMouseDown = useCallback((e) => {
         if (!containerRef.current || !buffer) return;
         const rect = containerRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const time = (x / rect.width) * duration;
-        const threshold = duration * 0.01; // 1% of duration as grab zone
+        const threshold = duration * 0.015; // 1.5% of duration as grab zone
 
         // Check if near a boundary (skip first=0 and last=duration)
         for (let i = 1; i < sliceBoundaries.length; i++) {
             if (Math.abs(sliceBoundaries[i].start - time) < threshold) {
-                setDraggingBoundary(i);
-                e.preventDefault();
+                if (e.button === 0) {
+                    // Left-click: select + start drag
+                    setSelectedBoundaryIdx(i);
+                    setDraggingBoundary(i);
+                    e.preventDefault();
+                }
                 return;
             }
         }
+        // Clicked away from any boundary — deselect
+        setSelectedBoundaryIdx(null);
     }, [buffer, duration, sliceBoundaries]);
 
     const handleCanvasMouseMove = useCallback((e) => {
@@ -318,6 +517,168 @@ export default function SampleSlicerEditor({
         }
     }, [draggingBoundary]);
 
+    // Double-click waveform to add a new slice point
+    const handleCanvasDoubleClick = useCallback((e) => {
+        if (!containerRef.current || !buffer) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const time = (x / rect.width) * duration;
+        if (time < 0.02 || time > duration - 0.02) return; // too close to edges
+
+        // Prompt for a key assignment
+        const usedKeys = sliceKeyMap.filter(Boolean);
+        const newKey = window.prompt(
+            `Assign a keyboard key for this slice point.\nAlready used: ${usedKeys.map(k => k.toUpperCase()).join(', ')}`,
+            ''
+        );
+        if (!newKey || newKey.length !== 1) return;
+        const keyLower = newKey.toLowerCase();
+        if (usedKeys.includes(keyLower)) {
+            window.alert(`Key "${newKey.toUpperCase()}" is already assigned to another slice.`);
+            return;
+        }
+
+        // Find which existing slice this time falls into and split it
+        setCustomBoundaries(prev => {
+            const bounds = prev || [...sliceBoundaries];
+            const splitIdx = bounds.findIndex(s => time > s.start && time < s.end);
+            if (splitIdx === -1) return bounds;
+            const original = bounds[splitIdx];
+            const newBounds = [...bounds];
+            newBounds.splice(splitIdx, 1,
+                { start: original.start, end: time },
+                { start: time, end: original.end }
+            );
+            return newBounds;
+        });
+
+        // Update slice count and key map
+        setSliceCount(prev => prev + 1);
+        setSliceKeyMap(prev => {
+            const splitIdx = sliceBoundaries.findIndex(s => time > s.start && time < s.end);
+            const newMap = [...prev];
+            // Insert the new key after the split slice
+            newMap.splice(splitIdx + 1, 0, keyLower);
+            return newMap;
+        });
+        setPerSliceSettings(prev => {
+            const splitIdx = sliceBoundaries.findIndex(s => time > s.start && time < s.end);
+            const newSettings = [...prev];
+            newSettings.splice(splitIdx + 1, 0, { reversed: false, pitch: 0 });
+            return newSettings;
+        });
+    }, [buffer, duration, sliceBoundaries, sliceKeyMap]);
+
+    // Right-click on a boundary line to remove that slice point
+    const handleCanvasContextMenu = useCallback((e) => {
+        e.preventDefault();
+        if (!containerRef.current || !buffer) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const time = (x / rect.width) * duration;
+        const threshold = duration * 0.015;
+
+        // Find nearest boundary (skip first=0 and last=duration)
+        let nearIdx = -1;
+        for (let i = 1; i < sliceBoundaries.length; i++) {
+            if (Math.abs(sliceBoundaries[i].start - time) < threshold) {
+                nearIdx = i;
+                break;
+            }
+        }
+        if (nearIdx === -1) return;
+        if (sliceBoundaries.length <= 2) return; // need at least 2 slices
+
+        // Merge slice[nearIdx-1] and slice[nearIdx] by removing boundary
+        setCustomBoundaries(prev => {
+            const bounds = prev || [...sliceBoundaries];
+            const newBounds = [...bounds];
+            const merged = { start: newBounds[nearIdx - 1].start, end: newBounds[nearIdx].end };
+            newBounds.splice(nearIdx - 1, 2, merged);
+            return newBounds;
+        });
+        setSliceCount(prev => Math.max(1, prev - 1));
+        setSliceKeyMap(prev => {
+            const newMap = [...prev];
+            newMap.splice(nearIdx, 1);
+            return newMap;
+        });
+        setPerSliceSettings(prev => {
+            const newSettings = [...prev];
+            newSettings.splice(nearIdx, 1);
+            return newSettings;
+        });
+        setSelectedBoundaryIdx(null);
+    }, [buffer, duration, sliceBoundaries]);
+
+    // Create an AudioBuffer from a slice range, optionally reversed
+    const createSliceBuffer = useCallback((slice, reversed = false) => {
+        if (!buffer) return null;
+        const sr = buffer.sampleRate;
+        const startFrame = Math.floor(slice.start * sr);
+        const endFrame = Math.min(Math.floor(slice.end * sr), buffer.length);
+        const frameCount = endFrame - startFrame;
+        if (frameCount <= 0) return null;
+        const ctx = new OfflineAudioContext(buffer.numberOfChannels, frameCount, sr);
+        const subBuf = ctx.createBuffer(buffer.numberOfChannels, frameCount, sr);
+        for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+            const src = buffer.getChannelData(ch);
+            const dst = subBuf.getChannelData(ch);
+            for (let j = 0; j < frameCount; j++) {
+                dst[j] = reversed ? src[endFrame - 1 - j] : src[startFrame + j];
+            }
+        }
+        return subBuf;
+    }, [buffer]);
+
+    // Send selected slices to arrangement
+    const handleSendToArrangement = useCallback((mode) => {
+        // mode: 'replace' (single/joined), 'separate'
+        if (!onSendToArrangement || !buffer || selectedSlices.size === 0) return;
+        const indices = [...selectedSlices].sort((a, b) => a - b);
+
+        if (mode === 'joined' || (mode === 'replace' && indices.length === 1)) {
+            // Join all selected slices into one continuous buffer
+            const sr = buffer.sampleRate;
+            let totalFrames = 0;
+            const sliceBuffers = indices.map(i => {
+                const slice = sliceBoundaries[i];
+                const settings = perSliceSettings[i] || {};
+                const buf = createSliceBuffer(slice, settings.reversed);
+                if (buf) totalFrames += buf.length;
+                return buf;
+            }).filter(Boolean);
+            if (sliceBuffers.length === 0) return;
+            const ctx = new OfflineAudioContext(buffer.numberOfChannels, totalFrames, sr);
+            const joined = ctx.createBuffer(buffer.numberOfChannels, totalFrames, sr);
+            let offset = 0;
+            for (const sb of sliceBuffers) {
+                for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                    joined.getChannelData(ch).set(sb.getChannelData(ch), offset);
+                }
+                offset += sb.length;
+            }
+            const sliceNames = indices.map(i => `${name} [${i + 1}]`).join('+');
+            onSendToArrangement({ buffers: [joined], names: [sliceNames], mode: 'replace' });
+        } else {
+            // Separate: each slice as its own clip
+            const buffers = [];
+            const names = [];
+            for (const i of indices) {
+                const slice = sliceBoundaries[i];
+                const settings = perSliceSettings[i] || {};
+                const buf = createSliceBuffer(slice, settings.reversed);
+                if (buf) {
+                    buffers.push(buf);
+                    names.push(`${name} [${i + 1}]`);
+                }
+            }
+            if (buffers.length > 0) {
+                onSendToArrangement({ buffers, names, mode: 'separate' });
+            }
+        }
+    }, [buffer, selectedSlices, sliceBoundaries, perSliceSettings, name, onSendToArrangement, createSliceBuffer]);
+
     // Per-slice setting updaters
     const updateSliceSetting = useCallback((idx, key, value) => {
         setPerSliceSettings(prev => {
@@ -346,18 +707,120 @@ export default function SampleSlicerEditor({
         });
     }, [buffer, sliceBoundaries, perSliceSettings, name, sliceRootNote, onLoadToGenerator]);
 
-    // ESC to close
+    // Stop any active playback
+    const stopPlayback = useCallback(() => {
+        console.log(`[Slicer] stopPlayback called, hasActivePreview=${!!activePreviewRef.current}`);
+        // Use AudioEngine.stop() for clean stop (same as browser preview)
+        if (window.audioEngine?.isPlaying) {
+            window.audioEngine.stop();
+        }
+        if (activePreviewRef.current?._stopTimer) {
+            clearTimeout(activePreviewRef.current._stopTimer);
+        }
+        if (activePreviewRef.current) {
+            try {
+                const prev = activePreviewRef.current;
+                const pCtx = prev.source?.context;
+                if (pCtx && pCtx.state !== 'closed' && prev.gainNode) {
+                    const now = pCtx.currentTime;
+                    prev.gainNode.gain.setValueAtTime(prev.gainNode.gain.value, now);
+                    prev.gainNode.gain.linearRampToValueAtTime(0, now + 0.01);
+                    prev.source.stop(now + 0.02);
+                } else {
+                    prev.source?.stop();
+                }
+            } catch (_) {}
+            activePreviewRef.current = null;
+        }
+        if (playheadAnimRef.current) {
+            cancelAnimationFrame(playheadAnimRef.current);
+            playheadAnimRef.current = null;
+        }
+        setPlayheadPos(null);
+        setPlayingSlice(null);
+    }, []);
+
+    // Dedicated AudioContext for slicer — suspend the shared one to prevent interference
+    const slicerCtxRef = useRef(null);
+    useEffect(() => {
+        const s = window.__samplerRef;
+        // Suspend the shared context so it doesn't interfere
+        if (s?.audioContext?.state === 'running') {
+            s.audioContext.suspend().catch(() => {});
+        }
+        // Create a fresh, dedicated context
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx({ latencyHint: 'interactive', sampleRate: 48000 });
+        slicerCtxRef.current = ctx;
+        console.log('[Slicer] Mounted — dedicated AudioContext created, state:', ctx.state);
+        return () => {
+            stopPlayback();
+            // Close dedicated context
+            if (slicerCtxRef.current) {
+                slicerCtxRef.current.close().catch(() => {});
+                slicerCtxRef.current = null;
+            }
+            // Resume the shared context
+            if (s?.audioContext?.state === 'suspended') {
+                s.audioContext.resume().catch(() => {});
+            }
+            console.log('[Slicer] Unmounted — dedicated AudioContext closed');
+        };
+    }, [stopPlayback]);
+
+    // Keyboard: ESC to close, Space to toggle play all, mapped keys to play slices, Delete to remove boundary
     useEffect(() => {
         const handler = (e) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 onClose?.();
+                return;
+            }
+            // Delete key: remove the selected boundary line
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedBoundaryIdx !== null && selectedBoundaryIdx > 0 && selectedBoundaryIdx < sliceBoundaries.length) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (sliceBoundaries.length <= 2) return;
+                const idx = selectedBoundaryIdx;
+                setCustomBoundaries(prev => {
+                    const bounds = prev || [...sliceBoundaries];
+                    const newBounds = [...bounds];
+                    const merged = { start: newBounds[idx - 1].start, end: newBounds[idx].end };
+                    newBounds.splice(idx - 1, 2, merged);
+                    return newBounds;
+                });
+                setSliceCount(prev => Math.max(1, prev - 1));
+                setSliceKeyMap(prev => { const m = [...prev]; m.splice(idx, 1); return m; });
+                setPerSliceSettings(prev => { const s = [...prev]; s.splice(idx, 1); return s; });
+                setSelectedBoundaryIdx(null);
+                return;
+            }
+            // Spacebar: toggle Play All / Stop in slicer (prevent global transport)
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (activePreviewRef.current) {
+                    stopPlayback();
+                    setPlayingSlice(null);
+                } else {
+                    playFullClip();
+                }
+                return;
+            }
+            // Map keys to slice indices
+            if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                const keyIdx = sliceKeyMap.indexOf(e.key.toLowerCase());
+                if (keyIdx !== -1 && keyIdx < sliceBoundaries.length) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    playSliceByIndex(keyIdx);
+                }
             }
         };
         window.addEventListener('keydown', handler, true);
         return () => window.removeEventListener('keydown', handler, true);
-    }, [onClose]);
+    }, [onClose, sliceBoundaries, sliceKeyMap, playSliceByIndex, playFullClip, stopPlayback, selectedBoundaryIdx]);
 
     // Style constants
     const bg = isDark ? '#0c0c11' : '#f7f7fa';
@@ -403,7 +866,26 @@ export default function SampleSlicerEditor({
                         @ {globalTempo} BPM
                     </span>
                 )}
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {onSendToArrangement && selectedSlices.size > 0 && (
+                        <>
+                            <span style={{ fontSize: '9px', color: mutedText }}>{selectedSlices.size} selected</span>
+                            <button onClick={() => handleSendToArrangement(selectedSlices.size === 1 ? 'replace' : 'joined')} style={{
+                                ...pillBtn(true, acSec),
+                                fontWeight: '900',
+                            }}>
+                                {selectedSlices.size === 1 ? 'USE AS CLIP' : 'JOIN AS ONE CLIP'}
+                            </button>
+                            {selectedSlices.size > 1 && (
+                                <button onClick={() => handleSendToArrangement('separate')} style={{
+                                    ...pillBtn(true, accent),
+                                    fontWeight: '900',
+                                }}>
+                                    SEPARATE CLIPS
+                                </button>
+                            )}
+                        </>
+                    )}
                     <button onClick={handleLoadToPianoRoll} style={{
                         ...pillBtn(true, '#22c55e'),
                         fontWeight: '900',
@@ -432,8 +914,18 @@ export default function SampleSlicerEditor({
                 onMouseMove={handleCanvasMouseMove}
                 onMouseUp={handleCanvasMouseUp}
                 onClick={handleCanvasClick}
+                onDoubleClick={handleCanvasDoubleClick}
+                onContextMenu={handleCanvasContextMenu}
             >
                 <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+                {/* Playhead line */}
+                <div id="slicer-playhead" style={{
+                    position: 'absolute', left: '0%', top: 0,
+                    width: '2px', height: '100%',
+                    background: '#fff', zIndex: 10, pointerEvents: 'none',
+                    boxShadow: '0 0 6px rgba(255,255,255,0.5)',
+                    display: 'none'
+                }} />
             </div>
 
             {/* Controls bar */}
@@ -444,6 +936,27 @@ export default function SampleSlicerEditor({
                 borderTop: `1px solid ${borderColor}`,
                 overflowX: 'auto', flexWrap: 'nowrap',
             }}>
+                {/* Play full clip button */}
+                <button
+                    onClick={() => {
+                        if (activePreviewRef.current) {
+                            stopPlayback();
+                            setPlayingSlice(null);
+                        } else {
+                            playFullClip();
+                        }
+                    }}
+                    style={{
+                        ...pillBtn(playingSlice === -1, '#22c55e'),
+                        fontWeight: '900', padding: '6px 14px',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                    }}
+                >
+                    {playingSlice === -1 ? '⏹ STOP' : '▶ PLAY'}
+                </button>
+
+                <div style={{ width: '1px', height: '40px', background: borderColor, flexShrink: 0 }} />
+
                 {/* Slice count */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                     <span style={{ fontSize: '9px', fontWeight: '700', color: mutedText, letterSpacing: '0.5px' }}>SLICES</span>

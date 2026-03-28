@@ -1,3 +1,55 @@
+/**
+ * LRU cache for decoded AudioBuffers with a byte-size ceiling.
+ * Uses Map insertion-order: oldest entries are evicted first.
+ */
+class LRUBufferCache {
+    constructor(maxBytes = 256 * 1024 * 1024) {
+        this._map = new Map();
+        this._totalBytes = 0;
+        this._maxBytes = maxBytes;
+    }
+    _bufferBytes(buf) {
+        return buf ? buf.numberOfChannels * buf.length * 4 : 0;
+    }
+    get(key) {
+        const v = this._map.get(key);
+        if (v !== undefined) {
+            // Move to end (most recently used)
+            this._map.delete(key);
+            this._map.set(key, v);
+        }
+        return v;
+    }
+    set(key, buf) {
+        if (this._map.has(key)) {
+            this._totalBytes -= this._bufferBytes(this._map.get(key));
+            this._map.delete(key);
+        }
+        const size = this._bufferBytes(buf);
+        // Evict oldest entries until under budget
+        while (this._totalBytes + size > this._maxBytes && this._map.size > 0) {
+            const oldest = this._map.entries().next().value;
+            this._totalBytes -= this._bufferBytes(oldest[1]);
+            this._map.delete(oldest[0]);
+        }
+        this._map.set(key, buf);
+        this._totalBytes += size;
+    }
+    has(key) { return this._map.has(key); }
+    delete(key) {
+        const v = this._map.get(key);
+        if (v !== undefined) {
+            this._totalBytes -= this._bufferBytes(v);
+            this._map.delete(key);
+        }
+    }
+    clear() { this._map.clear(); this._totalBytes = 0; }
+    keys() { return this._map.keys(); }
+    entries() { return this._map.entries(); }
+    get size() { return this._map.size; }
+    get totalBytes() { return this._totalBytes; }
+}
+
 class AudioEngine {
     constructor() {
         if (AudioEngine.instance) {
@@ -38,7 +90,7 @@ class AudioEngine {
         this.loopStart = 0;
         this.loopEnd = 0;
 
-        this.bufferMap = {};
+        this.bufferMap = new LRUBufferCache(256 * 1024 * 1024); // 256 MB ceiling
         this.lastVolume = 1.0;
 
         // Granular state
@@ -75,8 +127,9 @@ class AudioEngine {
     _scheduleIdleSuspend() {
         if (this._idleSuspendTimer) clearTimeout(this._idleSuspendTimer);
         this._idleSuspendTimer = setTimeout(() => {
-            // Don't suspend if SamplerEngine is actively playing (generators/arrangement)
+            // Don't suspend if SamplerEngine is actively playing or slicer is open
             if (window.__samplerRef?._audioActive) return;
+            if (window.__samplerRef?._audioClipsPlaying) return;
             // Don't suspend if MIDI preview synth is playing
             if (window.__midiPreviewPlaying) return;
             if (this.audioContext.state === 'running' && !this.currentSource) {
@@ -98,14 +151,13 @@ class AudioEngine {
         }
 
         // Return cached buffer if we already decoded this file
-        if (this.bufferMap[file.name]) {
-            return this.bufferMap[file.name];
-        }
+        const cached = this.bufferMap.get(file.name);
+        if (cached) return cached;
 
         try {
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-            this.bufferMap[file.name] = audioBuffer;
+            this.bufferMap.set(file.name, audioBuffer);
             return audioBuffer;
         } catch (error) {
             console.error("Error loading audio file:", error);
@@ -114,7 +166,7 @@ class AudioEngine {
     }
 
     reverseBuffer(bufferOrName) {
-        let buffer = typeof bufferOrName === 'string' ? this.bufferMap[bufferOrName] : bufferOrName;
+        let buffer = typeof bufferOrName === 'string' ? this.bufferMap.get(bufferOrName) : bufferOrName;
         if (!buffer) buffer = this.currentBuffer;
         if (!buffer) return;
 
@@ -139,12 +191,10 @@ class AudioEngine {
             }
         }
 
-        // Update references
-        // If it was in the map, update the map
-        // Optimization: Find key?
-        for (const [key, val] of Object.entries(this.bufferMap)) {
+        // Update references — if it was in the map, update the map
+        for (const [key, val] of this.bufferMap.entries()) {
             if (val === buffer) {
-                this.bufferMap[key] = newBuffer;
+                this.bufferMap.set(key, newBuffer);
             }
         }
 
@@ -170,7 +220,7 @@ class AudioEngine {
 
         let buffer;
         if (typeof bufferOrName === 'string') {
-            buffer = this.bufferMap[bufferOrName];
+            buffer = this.bufferMap.get(bufferOrName);
         } else {
             buffer = bufferOrName || this.currentBuffer;
         }
@@ -497,14 +547,15 @@ class AudioEngine {
      * @returns {boolean} true if a buffer was removed
      */
     clearBuffer(name) {
-        if (!this.bufferMap[name]) return false;
+        const buf = this.bufferMap.get(name);
+        if (!buf) return false;
 
         // If this buffer is currently playing, stop first
-        if (this.currentBuffer === this.bufferMap[name]) {
+        if (this.currentBuffer === buf) {
             this.stop();
             this.currentBuffer = null;
         }
-        delete this.bufferMap[name];
+        this.bufferMap.delete(name);
         return true;
     }
 
@@ -515,7 +566,7 @@ class AudioEngine {
     clearAllBuffers() {
         this.stop();
         this.currentBuffer = null;
-        this.bufferMap = {};
+        this.bufferMap.clear();
     }
 
     /**
@@ -523,16 +574,12 @@ class AudioEngine {
      * @returns {{ count: number, estimatedBytes: number, names: string[] }}
      */
     getBufferCacheStats() {
-        const names = Object.keys(this.bufferMap);
-        let estimatedBytes = 0;
-        for (const name of names) {
-            const buf = this.bufferMap[name];
-            if (buf) {
-                // Each channel = Float32Array (4 bytes per sample)
-                estimatedBytes += buf.numberOfChannels * buf.length * 4;
-            }
-        }
-        return { count: names.length, estimatedBytes, names };
+        const names = Array.from(this.bufferMap.keys());
+        return {
+            count: this.bufferMap.size,
+            estimatedBytes: this.bufferMap.totalBytes,
+            names
+        };
     }
 
     /**
@@ -553,7 +600,7 @@ class AudioEngine {
         }
 
         // Clear buffer cache
-        this.bufferMap = {};
+        this.bufferMap.clear();
         this.currentBuffer = null;
         this.currentSource = null;
         this.onEndedCallback = null;

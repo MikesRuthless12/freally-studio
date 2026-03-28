@@ -8,7 +8,9 @@ import './LibraryManager';
 import DrumGeneratorEnhanced from './DrumGeneratorEnhanced';
 import ChordGeneratorEnhanced from './ChordGeneratorEnhanced';
 import MelodyBassGeneratorEnhanced from './MelodyBassGeneratorEnhanced';
-import { SCALES, NOTE_NAMES } from './MusicTheory';
+import { SCALES, NOTE_NAMES, ensureChordsExpansionsLoaded } from './MusicTheory';
+// Start loading chord expansion data in background (deferred from startup)
+ensureChordsExpansionsLoaded();
 import { GENRE_CATEGORIES, GENRE_DEFINITIONS } from './domain/genres';
 import { MOOD_MODIFIERS } from './domain/moods';
 import { generateAllPatterns, determineComplexity, humanizePattern, createVariation, generateCounterMelody } from './PatternEngine';
@@ -17,7 +19,7 @@ import { getProPattern } from './drumPatterns';
 import HumanizePanel from './HumanizePanel';
 import { useCollaboration } from './collab/useCollaboration';
 import { useTimeTracker } from './collab/TimeTracker';
-import CollabPanel from './collab/CollabPanel';
+// CollabPanel lazy-loaded below (pulls in 34MB emoji-picker-react)
 import TabGuard from './collab/TabGuard';
 import CursorMap from './collab/CursorMap';
 import GoogleAuth from './collab/GoogleAuth';
@@ -35,8 +37,9 @@ import { AudioRecorder, splitAudioIntoSections } from './AudioRecorder';
 import { useArrangement } from './useArrangement';
 import ArrangementTimeline from './ArrangementTimeline';
 import { buildDefaultTrackOrder, DEFAULT_CORE_ORDER } from './trackOrderUtils';
-import { interpolateAutomation, denormalizeValue } from './automationUtils';
+import { interpolateAutomation, denormalizeValue, parseAutomationParamKey } from './automationUtils';
 import MIDIParser from './MIDIParser';
+import midiExporter from './MIDIExporter';
 import { MIDIInput } from './MIDIInput';
 import MIDIInputPanel from './MIDIInputPanel';
 import { PresetManager } from './PresetManager';
@@ -59,6 +62,7 @@ const InstrumentSynthStudio = lazy(() => import('./InstrumentSynthStudio'));
 const LyricsTab = lazy(() => import('./lyrics/LyricsTab'));
 const LyricEngineTab = lazy(() => import('./lyrics/LyricEngineTab'));
 const RecordModePanel = lazy(() => import('./lyrics/RecordModePanel'));
+const CollabPanel = lazy(() => import('./collab/CollabPanel'));
 
 import MidiTrackEditor from './MidiTrackEditor';
 import './App.css';
@@ -202,6 +206,41 @@ const WavLoomAppComplete = () => {
     const [arrangeSelectedRow, setArrangeSelectedRow] = useState(null); // track row selected in arrangement
     const [arrangeEffectTrackId, setArrangeEffectTrackId] = useState(null); // resolved effectTrackId for selected row
     const [showMainMixer, setShowMainMixer] = useState(false);
+    const [mainMixerHeight, setMainMixerHeight] = useState(220);
+    const [mainMixerMaximized, setMainMixerMaximized] = useState(false);
+    const mainMixerPrevHeight = useRef(220);
+
+    const handleMainMixerDividerMouseDown = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startY = e.clientY;
+        const startH = mainMixerHeight;
+        const maxH = Math.max(200, window.innerHeight - 80);
+        const onMove = (ev) => {
+            const newH = Math.max(120, Math.min(maxH, startH + (startY - ev.clientY)));
+            setMainMixerHeight(newH);
+            setMainMixerMaximized(false);
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            document.body.style.cursor = '';
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        document.body.style.cursor = 'ns-resize';
+    }, [mainMixerHeight]);
+
+    const handleMainMixerDividerDoubleClick = useCallback(() => {
+        if (mainMixerMaximized) {
+            setMainMixerHeight(mainMixerPrevHeight.current);
+            setMainMixerMaximized(false);
+        } else {
+            mainMixerPrevHeight.current = mainMixerHeight;
+            setMainMixerHeight(Math.max(200, window.innerHeight - 80));
+            setMainMixerMaximized(true);
+        }
+    }, [mainMixerMaximized, mainMixerHeight]);
 
     // Audio Tracks (up to 20 user audio tracks for the arrangement)
     const AUDIO_TRACK_COLORS = ['#ff9ff3', '#54a0ff', '#5f27cd', '#01a3a4', '#feca57', '#ff6348', '#7bed9f', '#70a1ff', '#dfe6e9', '#fd79a8', '#e056fd', '#18dcff', '#7d5fff', '#32ff7e', '#ffcccc', '#ff7979', '#badc58', '#f9ca24', '#6ab04c', '#c7ecee'];
@@ -287,6 +326,7 @@ const WavLoomAppComplete = () => {
 
     const addClipToTrack = useCallback((trackId, sectionId, buffer, name, props) => {
         const clipId = `clip_${Date.now()}_${++audioClipIdCounter.current}`;
+        console.log(`[addClipToTrack] id=${clipId}, track=${trackId}, sectionId=${sectionId}, props:`, JSON.stringify({ startBar: props?.startBar, timelineBar: props?.timelineBar, trimStart: props?.trimStart, trimEnd: props?.trimEnd, playbackRate: props?.playbackRate }));
         setAudioTracks(prev => prev.map(t => {
             if (t.id !== trackId) return t;
             return {
@@ -1884,6 +1924,8 @@ const WavLoomAppComplete = () => {
         bitrate: 192 // MP3 only (kbps)
     });
     const [isExporting, setIsExporting] = useState(false);
+    const [genExportSelection, setGenExportSelection] = useState({ drums: true, chords: true, melody: true, bass: true });
+    const [genExportFormat, setGenExportFormat] = useState('both'); // 'midi', 'audio', 'both'
 
     // Collaboration State
     const collab = useCollaboration();
@@ -2529,8 +2571,14 @@ const WavLoomAppComplete = () => {
             // Convert bar-based stop marker to step position
             const stopStep = stopMarkerBarRef.current != null ? stopMarkerBarRef.current * 32 : null;
             if (effectiveSteps !== cumSteps) {
-                console.warn(`[Arrange] Extended totalSteps from ${cumSteps} (${cumSteps/32} bars) to ${effectiveSteps} (${(effectiveSteps/32).toFixed(1)} bars) for audio clips`);
+                // Only log once per unique value to avoid console spam
+                if (!arrangementRef.current || arrangementRef.current.totalSteps !== effectiveSteps) {
+                    console.warn(`[Arrange] Extended totalSteps from ${cumSteps} (${cumSteps/32} bars) to ${effectiveSteps} (${(effectiveSteps/32).toFixed(1)} bars) for audio clips`);
+                }
             }
+            // Skip update if nothing changed — prevents unnecessary re-renders
+            const prev = arrangementRef.current;
+            if (prev && prev.totalSteps === effectiveSteps && prev.stopStep === stopStep) return;
             arrangementRef.current = { totalSteps: effectiveSteps, boundaries, stopStep };
         } else {
             arrangementRef.current = null;
@@ -2907,11 +2955,13 @@ const WavLoomAppComplete = () => {
         globalIsPlayingRef.current = globalIsPlaying;
 
         // Tell SamplerEngine whether audio is active so the hot-swap only runs when needed
+        // Don't clear _audioActive if slicer preview is playing (_audioClipsPlaying)
         if (samplerRef.current?.setAudioActive) {
-            samplerRef.current.setAudioActive(globalIsPlaying || isRecording || isCountingIn);
+            const slicerPlaying = samplerRef.current._audioClipsPlaying;
+            samplerRef.current.setAudioActive(globalIsPlaying || isRecording || isCountingIn || slicerPlaying);
         }
-        // Clear audio-clips-playing flag when playback stops
-        if (!globalIsPlaying && samplerRef.current?.setAudioClipsPlaying) {
+        // Clear audio-clips-playing flag when global playback stops (but not if slicer set it)
+        if (!globalIsPlaying && samplerRef.current?.setAudioClipsPlaying && !samplerRef.current._audioClipsPlaying) {
             samplerRef.current.setAudioClipsPlaying(false);
         }
 
@@ -2993,9 +3043,14 @@ const WavLoomAppComplete = () => {
                         entry.gainNode.gain.cancelScheduledValues(ct);
                         entry.gainNode.gain.setValueAtTime(entry.gainNode.gain.value, ct);
                     }
-                    entry.gainNode.gain.linearRampToValueAtTime(0, ct + 0.015);
+                    entry.gainNode.gain.linearRampToValueAtTime(0, ct + 0.03);
                 }
-                if (entry.source) entry.source.stop(ct + 0.03);
+                if (entry.source) entry.source.stop(ct + 0.05);
+                // Disconnect nodes after fade-out to release from audio graph
+                setTimeout(() => {
+                    try { if (entry.source) entry.source.disconnect(); } catch (_) {}
+                    try { if (entry.gainNode) entry.gainNode.disconnect(); } catch (_) {}
+                }, 50);
             } catch (_) { /* already stopped */ }
         });
         activeAudioClipSources.current = [];
@@ -3007,6 +3062,7 @@ const WavLoomAppComplete = () => {
      * Web Audio handles mixing — no JS section-switching needed for audio tracks.
      */
     const scheduleAudioClipsForTimeline = useCallback((playbackStartTimeSecs, timelineElapsedSecs = 0) => {
+        console.log(`[scheduleAudioClips] CALLED at elapsed=${timelineElapsedSecs.toFixed(3)}s, startTime=${playbackStartTimeSecs.toFixed(3)}`, new Error().stack.split('\n')[2]?.trim());
         // Only play arrangement audio clips when on the arrange tab
         if (activeTabRef.current !== 'arrange') return;
         const sampler = samplerRef.current;
@@ -3025,8 +3081,24 @@ const WavLoomAppComplete = () => {
         // Idempotent: stop all existing audio clip sources before scheduling new ones.
         // This prevents duplicate source nodes when called multiple times per tick
         // (hot-swap detection + loop-back detection can both fire in the same frame).
+        // Fade out active sources to prevent clicks (don't hard-stop)
+        const fadeOutTime = 0.015; // 15ms anti-click fade
         activeAudioClipSources.current.forEach(entry => {
-            try { if (entry.source) entry.source.stop(0); } catch (_) {}
+            try {
+                const ctx = entry.source?.context;
+                if (ctx && ctx.state !== 'closed' && entry.gainNode) {
+                    const now = ctx.currentTime;
+                    entry.gainNode.gain.setValueAtTime(entry.gainNode.gain.value, now);
+                    entry.gainNode.gain.linearRampToValueAtTime(0, now + fadeOutTime);
+                    if (entry.source) entry.source.stop(now + fadeOutTime + 0.01);
+                } else {
+                    if (entry.source) entry.source.stop(0);
+                }
+                setTimeout(() => {
+                    try { if (entry.source) entry.source.disconnect(); } catch (_) {}
+                    try { if (entry.gainNode) entry.gainNode.disconnect(); } catch (_) {}
+                }, 50);
+            } catch (_) {}
         });
         activeAudioClipSources.current = [];
         const tempo = globalTempo;
@@ -3055,7 +3127,8 @@ const WavLoomAppComplete = () => {
 
                 let buffer = clip.buffer;
                 if (clip.reversed) {
-                    const reversedBuf = ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+                    // Use context sample rate to avoid mismatch artifacts
+                    const reversedBuf = ctx.createBuffer(buffer.numberOfChannels, buffer.length, ctx.sampleRate || buffer.sampleRate);
                     for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
                         const src = buffer.getChannelData(ch);
                         const dst = reversedBuf.getChannelData(ch);
@@ -3086,7 +3159,7 @@ const WavLoomAppComplete = () => {
                 // Only clamp at an explicit stop marker, not at the arrangement boundary.
                 if (remainingDur <= 0.01) return; // clip already finished or past arrangement end
 
-                const LOOKAHEAD = 0.02;
+                const LOOKAHEAD = 0.05; // 50ms lookahead for stable scheduling
                 const scheduleTime = playbackStartTimeSecs + LOOKAHEAD + Math.max(0, clipStartSecs - timelineElapsedSecs);
                 const bufferOffset = Math.min(
                     trimStart + clipLateBy * playbackRate,
@@ -3106,21 +3179,24 @@ const WavLoomAppComplete = () => {
                 result._fadeOut = clip.fadeOut || 0;
                 result._fadeInCurve = clip.fadeInCurve ?? 0;
                 result._fadeOutCurve = clip.fadeOutCurve ?? 0;
+                result._gain = clip.gain ?? 1.0;
 
-                // Apply user fade in/out (only when user explicitly set fades).
+                // Apply per-clip gain and user fade in/out.
                 // playAudioClip() already handles anti-click fade-in (8ms) and fade-out (25ms)
                 // for ALL clips — do NOT add duplicate gain automation here for the no-fade case,
                 // as it conflicts with playAudioClip's ramps and causes gain jumps / crackling.
                 const { gainNode } = result;
+                const clipGainLevel = clip.gain ?? 1.0;
                 const fadeIn = clip.fadeIn || 0;
                 const fadeOut = clip.fadeOut || 0;
-                if (fadeIn > 0 || fadeOut > 0) {
+                if (fadeIn > 0 || fadeOut > 0 || clipGainLevel !== 1.0) {
                     // Cancel playAudioClip's default fades and replace with user fades
                     if (typeof gainNode.gain.cancelAndHoldAtTime === 'function') {
                         gainNode.gain.cancelAndHoldAtTime(scheduleTime);
                     } else {
                         gainNode.gain.cancelScheduledValues(scheduleTime);
                     }
+                    const peakGain = clipGainLevel;
                     const effectiveFadeIn = clipLateBy > fadeIn ? 0.008 : Math.max(fadeIn - clipLateBy, 0.008);
                     const fadeInCurve = clip.fadeInCurve ?? 0;
                     const fadeOutCurve = clip.fadeOutCurve ?? 0;
@@ -3141,14 +3217,14 @@ const WavLoomAppComplete = () => {
 
                     const fadeInDur = Math.min(effectiveFadeIn, remainingDur);
                     gainNode.gain.setValueAtTime(0.0001, scheduleTime);
-                    gainNode.gain.setValueCurveAtTime(buildCurve(0.0001, 1, fadeInCurve, 64), scheduleTime, fadeInDur);
+                    gainNode.gain.setValueCurveAtTime(buildCurve(0.0001, peakGain, fadeInCurve, 64), scheduleTime, fadeInDur);
 
                     const effectiveFadeOut = Math.max(fadeOut, 0.025);
                     const fadeOutStart = scheduleTime + Math.max(fadeInDur + 0.002, remainingDur - effectiveFadeOut);
                     const fadeOutDur = scheduleTime + remainingDur - fadeOutStart;
                     if (fadeOutDur > 0.01) {
-                        gainNode.gain.setValueAtTime(1.0, fadeOutStart);
-                        gainNode.gain.setValueCurveAtTime(buildCurve(1, 0.0001, fadeOutCurve, 64), fadeOutStart, fadeOutDur);
+                        gainNode.gain.setValueAtTime(peakGain, fadeOutStart);
+                        gainNode.gain.setValueCurveAtTime(buildCurve(peakGain, 0.0001, fadeOutCurve, 64), fadeOutStart, fadeOutDur);
                     }
                 }
 
@@ -3224,6 +3300,11 @@ const WavLoomAppComplete = () => {
                                 entry.source.stop(now + 0.06);
                             }
                         }
+                        // Disconnect after fade completes to free audio graph memory
+                        setTimeout(() => {
+                            try { if (entry.source) entry.source.disconnect(); } catch (_) {}
+                            try { if (entry.gainNode) entry.gainNode.disconnect(); } catch (_) {}
+                        }, 100);
                     } catch (_) {}
                 });
                 activeAudioClipSources.current = [];
@@ -3366,15 +3447,28 @@ const WavLoomAppComplete = () => {
                 // Keep active section set (single implicit section)
                 const sectionLocal = globalStep;
 
-                // Prune dead sources from the active list
+                // Prune dead sources from the active list using time-based check
                 activeAudioClipSources.current = activeAudioClipSources.current.filter(e => {
                     try {
                         // BufferSource states: 1=scheduled, 2=playing, 3=finished
-                        // Some browsers don't expose playbackState — keep those entries
                         if (e.source && typeof e.source.playbackState === 'number') {
-                            return e.source.playbackState !== 3;
+                            if (e.source.playbackState === 3) {
+                                try { e.source.disconnect(); } catch (_) {}
+                                try { e.gainNode?.disconnect(); } catch (_) {}
+                                return false;
+                            }
+                            return true;
                         }
-                        return true; // keep if state unknown
+                        // Fallback: time-based pruning for browsers without playbackState
+                        if (e._scheduleTime != null && e._remainingDur != null) {
+                            const ctxTime = samplerRef.current?.audioContext?.currentTime;
+                            if (ctxTime != null && ctxTime > e._scheduleTime + e._remainingDur + 0.5) {
+                                try { e.source?.disconnect(); } catch (_) {}
+                                try { e.gainNode?.disconnect(); } catch (_) {}
+                                return false;
+                            }
+                        }
+                        return true;
                     } catch (_) { return false; }
                 });
 
@@ -3449,6 +3543,7 @@ const WavLoomAppComplete = () => {
                 // currentPos is in steps; convert to bar position (32 steps per bar)
                 const currentBarPos = currentPos / 32;
                 const sampler = samplerRef.current;
+                const efxMgr = effectsManagerRef.current;
                 if (sampler) {
                     for (const trackId of Object.keys(automationData)) {
                         const paramMap = automationData[trackId];
@@ -3457,13 +3552,31 @@ const WavLoomAppComplete = () => {
                             const points = paramMap[paramKey];
                             const normalizedVal = interpolateAutomation(points, currentBarPos);
                             if (normalizedVal === null) continue;
-                            if (paramKey === 'volume') {
+                            const parsed = parseAutomationParamKey(paramKey);
+                            if (parsed.type === 'volume') {
                                 sampler.setTrackVolume(trackId, normalizedVal);
-                            } else if (paramKey === 'pan') {
+                            } else if (parsed.type === 'pan') {
                                 // pan: normalized 0–1 maps to -1..+1
                                 sampler.setTrackPan(trackId, denormalizeValue('pan', normalizedVal));
+                            } else if (parsed.type === 'effect' && efxMgr) {
+                                // Stock effect parameter automation
+                                const chain = efxMgr.getTrackChain(trackId);
+                                if (chain) {
+                                    const fx = chain.getEffect(parsed.effectId);
+                                    if (fx && !fx.bypassed) {
+                                        fx.setParam(parsed.paramName, normalizedVal);
+                                    }
+                                }
+                            } else if (parsed.type === 'vst3' && efxMgr) {
+                                // VST3 effect parameter automation
+                                const chain = efxMgr.getTrackChain(trackId);
+                                if (chain) {
+                                    const fx = chain.getEffect(parsed.effectId);
+                                    if (fx && !fx.bypassed && typeof fx.setVST3Parameter === 'function') {
+                                        fx.setVST3Parameter(parsed.paramId, normalizedVal);
+                                    }
+                                }
                             }
-                            // Effect params would go here: paramKey like 'effect_<id>_<name>'
                         }
                     }
                 }
@@ -4651,6 +4764,113 @@ const WavLoomAppComplete = () => {
         }
     };
 
+    /**
+     * Export selected generators as MIDI and/or Audio
+     */
+    const exportGenerators = async () => {
+        const selected = genExportSelection;
+        const anySelected = Object.values(selected).some(Boolean);
+        if (!anySelected) return;
+
+        setIsExporting(true);
+        try {
+            const pName = projectName || 'WavLoom';
+            const downloads = [];
+
+            // MIDI export
+            if (genExportFormat === 'midi' || genExportFormat === 'both') {
+                const result = await midiExporter.exportGeneratorMIDI(patterns, globalTempo, selected, pName);
+                if (result) downloads.push(result);
+            }
+
+            // Audio export — render each selected generator through its loaded sample
+            if ((genExportFormat === 'audio' || genExportFormat === 'both') && exporterRef.current) {
+                const sampleRate = exportSettings.sampleRate || 44100;
+                const bars = exportSettings.durationBars || globalBars;
+                const duration = (bars * 240) / globalTempo;
+                const format = exportSettings.format || 'wav';
+                const bitDepth = exportSettings.bitDepth || 16;
+                const bitrate = exportSettings.bitrate || 192;
+                const zip = new (await import('jszip')).default();
+                let audioCount = 0;
+
+                // Drums — renderDrums returns null when no audible content
+                if (selected.drums && patterns.drums && Object.keys(patterns.drums).length > 0) {
+                    const buffer = await exporterRef.current.renderDrums(patterns.drums, sampleRate, duration, globalTempo);
+                    if (buffer) {
+                        const result = format === 'mp3'
+                            ? exporterRef.current.exportMP3(buffer, sampleRate, bitrate, `${pName}_Drums`)
+                            : exporterRef.current.exportWAV(buffer, sampleRate, `${pName}_Drums`, bitDepth);
+                        if (result) { zip.file(result.filename, result.blob); audioCount++; }
+                    }
+                }
+
+                // Chords, Melody, Bass
+                for (const key of ['chords', 'melody', 'bass']) {
+                    if (!selected[key] || !patterns[key]?.length || !loadedInstruments[key]) continue;
+                    const buffer = await exporterRef.current.sampler.renderPattern(
+                        loadedInstruments[key], patterns[key], globalTempo, duration, sampleRate
+                    );
+                    if (buffer) {
+                        const label = key.charAt(0).toUpperCase() + key.slice(1);
+                        const result = format === 'mp3'
+                            ? exporterRef.current.exportMP3(buffer, sampleRate, bitrate, `${pName}_${label}`)
+                            : exporterRef.current.exportWAV(buffer, sampleRate, `${pName}_${label}`, bitDepth);
+                        if (result) { zip.file(result.filename, result.blob); audioCount++; }
+                    }
+                }
+
+                if (audioCount === 1) {
+                    // Single file — download directly
+                    const files = Object.values(zip.files);
+                    const f = files[0];
+                    const blob = await f.async('blob');
+                    downloads.push({ blob, filename: f.name });
+                } else if (audioCount > 1) {
+                    const zipBlob = await zip.generateAsync({ type: 'blob' });
+                    downloads.push({ blob: zipBlob, filename: `${pName}_Generator_Audio.zip` });
+                }
+            }
+
+            // Nothing was exported
+            if (downloads.length === 0) {
+                alert('Nothing to export — no generators have audio content or MIDI patterns. Generate patterns or load samples first.');
+                return;
+            }
+
+            // Download all results
+            for (const dl of downloads) {
+                if (window.showSaveFilePicker) {
+                    try {
+                        const ext = dl.filename.split('.').pop();
+                        const mimeMap = { mid: 'audio/midi', zip: 'application/zip', wav: 'audio/wav', mp3: 'audio/mpeg' };
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: dl.filename,
+                            types: [{ description: 'Export File', accept: { [mimeMap[ext] || 'application/octet-stream']: [`.${ext}`] } }]
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(dl.blob);
+                        await writable.close();
+                    } catch (err) {
+                        if (err.name !== 'AbortError') throw err;
+                    }
+                } else {
+                    const url = URL.createObjectURL(dl.blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = dl.filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            }
+        } catch (error) {
+            console.error('Generator export failed:', error);
+            alert('Export failed: ' + error.message);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     // Resize Logic
     const startResizing = (e) => {
         setIsResizing(true);
@@ -5577,7 +5797,7 @@ const WavLoomAppComplete = () => {
     // Handle audio/MIDI drops on the arrangement timeline
     // Ctrl+Shift = split into NEW tracks (works from any row)
     // Normal drop = place on existing rows (supports multi-file)
-    const handleArrangementDrop = useCallback(async ({ row, section, internalItem, jsonData, files, ctrlKey, shiftKey }) => {
+    const handleArrangementDrop = useCallback(async ({ row, section, internalItem, jsonData, files, ctrlKey, shiftKey, dropBar }) => {
         if (!row || !section) return;
 
         // Drop below tracks always forces split mode (creates new tracks)
@@ -5699,7 +5919,8 @@ const WavLoomAppComplete = () => {
                             if (s.id === section.id) break;
                             _tlBar += s.bars;
                         }
-                        addClipToTrack(trackId, section.id, buf, baseName, { startBar: 0, timelineBar: _tlBar });
+                        const placementBar = dropBar != null ? dropBar : _tlBar;
+                        addClipToTrack(trackId, section.id, buf, baseName, { startBar: 0, timelineBar: placementBar });
                     } catch (err) {
                         console.warn('[Arrangement] Split audio failed:', err);
                     }
@@ -5753,13 +5974,14 @@ const WavLoomAppComplete = () => {
                         _dropTlBar += s.bars;
                     }
                     if (isFirstAudio && row.type === 'audio' && row.trackId) {
-                        // First audio file → place on target audio row
-                        const startBar = getNextStartBar(row.trackId, section.id);
-                        addClipToTrack(row.trackId, section.id, buf, baseName, { startBar, timelineBar: _dropTlBar + startBar });
+                        // First audio file → place at drop cursor position, or fallback to next available position
+                        const placementBar = dropBar != null ? dropBar : (_dropTlBar + getNextStartBar(row.trackId, section.id));
+                        addClipToTrack(row.trackId, section.id, buf, baseName, { startBar: 0, timelineBar: placementBar });
                     } else {
-                        // Subsequent files or non-audio target → create new track
+                        // Subsequent files or non-audio target → create new track at drop position
                         const trackId = addAudioTrack(baseName);
-                        addClipToTrack(trackId, section.id, buf, baseName, { startBar: 0, timelineBar: _dropTlBar });
+                        const placementBar = dropBar != null ? dropBar : _dropTlBar;
+                        addClipToTrack(trackId, section.id, buf, baseName, { startBar: 0, timelineBar: placementBar });
                     }
                     isFirstAudio = false;
                 } catch (err) {
@@ -8575,10 +8797,32 @@ const WavLoomAppComplete = () => {
                                     <span>MAIN MIX</span>
                                     <span style={{ fontSize: '8px' }}>{showMainMixer ? '\u25B2' : '\u25BC'}</span>
                                 </div>
+                                {/* Main Mixer resize divider (drag to resize, double-click to maximize/restore) */}
+                                {showMainMixer && (
+                                    <div
+                                        onMouseDown={handleMainMixerDividerMouseDown}
+                                        onDoubleClick={handleMainMixerDividerDoubleClick}
+                                        style={{
+                                            height: '6px', flexShrink: 0,
+                                            cursor: 'ns-resize',
+                                            background: isDark
+                                                ? `linear-gradient(to bottom, ${(accent.accent || '#ff6b6b')}33, #222, ${(accent.accent || '#ff6b6b')}33)`
+                                                : `linear-gradient(to bottom, ${(accent.accent || '#ff6b6b')}44, #ddd, ${(accent.accent || '#ff6b6b')}44)`,
+                                            borderTop: `1px solid ${isDark ? `${accent.accent || '#ff6b6b'}44` : `${accent.accent || '#ff6b6b'}55`}`,
+                                            borderBottom: `1px solid ${isDark ? `${accent.accent || '#ff6b6b'}44` : `${accent.accent || '#ff6b6b'}55`}`,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: '40px', height: '2px', borderRadius: '1px',
+                                            background: isDark ? `${accent.accent || '#ff6b6b'}88` : `${accent.accent || '#ff6b6b'}aa`,
+                                        }} />
+                                    </div>
+                                )}
                                 {/* Main Mixer — collapsible during arrangement */}
                                 {showMainMixer && (
                                     <div style={{
-                                        height: '220px', flexShrink: 0,
+                                        height: `${mainMixerHeight}px`, flexShrink: 0,
                                         borderTop: `1px solid ${isDark ? '#1e1e2a' : '#d0d0d8'}`,
                                         display: 'flex', overflow: 'hidden'
                                     }}>
@@ -8672,13 +8916,15 @@ const WavLoomAppComplete = () => {
             />
             {
                 !collab.isCollapsed && (
-                    <CollabPanel
-                        collab={collab}
-                        theme={theme}
-                        onClose={() => collab.setIsCollapsed(true)}
-                        addToast={addToast}
-                        accentColors={accent}
-                    />
+                    <Suspense fallback={null}>
+                        <CollabPanel
+                            collab={collab}
+                            theme={theme}
+                            onClose={() => collab.setIsCollapsed(true)}
+                            addToast={addToast}
+                            accentColors={accent}
+                        />
+                    </Suspense>
                 )
             }
 
@@ -8832,267 +9078,368 @@ const WavLoomAppComplete = () => {
                         zIndex: 1000, backdropFilter: 'blur(5px)'
                     }} onClick={() => setShowExportModal(false)}>
                         <div style={{
-                            background: '#1a1a1f', padding: '25px', borderRadius: '12px',
-                            border: '1px solid #333', width: '350px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            background: '#1a1a1f', borderRadius: '12px',
+                            border: '1px solid #333', width: '680px', maxWidth: 'calc(100vw - 40px)',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                            maxHeight: 'calc(100vh - 40px)', display: 'flex', flexDirection: 'column',
+                            overflow: 'hidden'
                         }} onClick={(e) => e.stopPropagation()}>
-                            <h3 style={{ marginTop: 0, color: '#fff', marginBottom: '20px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span>💾</span> {t('exportModal.title')}
-                            </h3>
-
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', color: '#888', marginBottom: '8px', fontSize: '12px', fontWeight: 'bold' }}>{t('exportModal.projectName')}</label>
-                                <input
-                                    type="text"
-                                    value={projectName}
-                                    onChange={(e) => setProjectName(e.target.value)}
-                                    style={{
-                                        width: '100%', padding: '10px', background: '#0f0f12', border: '1px solid #333',
-                                        borderRadius: '6px', color: '#fff', fontSize: '14px', outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                    placeholder={t('exportModal.projectNamePlaceholder')}
-                                />
+                            {/* Header */}
+                            <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid #2a2a2a', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <h3 style={{ margin: 0, color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>💾</span> {t('exportModal.title')}
+                                </h3>
+                                <button onClick={() => setShowExportModal(false)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '18px', padding: '2px 6px', borderRadius: '4px', lineHeight: 1 }} onMouseEnter={e => e.target.style.color = '#fff'} onMouseLeave={e => e.target.style.color = '#666'}>✕</button>
                             </div>
 
-                            {/* Audio Export Section */}
-                            <div style={{ padding: '15px', background: '#222', borderRadius: '8px', marginBottom: '20px' }}>
-                                <div style={{ fontSize: '11px', fontWeight: '900', color: '#888', marginBottom: '10px', textTransform: 'uppercase' }}>{t('exportModal.audioMidiExport')}</div>
-
-                                <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                        {[
-                                            { key: 'mix', label: t('exportModal.fullMix') },
-                                            { key: 'stems', label: t('exportModal.stems') },
-                                            ...(arr.arrangementMode && arr.arrangement.length > 0
-                                                ? [{ key: 'arrangement', label: t('exportModal.arrangement') }]
-                                                : [])
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.key}
-                                                onClick={() => setExportSettings({ ...exportSettings, type: opt.key })}
-                                                style={{
-                                                    flex: 1, padding: '8px',
-                                                    background: exportSettings.type === opt.key ? acSec : '#2a2a3e',
-                                                    color: exportSettings.type === opt.key ? '#000' : '#fff',
-                                                    border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                                    fontWeight: 'bold', textTransform: 'uppercase', fontSize: '10px'
-                                                }}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
+                            {/* Scrollable body */}
+                            <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+                                {/* Project Name — full width */}
+                                <div style={{ marginBottom: '14px' }}>
+                                    <label style={{ display: 'block', color: '#888', marginBottom: '5px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('exportModal.projectName')}</label>
+                                    <input
+                                        type="text"
+                                        value={projectName}
+                                        onChange={(e) => setProjectName(e.target.value)}
+                                        style={{
+                                            width: '100%', padding: '8px 10px', background: '#0f0f12', border: '1px solid #333',
+                                            borderRadius: '6px', color: '#fff', fontSize: '13px', outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }}
+                                        placeholder={t('exportModal.projectNamePlaceholder')}
+                                    />
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                                    {['wav', 'mp3'].map(f => (
+                                {/* Two-column layout */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+
+                                    {/* LEFT COLUMN — Audio/MIDI Export */}
+                                    <div style={{ padding: '12px', background: '#222', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <div style={{ fontSize: '10px', fontWeight: '900', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('exportModal.audioMidiExport')}</div>
+
+                                        {/* Export Type: Full Mix / Stems / Arrangement */}
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {[
+                                                { key: 'mix', label: t('exportModal.fullMix') },
+                                                { key: 'stems', label: t('exportModal.stems') },
+                                                ...(arr.arrangementMode && arr.arrangement.length > 0
+                                                    ? [{ key: 'arrangement', label: t('exportModal.arrangement') }]
+                                                    : [])
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.key}
+                                                    onClick={() => setExportSettings({ ...exportSettings, type: opt.key })}
+                                                    style={{
+                                                        flex: 1, padding: '6px 4px',
+                                                        background: exportSettings.type === opt.key ? acSec : '#2a2a3e',
+                                                        color: exportSettings.type === opt.key ? '#000' : '#fff',
+                                                        border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                        fontWeight: 'bold', textTransform: 'uppercase', fontSize: '10px'
+                                                    }}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Format: WAV / MP3 */}
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {['wav', 'mp3'].map(f => (
+                                                <button
+                                                    key={f}
+                                                    onClick={() => setExportSettings({ ...exportSettings, format: f })}
+                                                    style={{
+                                                        flex: 1, padding: '6px',
+                                                        background: exportSettings.format === f ? acSec : '#2a2a3e',
+                                                        color: exportSettings.format === f ? '#000' : '#fff',
+                                                        border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                        fontWeight: 'bold', textTransform: 'uppercase', fontSize: '11px'
+                                                    }}
+                                                >
+                                                    {f}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Duration Bars */}
+                                        {exportSettings.type !== 'arrangement' && (
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                {[4, 8, 16, 32, 64].map(b => (
+                                                    <button
+                                                        key={b}
+                                                        onClick={() => setExportSettings({ ...exportSettings, durationBars: b })}
+                                                        style={{
+                                                            flex: 1, padding: '5px 2px',
+                                                            background: exportSettings.durationBars === b ? acSec : '#2a2a3e',
+                                                            color: exportSettings.durationBars === b ? '#000' : '#fff',
+                                                            border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                            fontWeight: 'bold', fontSize: '10px'
+                                                        }}
+                                                    >
+                                                        {t('exportModal.bars', { count: b })}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {exportSettings.type === 'arrangement' && arr.arrangementMode && (
+                                            <div style={{ fontSize: '10px', color: '#888', textAlign: 'center', padding: '6px', background: '#1a1a24', borderRadius: '5px' }}>
+                                                {t('exportModal.fullArrangement', { bars: arr.getTotalBars(), seconds: Math.ceil(arr.getTotalBars() * 240 / globalTempo) })}
+                                            </div>
+                                        )}
+
+                                        {/* Sample Rate + Bit Depth / Bitrate in a row */}
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#666', marginBottom: '3px', fontWeight: 'bold' }}>{t('exportModal.sampleRate')}</div>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                {[22050, 44100, 48000, 96000].map(sr => (
+                                                    <button
+                                                        key={sr}
+                                                        onClick={() => setExportSettings({ ...exportSettings, sampleRate: sr })}
+                                                        style={{
+                                                            flex: 1, padding: '5px 2px',
+                                                            background: exportSettings.sampleRate === sr ? acSec : '#2a2a3e',
+                                                            color: exportSettings.sampleRate === sr ? '#000' : '#fff',
+                                                            border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                            fontWeight: 'bold', fontSize: '10px'
+                                                        }}
+                                                    >
+                                                        {sr >= 1000 ? `${sr / 1000}k` : sr}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Bit Depth — WAV only */}
+                                        {exportSettings.format === 'wav' && (
+                                            <div>
+                                                <div style={{ fontSize: '10px', color: '#666', marginBottom: '3px', fontWeight: 'bold' }}>{t('exportModal.bitDepth')}</div>
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    {[8, 16, 24, 32].map(bd => (
+                                                        <button
+                                                            key={bd}
+                                                            onClick={() => setExportSettings({ ...exportSettings, bitDepth: bd })}
+                                                            style={{
+                                                                flex: 1, padding: '5px 2px',
+                                                                background: exportSettings.bitDepth === bd ? acSec : '#2a2a3e',
+                                                                color: exportSettings.bitDepth === bd ? '#000' : '#fff',
+                                                                border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                                fontWeight: 'bold', fontSize: '10px'
+                                                            }}
+                                                        >
+                                                            {bd === 32 ? t('exportModal.bit32Float') : t('exportModal.bitSuffix', { depth: bd })}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Bitrate — MP3 only */}
+                                        {exportSettings.format === 'mp3' && (
+                                            <div>
+                                                <div style={{ fontSize: '10px', color: '#666', marginBottom: '3px', fontWeight: 'bold' }}>{t('exportModal.bitrateKbps')}</div>
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    {[128, 192, 256, 320].map(br => (
+                                                        <button
+                                                            key={br}
+                                                            onClick={() => setExportSettings({ ...exportSettings, bitrate: br })}
+                                                            style={{
+                                                                flex: 1, padding: '5px 2px',
+                                                                background: exportSettings.bitrate === br ? acSec : '#2a2a3e',
+                                                                color: exportSettings.bitrate === br ? '#000' : '#fff',
+                                                                border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                                fontWeight: 'bold', fontSize: '10px'
+                                                            }}
+                                                        >
+                                                            {br}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Filename + Estimated Output side by side */}
+                                        <div style={{ padding: '6px 10px', background: '#0f0f12', borderRadius: '5px', border: '1px solid #333' }}>
+                                            <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px', fontWeight: 'bold' }}>{t('exportModal.outputFilename')}</div>
+                                            <div style={{ fontSize: '10px', color: acSec, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                                {exportSettings.type === 'stems'
+                                                    ? formatStemsZipFilename(projectName || 'Untitled', globalTempo, globalKey, globalScale) + '.zip'
+                                                    : exportSettings.type === 'arrangement'
+                                                        ? formatArrangementFilename(projectName || 'Untitled', globalTempo, globalKey, globalScale) + (exportSettings.format === 'mp3' ? '.mp3' : '.wav')
+                                                        : formatMixFilename(projectName || 'Untitled', globalTempo, globalKey, globalScale) + (exportSettings.format === 'mp3' ? '.mp3' : '.wav')
+                                                }
+                                            </div>
+                                        </div>
+
+                                        {/* Estimated size */}
+                                        {exporterRef.current && (() => {
+                                            const est = exporterRef.current.estimateExportSizes({
+                                                format: exportSettings.format, sampleRate: exportSettings.sampleRate,
+                                                bitrate: exportSettings.bitrate, bitDepth: exportSettings.bitDepth,
+                                                tempo: globalTempo, bars: exportSettings.durationBars,
+                                                type: exportSettings.type, tracks: patterns,
+                                                arrangement: arr.arrangementMode ? arr.arrangement : null, audioTracks
+                                            });
+                                            const fmtSize = (b) => b > 1073741824 ? `${(b / 1073741824).toFixed(2)} GB` : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;
+                                            return (
+                                                <div style={{ padding: '6px 10px', background: '#0f0f12', borderRadius: '5px', border: '1px solid #333' }}>
+                                                    <div style={{ fontSize: '9px', color: '#666', fontWeight: 'bold', marginBottom: '2px' }}>{t('exportModal.estimatedOutput')}</div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#888', fontSize: '10px' }}>{t('exportModal.size')}</span>
+                                                        <span style={{ color: acSec, fontSize: '10px', fontFamily: 'monospace', fontWeight: '700' }}>{fmtSize(est.total.uncompressed)}</span>
+                                                    </div>
+                                                    {est.total.compressed !== est.total.uncompressed && (
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span style={{ color: '#666', fontSize: '9px' }}>{t('exportProgress.compressedZip')}</span>
+                                                            <span style={{ color: '#888', fontSize: '10px', fontFamily: 'monospace' }}>~{fmtSize(est.total.compressed)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span style={{ color: '#666', fontSize: '9px' }}>{t('exportProgress.duration')}</span>
+                                                        <span style={{ color: '#888', fontSize: '10px', fontFamily: 'monospace' }}>
+                                                            {Math.floor(est.duration / 60)}:{String(Math.floor(est.duration % 60)).padStart(2, '0')}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
                                         <button
-                                            key={f}
-                                            onClick={() => setExportSettings({ ...exportSettings, format: f })}
+                                            onClick={confirmExport}
+                                            disabled={isExporting}
                                             style={{
-                                                flex: 1, padding: '8px',
-                                                background: exportSettings.format === f ? acSec : '#2a2a3e',
-                                                color: exportSettings.format === f ? '#000' : '#fff',
-                                                border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                                fontWeight: 'bold', textTransform: 'uppercase', fontSize: '11px'
+                                                width: '100%', padding: '10px',
+                                                background: isExporting ? '#555' : acGrad,
+                                                border: 'none', borderRadius: '6px',
+                                                color: '#fff', cursor: isExporting ? 'wait' : 'pointer',
+                                                fontWeight: '900', fontSize: '12px',
+                                                boxShadow: `0 2px 10px ${hexToRgba(ac, 0.2)}`,
+                                                marginTop: 'auto'
                                             }}
                                         >
-                                            {f}
+                                            {isExporting ? t('exportModal.renderingButton') : t('exportModal.exportButton')}
                                         </button>
-                                    ))}
-                                </div>
-
-                                {exportSettings.type !== 'arrangement' && (
-                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                        {[4, 8, 16, 32, 64].map(b => (
-                                            <button
-                                                key={b}
-                                                onClick={() => setExportSettings({ ...exportSettings, durationBars: b })}
-                                                style={{
-                                                    flex: 1, padding: '8px',
-                                                    background: exportSettings.durationBars === b ? acSec : '#2a2a3e',
-                                                    color: exportSettings.durationBars === b ? '#000' : '#fff',
-                                                    border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                                    fontWeight: 'bold', fontSize: '11px',
-                                                    minWidth: '48px'
-                                                }}
-                                            >
-                                                {t('exportModal.bars', { count: b })}
-                                            </button>
-                                        ))}
                                     </div>
-                                )}
-                                {exportSettings.type === 'arrangement' && arr.arrangementMode && (
-                                    <div style={{ fontSize: '11px', color: '#888', textAlign: 'center', padding: '8px', background: '#1a1a24', borderRadius: '6px' }}>
-                                        {t('exportModal.fullArrangement', { bars: arr.getTotalBars(), seconds: Math.ceil(arr.getTotalBars() * 240 / globalTempo) })}
-                                    </div>
-                                )}
 
-                                {/* Sample Rate */}
-                                <div style={{ marginTop: '15px' }}>
-                                    <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>{t('exportModal.sampleRate')}</div>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                        {[22050, 44100, 48000, 96000].map(sr => (
-                                            <button
-                                                key={sr}
-                                                onClick={() => setExportSettings({ ...exportSettings, sampleRate: sr })}
-                                                style={{
-                                                    flex: 1, padding: '6px 2px',
-                                                    background: exportSettings.sampleRate === sr ? acSec : '#2a2a3e',
-                                                    color: exportSettings.sampleRate === sr ? '#000' : '#fff',
-                                                    border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                                    fontWeight: 'bold', fontSize: '10px'
-                                                }}
-                                            >
-                                                {sr >= 1000 ? `${sr / 1000}k` : sr}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Bit Depth — WAV only */}
-                                {exportSettings.format === 'wav' && (
-                                    <div style={{ marginTop: '10px' }}>
-                                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>{t('exportModal.bitDepth')}</div>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            {[8, 16, 24, 32].map(bd => (
-                                                <button
-                                                    key={bd}
-                                                    onClick={() => setExportSettings({ ...exportSettings, bitDepth: bd })}
-                                                    style={{
-                                                        flex: 1, padding: '6px 2px',
-                                                        background: exportSettings.bitDepth === bd ? acSec : '#2a2a3e',
-                                                        color: exportSettings.bitDepth === bd ? '#000' : '#fff',
-                                                        border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                                        fontWeight: 'bold', fontSize: '10px'
-                                                    }}
-                                                >
-                                                    {bd === 32 ? t('exportModal.bit32Float') : t('exportModal.bitSuffix', { depth: bd })}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Bitrate — MP3 only */}
-                                {exportSettings.format === 'mp3' && (
-                                    <div style={{ marginTop: '10px' }}>
-                                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px', fontWeight: 'bold' }}>{t('exportModal.bitrateKbps')}</div>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                            {[128, 192, 256, 320].map(br => (
-                                                <button
-                                                    key={br}
-                                                    onClick={() => setExportSettings({ ...exportSettings, bitrate: br })}
-                                                    style={{
-                                                        flex: 1, padding: '6px 2px',
-                                                        background: exportSettings.bitrate === br ? acSec : '#2a2a3e',
-                                                        color: exportSettings.bitrate === br ? '#000' : '#fff',
-                                                        border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                                        fontWeight: 'bold', fontSize: '10px'
-                                                    }}
-                                                >
-                                                    {br}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Filename Preview */}
-                                <div style={{ marginTop: '12px', padding: '8px 12px', background: '#0f0f12', borderRadius: '6px', border: '1px solid #333' }}>
-                                    <div style={{ fontSize: '9px', color: '#666', marginBottom: '4px', fontWeight: 'bold' }}>{t('exportModal.outputFilename')}</div>
-                                    <div style={{ fontSize: '11px', color: acSec, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                                        {exportSettings.type === 'stems'
-                                            ? formatStemsZipFilename(projectName || 'Untitled', globalTempo, globalKey, globalScale) + '.zip'
-                                            : exportSettings.type === 'arrangement'
-                                                ? formatArrangementFilename(projectName || 'Untitled', globalTempo, globalKey, globalScale) + (exportSettings.format === 'mp3' ? '.mp3' : '.wav')
-                                                : formatMixFilename(projectName || 'Untitled', globalTempo, globalKey, globalScale) + (exportSettings.format === 'mp3' ? '.mp3' : '.wav')
-                                        }
-                                    </div>
-                                </div>
-
-                                {/* Estimated size preview */}
-                                {exporterRef.current && (() => {
-                                    const est = exporterRef.current.estimateExportSizes({
-                                        format: exportSettings.format, sampleRate: exportSettings.sampleRate,
-                                        bitrate: exportSettings.bitrate, bitDepth: exportSettings.bitDepth,
-                                        tempo: globalTempo, bars: exportSettings.durationBars,
-                                        type: exportSettings.type, tracks: patterns,
-                                        arrangement: arr.arrangementMode ? arr.arrangement : null, audioTracks
-                                    });
-                                    const fmtSize = (b) => b > 1073741824 ? `${(b / 1073741824).toFixed(2)} GB` : b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`;
-                                    return (
-                                        <div style={{ marginTop: '8px', padding: '8px 12px', background: '#0f0f12', borderRadius: '6px', border: '1px solid #333' }}>
-                                            <div style={{ fontSize: '9px', color: '#666', fontWeight: 'bold', marginBottom: '3px' }}>{t('exportModal.estimatedOutput')}</div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: '#888', fontSize: '10px' }}>{t('exportModal.size')}</span>
-                                                <span style={{ color: acSec, fontSize: '10px', fontFamily: 'monospace', fontWeight: '700' }}>{fmtSize(est.total.uncompressed)}</span>
+                                    {/* RIGHT COLUMN — Generator Export + Project Save */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {/* Generator Export Section */}
+                                        <div style={{ padding: '12px', background: '#222', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '900', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                {t('exportModal.generatorExport')}
                                             </div>
-                                            {est.total.compressed !== est.total.uncompressed && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                    <span style={{ color: '#666', fontSize: '9px' }}>{t('exportProgress.compressedZip')}</span>
-                                                    <span style={{ color: '#888', fontSize: '10px', fontFamily: 'monospace' }}>~{fmtSize(est.total.compressed)}</span>
+
+                                            {/* Generator checkboxes */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
+                                                {['drums', 'chords', 'melody', 'bass'].map(gen => {
+                                                    const hasPattern = gen === 'drums'
+                                                        ? patterns.drums && Object.keys(patterns.drums).length > 0
+                                                        : patterns[gen] && patterns[gen].length > 0;
+                                                    const hasSample = gen === 'drums' ? hasPattern : !!loadedInstruments[gen];
+                                                    const label = t(`app.${gen}`);
+                                                    const checked = genExportSelection[gen];
+                                                    return (
+                                                        <label
+                                                            key={gen}
+                                                            style={{
+                                                                display: 'flex', alignItems: 'center', gap: '5px',
+                                                                padding: '5px 7px', borderRadius: '5px',
+                                                                background: checked ? `${ac}18` : '#1a1a24',
+                                                                border: `1px solid ${checked ? `${ac}44` : '#333'}`,
+                                                                cursor: 'pointer', fontSize: '11px', fontWeight: '700',
+                                                                color: hasPattern ? '#fff' : '#555',
+                                                                opacity: hasPattern ? 1 : 0.5,
+                                                            }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={() => setGenExportSelection(prev => ({ ...prev, [gen]: !prev[gen] }))}
+                                                                style={{ accentColor: ac }}
+                                                            />
+                                                            <span>{label}</span>
+                                                            {hasPattern && hasSample && <span style={{ fontSize: '8px', color: '#4caf50' }}>●</span>}
+                                                            {hasPattern && !hasSample && gen !== 'drums' && <span style={{ fontSize: '8px', color: '#ff9800', marginLeft: 'auto' }} title={t('exportModal.noSampleLoaded')}>MIDI</span>}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Export format: MIDI / Audio / Both */}
+                                            <div>
+                                                <div style={{ fontSize: '10px', color: '#666', marginBottom: '3px', fontWeight: 'bold' }}>
+                                                    {t('exportModal.generatorFormat')}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '4px' }}>
+                                                    {[
+                                                        { key: 'midi', label: t('exportModal.midiOnly') },
+                                                        { key: 'audio', label: t('exportModal.audioOnly') },
+                                                        { key: 'both', label: t('exportModal.midiBothAudio') },
+                                                    ].map(opt => (
+                                                        <button
+                                                            key={opt.key}
+                                                            onClick={() => setGenExportFormat(opt.key)}
+                                                            style={{
+                                                                flex: 1, padding: '6px 4px',
+                                                                background: genExportFormat === opt.key ? acSec : '#2a2a3e',
+                                                                color: genExportFormat === opt.key ? '#000' : '#fff',
+                                                                border: 'none', borderRadius: '5px', cursor: 'pointer',
+                                                                fontWeight: 'bold', textTransform: 'uppercase', fontSize: '9px'
+                                                            }}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Audio note */}
+                                            {(genExportFormat === 'audio' || genExportFormat === 'both') && (
+                                                <div style={{ fontSize: '9px', color: '#666', padding: '5px 7px', background: '#1a1a24', borderRadius: '4px' }}>
+                                                    {t('exportModal.audioRequiresSamples')}
                                                 </div>
                                             )}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: '#666', fontSize: '9px' }}>{t('exportProgress.duration')}</span>
-                                                <span style={{ color: '#888', fontSize: '10px', fontFamily: 'monospace' }}>
-                                                    {Math.floor(est.duration / 60)}:{String(Math.floor(est.duration % 60)).padStart(2, '0')}
-                                                </span>
+
+                                            <button
+                                                onClick={exportGenerators}
+                                                disabled={isExporting || !Object.values(genExportSelection).some(Boolean)}
+                                                style={{
+                                                    width: '100%', padding: '10px',
+                                                    background: isExporting ? '#555' : '#9775fa',
+                                                    border: 'none', borderRadius: '6px',
+                                                    color: '#fff', cursor: isExporting ? 'wait' : 'pointer',
+                                                    fontWeight: '900', fontSize: '12px',
+                                                    boxShadow: '0 2px 10px rgba(151,117,250,0.2)',
+                                                    marginTop: 'auto'
+                                                }}
+                                            >
+                                                {isExporting ? t('exportModal.renderingButton') : t('exportModal.exportGenerators')}
+                                            </button>
+                                        </div>
+
+                                        {/* Project Save Section */}
+                                        <div style={{ padding: '12px', background: '#222', borderRadius: '8px' }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '900', color: '#888', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('exportModal.projectFile')}</div>
+                                            <button
+                                                onClick={handleSaveProject}
+                                                disabled={isExporting}
+                                                style={{
+                                                    width: '100%', padding: '10px',
+                                                    background: isExporting ? '#555' : '#4facfe',
+                                                    border: 'none', borderRadius: '6px',
+                                                    color: '#fff', cursor: isExporting ? 'wait' : 'pointer',
+                                                    fontWeight: 'bold', fontSize: '12px',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                                }}
+                                            >
+                                                <span>💾</span> {t('exportModal.saveProjectBundle')}
+                                            </button>
+                                            <div style={{ fontSize: '9px', color: '#666', marginTop: '5px', textAlign: 'center' }}>
+                                                {t('exportModal.savesDescription')}
                                             </div>
                                         </div>
-                                    );
-                                })()}
-
-                                <button
-                                    onClick={confirmExport}
-                                    disabled={isExporting}
-                                    style={{
-                                        width: '100%', marginTop: '15px', padding: '10px',
-                                        background: isExporting ? '#555' : acGrad,
-                                        border: 'none', borderRadius: '6px',
-                                        color: '#fff', cursor: isExporting ? 'wait' : 'pointer',
-                                        fontWeight: '900', fontSize: '12px',
-                                        boxShadow: `0 2px 10px ${hexToRgba(ac, 0.2)}`
-                                    }}
-                                >
-                                    {isExporting ? t('exportModal.renderingButton') : t('exportModal.exportButton')}
-                                </button>
-                            </div>
-
-
-                            {/* Project Save Section */}
-                            <div style={{ padding: '15px', background: '#222', borderRadius: '8px' }}>
-                                <div style={{ fontSize: '11px', fontWeight: '900', color: '#888', marginBottom: '10px', textTransform: 'uppercase' }}>{t('exportModal.projectFile')}</div>
-                                <button
-                                    onClick={handleSaveProject}
-                                    disabled={isExporting}
-                                    style={{
-                                        width: '100%', padding: '10px',
-                                        background: isExporting ? '#555' : '#4facfe',
-                                        border: 'none', borderRadius: '6px',
-                                        color: '#fff', cursor: isExporting ? 'wait' : 'pointer',
-                                        fontWeight: 'bold', fontSize: '12px',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                                    }}
-                                >
-                                    <span>💾</span> {t('exportModal.saveProjectBundle')}
-                                </button>
-                                <div style={{ fontSize: '9px', color: '#666', marginTop: '5px', textAlign: 'center' }}>
-                                    {t('exportModal.savesDescription')}
+                                    </div>
                                 </div>
                             </div>
-
-                            <button
-                                onClick={() => setShowExportModal(false)}
-                                style={{
-                                    marginTop: '20px', width: '100%', padding: '10px', background: 'transparent',
-                                    border: '1px solid #444', borderRadius: '6px',
-                                    color: '#888', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'
-                                }}
-                            >
-                                {t('common.close')}
-                            </button>
                         </div>
                     </div>
                 )

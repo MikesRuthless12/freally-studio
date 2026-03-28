@@ -84,11 +84,12 @@ app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 
 // ---- Audio engine flags (platform-aware) ----
 
-// Windows-only: bypass Chromium's internal audio resampler and use the legacy
-// WAVE API instead of WASAPI. Fixes Realtek driver static/degradation issues.
+// Windows-only: bypass Chromium's internal audio resampler to reduce latency.
+// NOTE: 'force-wave-audio' was removed — it causes periodic 3-6 second stuttering
+// on Realtek drivers. WASAPI (the default) handles audio better despite earlier
+// static issues, which are now mitigated by context management and keepalive.
 if (process.platform === 'win32') {
     app.commandLine.appendSwitch('disable-audio-output-resampler');
-    app.commandLine.appendSwitch('force-wave-audio');
 }
 
 // All platforms: keep the audio service in-process for lower latency,

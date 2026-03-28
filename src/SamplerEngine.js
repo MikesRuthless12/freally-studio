@@ -46,6 +46,8 @@ export class SamplerEngine {
         this.drumChannels = new Map(); // drumId -> DrumChannel DSP Chain
         this.MAX_VOICES = 24; // Reduced to minimize audio graph load for Realtek driver compat
         this._reversedBufferCache = new Map(); // sample AudioBuffer → reversed AudioBuffer
+        this._reversedCacheBytes = 0;
+        this._reversedCacheMaxBytes = 128 * 1024 * 1024; // 128 MB ceiling
         this._cleanupInterval = null;
         // Cleanup timer is started lazily on first audio play, not eagerly —
         // avoids a 2-second interval running when no audio is active.
@@ -475,13 +477,36 @@ export class SamplerEngine {
      * @returns {{ source: AudioBufferSourceNode, gainNode: GainNode }} for stop/fade control
      */
     playAudioClip(buffer, trackId, when = 0, playbackRate = 1.0, offset = 0, duration = 0, stretchOpts = null) {
-        // Ensure context is running (may be suspended from idle timeout)
-        if (this.audioContext.state === 'suspended') this.audioContext.resume().catch(() => {});
-        let bus = this.trackBuses[trackId];
-        // Auto-create bus on demand so clips never silently fail
-        if (!bus) bus = this.addTrackBus(trackId);
-        if (!bus || !buffer) return null;
         const ctx = this.audioContext;
+        console.log(`[playAudioClip] trackId=${trackId}, ctxState=${ctx.state}, ctxSampleRate=${ctx.sampleRate}, bufSampleRate=${buffer?.sampleRate}, bufDur=${buffer?.duration?.toFixed(3)}s, offset=${offset.toFixed(3)}, duration=${duration.toFixed(3)}, rate=${playbackRate}`);
+
+        // Ensure context is running (may be suspended from idle timeout)
+        if (ctx.state === 'suspended') {
+            console.log('[playAudioClip] Context SUSPENDED — resuming...');
+            ctx.resume().catch(() => {});
+        }
+        let bus = this.trackBuses[trackId];
+        // Rebuild bus if context was hot-swapped (bus nodes are on old context)
+        if (bus && bus.gainNode.context !== ctx) {
+            console.log(`[playAudioClip] Bus "${trackId}" on STALE context — rebuilding`);
+            this.removeTrackBus(trackId);
+            bus = null;
+        }
+        // Auto-create bus on demand so clips never silently fail
+        if (!bus) {
+            console.log(`[playAudioClip] Creating bus "${trackId}"`);
+            bus = this.addTrackBus(trackId);
+        }
+        if (!bus || !buffer) {
+            console.warn(`[playAudioClip] FAILED: bus=${!!bus}, buffer=${!!buffer}`);
+            return null;
+        }
+        // Set preview bus to full volume (other buses use mixer controls)
+        if (trackId === 'preview') bus.gainNode.gain.value = 1.0;
+
+        // Verify bus is connected to masterGain
+        console.log(`[playAudioClip] Bus gain=${bus.gainNode.gain.value}, masterGain=${this.masterGain.gain.value}, masterGain→dest=${this.masterGain.context === ctx}`);
+
         const source = ctx.createBufferSource();
         source.buffer = buffer;
 
@@ -490,7 +515,6 @@ export class SamplerEngine {
         if (stretchOpts && stretchOpts.timeStretch && stretchOpts.originalBpm && this.globalTempo) {
             const stretchRate = Math.max(0.5, Math.min(2.0, this.globalTempo / stretchOpts.originalBpm));
             effectiveRate *= stretchRate;
-            // Pitch preservation via detune compensation
             if ((stretchOpts.preservePitch ?? this.preservePitch) && stretchRate !== 1.0 && 'detune' in source) {
                 source.detune.value = -1200 * Math.log2(stretchRate);
             }
@@ -500,28 +524,34 @@ export class SamplerEngine {
         source.connect(clipGain);
         clipGain.connect(bus.gainNode);
 
-        const startTime = Math.max(when || ctx.currentTime, ctx.currentTime);
+        // Always schedule slightly ahead to give audio thread time to prepare buffers
+        // (prevents underruns / static on Realtek and other consumer audio drivers)
+        const CLIP_LOOKAHEAD = 0.05; // 50ms — matches arrangement playback
+        const startTime = Math.max(when || ctx.currentTime, ctx.currentTime) + CLIP_LOOKAHEAD;
+        const delta = startTime - ctx.currentTime;
+        console.log(`[playAudioClip] startTime=${startTime.toFixed(3)}, currentTime=${ctx.currentTime.toFixed(3)}, delta=${delta.toFixed(3)}s, effectiveRate=${effectiveRate}`);
 
         // Start playback — NEVER pass duration to source.start() as it hard-cuts
-        // the buffer at the sample level causing clicks. Use gain ramp for clean ending.
         source.start(startTime, offset);
 
-        // Anti-click: 8ms fade-in ramp (wider window for smoother onset)
+        // Anti-click: 8ms fade-in ramp
         clipGain.gain.setValueAtTime(0, startTime);
         clipGain.gain.linearRampToValueAtTime(1.0, startTime + 0.008);
 
         if (duration > 0) {
-            // Anti-click fade-out: ramp gain to 0 over 25ms before the end
             const endTime = startTime + duration;
             const fadeOutStart = endTime - 0.025;
             clipGain.gain.setValueAtTime(1.0, Math.max(startTime + 0.009, fadeOutStart));
             clipGain.gain.linearRampToValueAtTime(0.0, endTime);
-            // Stop source after gain is fully zero
             source.stop(endTime + 0.05);
+            console.log(`[playAudioClip] Scheduled: play ${offset.toFixed(3)}→${(offset + duration).toFixed(3)}s, stop at ${(endTime + 0.05).toFixed(3)}`);
+        } else {
+            console.log(`[playAudioClip] No duration limit — plays to buffer end`);
         }
 
-        // Cleanup: disconnect nodes when source ends to prevent bus pile-up
+        // Cleanup: disconnect nodes when source ends
         source.onended = () => {
+            console.log(`[playAudioClip] Source ended for trackId=${trackId}`);
             try { source.disconnect(); } catch (_) {}
             try { clipGain.disconnect(); } catch (_) {}
             source.onended = null;
@@ -957,6 +987,8 @@ export class SamplerEngine {
         const prev = this.instruments.get(instrumentId);
         if (prev && prev.samples) {
             for (const [, buf] of prev.samples) {
+                const cached = this._reversedBufferCache.get(buf);
+                if (cached) this._reversedCacheBytes -= cached.numberOfChannels * cached.length * 4;
                 this._reversedBufferCache.delete(buf);
             }
             prev.samples.clear();
@@ -1270,6 +1302,18 @@ export class SamplerEngine {
                     }
                 }
                 this._reversedBufferCache.set(sample, reversed);
+                const addedBytes = reversed.numberOfChannels * reversed.length * 4;
+                this._reversedCacheBytes += addedBytes;
+                // Evict oldest entries if over budget
+                if (this._reversedCacheBytes > this._reversedCacheMaxBytes) {
+                    for (const [oldKey, oldBuf] of this._reversedBufferCache) {
+                        if (oldKey === sample) continue;
+                        const oldSize = oldBuf.numberOfChannels * oldBuf.length * 4;
+                        this._reversedBufferCache.delete(oldKey);
+                        this._reversedCacheBytes -= oldSize;
+                        if (this._reversedCacheBytes <= this._reversedCacheMaxBytes) break;
+                    }
+                }
             }
             source.buffer = reversed;
         } else {
@@ -1853,10 +1897,9 @@ export class SamplerEngine {
         // Skip entirely when audio clips are actively playing (vocal recordings,
         // arrangement clips) to avoid any audible artifacts.
         this._resetInterval = setInterval(() => {
-            // Don't hot-swap during recording or arm monitoring — the input
-            // monitor runs on the main context and swapping it causes clicks
-            if (this._audioClipsPlaying) return;
-            if (this._audioActive || (this.audioContext && this.audioContext.state === 'running')) {
+            // Don't hot-swap during recording, arm monitoring, or active audio playback
+            if (this._audioClipsPlaying || this._audioActive) return;
+            if (this.audioContext && this.audioContext.state === 'running') {
                 this._hotSwapAudioContext();
             }
         }, 30000);
@@ -1913,9 +1956,9 @@ export class SamplerEngine {
                 this._reconnectInterval = null;
             }
             this._stopKeepaliveTone();
-            // Always suspend the context when going idle — prevents Realtek
-            // driver degradation that causes silent audio output after ~1-2 min.
-            if (this.audioContext && this.audioContext.state === 'running') {
+            // Suspend context when going idle — prevents Realtek driver degradation.
+            // But NOT if slicer is open (_audioClipsPlaying) — it needs the context alive.
+            if (!this._audioClipsPlaying && this.audioContext && this.audioContext.state === 'running') {
                 this.audioContext.suspend().catch(() => {});
             }
         }
@@ -1936,7 +1979,7 @@ export class SamplerEngine {
             // Only suspend if still idle (no playback started in the meantime)
             // Also check if AudioEngine has an active preview source — the shared
             // AudioContext must stay running for the browser file preview to finish.
-            if (!this._audioActive && this.audioContext && this.audioContext.state === 'running') {
+            if (!this._audioActive && !this._audioClipsPlaying && this.audioContext && this.audioContext.state === 'running') {
                 if (window.audioEngine && (window.audioEngine.isPlaying || window.audioEngine.currentSource)) {
                     // Browser preview still playing — reschedule check in 6s
                     this._scheduleIdleSuspend();
@@ -2123,6 +2166,8 @@ export class SamplerEngine {
         if (!instrument) return;
         // Purge reversed buffer cache entries for this instrument's samples
         for (const [, sampleBuf] of instrument.samples) {
+            const cached = this._reversedBufferCache.get(sampleBuf);
+            if (cached) this._reversedCacheBytes -= cached.numberOfChannels * cached.length * 4;
             this._reversedBufferCache.delete(sampleBuf);
         }
         instrument.samples.clear();
@@ -2135,6 +2180,7 @@ export class SamplerEngine {
     clearAll() {
         this.stopAll();
         this._reversedBufferCache.clear();
+        this._reversedCacheBytes = 0;
         this.instruments.clear();
         this.drumChannels.clear();
         this.disconnectMobileStreamDest();

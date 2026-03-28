@@ -132,7 +132,7 @@ export const GENRE_BANKS_EXPANSION3 = {
                 'lowkey', 'highkey', 'deadass', 'for-real', 'no-lie',
                 'crazy', 'insane', 'wild', 'unhinged', 'different',
                 'unmatched', 'undefeated', 'untouched', 'unchallenged', 'unbothered',
-                'fye', 'tuff', 'clean', 'crispy', 'fresh',
+                'fye', 'tough', 'clean', 'crispy', 'fresh',
                 'wet', 'dripping', 'flooding', 'splashing', 'pouring'
             ]
         }

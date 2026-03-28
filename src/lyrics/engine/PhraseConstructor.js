@@ -272,7 +272,7 @@ const NOUN_TEMPLATES = [
     'everything reminds me of the {rhyme}',
     'somewhere underneath the {rhyme}',
     'I keep coming back to the {rhyme}',
-    'another story of the {rhyme}',
+    'another story - beyond the {rhyme}',
     'I was caught inside the {rhyme}',
     'we surrendered to the {rhyme}',
     'chasing down the {rhyme}',

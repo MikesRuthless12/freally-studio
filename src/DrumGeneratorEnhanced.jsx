@@ -123,8 +123,15 @@ const DrumGeneratorEnhanced = React.forwardRef(({
     };
 
     // State for each drum
-    const [drumStates, setDrumStates] = useState(createInitialDrumStates(totalSteps));
+    const [drumStates, _setDrumStatesRaw] = useState(createInitialDrumStates(totalSteps));
+    // Version-tracked setter — increments counter for O(1) change detection (replaces JSON.stringify)
+    const _drumVersionRef = useRef(0);
+    const setDrumStates = useCallback((updater) => {
+        _drumVersionRef.current++;
+        _setDrumStatesRaw(updater);
+    }, []);
     const [drumOrder, setDrumOrder] = useState(drumElements);
+    const drumSlotRefs = useRef({}); // cached DOM refs for playback flash (avoids getElementById in hot loop)
 
     // Euclidean Rhythm Panel State
     const [showEuclidean, setShowEuclidean] = useState(false);
@@ -1009,16 +1016,13 @@ const DrumGeneratorEnhanced = React.forwardRef(({
 
     // CRITICAL: Ref for playback ticker to avoid restarts while playing
     const drumStatesRef = useRef(drumStates);
-    const lastSentPatternRef = useRef(null);
+    const lastSentVersionRef = useRef(-1);
 
     useEffect(() => {
         drumStatesRef.current = drumStates;
-        if (onPatternChange) {
-            const patternStr = JSON.stringify(drumStates);
-            if (patternStr !== lastSentPatternRef.current) {
-                lastSentPatternRef.current = patternStr;
-                onPatternChange(drumStates);
-            }
+        if (onPatternChange && _drumVersionRef.current !== lastSentVersionRef.current) {
+            lastSentVersionRef.current = _drumVersionRef.current;
+            onPatternChange(drumStates);
         }
         // Emit drum clip after generate() completes
         if (pendingClipGenerationRef.current && onDrumClipGenerated) {
@@ -1192,7 +1196,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                 sampler.playNote(drumId, basePitch + pitchShift, velocity, duration);
 
                                 // Visual flash effect
-                                const drumSlot = document.getElementById(`drum-slot-${drumId}`);
+                                const drumSlot = drumSlotRefs.current[drumId];
                                 if (drumSlot) {
                                     const origTransform = drumSlot.style.transform;
                                     const origBoxShadow = drumSlot.style.boxShadow;
@@ -1811,6 +1815,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     <div
                         key={drum.id}
                         id={`drum-slot-${drum.id}`}
+                        ref={el => { drumSlotRefs.current[drum.id] = el; }}
                         onClick={() => setSelectedDrumId(drum.id)}
                         onDragOver={(e) => { e.preventDefault(); setDragOver(drum.id); }}
                         onDragLeave={() => setDragOver(null)}

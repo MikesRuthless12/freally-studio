@@ -3,7 +3,7 @@
 
 export { NOTE_NAMES } from './domain/keys';
 export { SCALES } from './domain/scales';
-export { CHORD_TYPES, ROMAN_TO_CHORD, CHORD_PROGRESSIONS } from './domain/chords';
+export { CHORD_TYPES, ROMAN_TO_CHORD, CHORD_PROGRESSIONS, ensureChordsExpansionsLoaded } from './domain/chords';
 
 // Import what helpers need
 import { NOTE_NAMES } from './domain/keys';

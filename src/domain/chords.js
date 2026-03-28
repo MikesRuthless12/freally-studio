@@ -9061,6 +9061,11 @@ export const CHORD_PROGRESSIONS = {
     ]
 };
 
-// Merge Expansion 2 (~35,000 additional progressions)
-import { CHORD_PROGRESSIONS_EXPANSION2, mergeChordsExpansion2 } from './chordsExpansion2';
-mergeChordsExpansion2(CHORD_PROGRESSIONS, CHORD_PROGRESSIONS_EXPANSION2);
+// Expansion 2 (~35,000 additional progressions) — loaded on first chord generation
+let _chordsExpansion2Merged = false;
+export async function ensureChordsExpansionsLoaded() {
+    if (_chordsExpansion2Merged) return;
+    _chordsExpansion2Merged = true;
+    const { CHORD_PROGRESSIONS_EXPANSION2, mergeChordsExpansion2 } = await import('./chordsExpansion2');
+    mergeChordsExpansion2(CHORD_PROGRESSIONS, CHORD_PROGRESSIONS_EXPANSION2);
+}

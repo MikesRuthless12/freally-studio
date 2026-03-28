@@ -1,26 +1,27 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 
-// Import all locale files (18 languages — top 12 + major world languages)
+// Only English bundled statically (fallback language); others loaded on demand
 import en from './locales/en.json';
-import es from './locales/es.json';
-import fr from './locales/fr.json';
-import de from './locales/de.json';
-import it from './locales/it.json';
-import pt from './locales/pt.json';
-import ja from './locales/ja.json';
-import ko from './locales/ko.json';
-import zh from './locales/zh.json';
-import ru from './locales/ru.json';
-import ar from './locales/ar.json';
-import hi from './locales/hi.json';
-import tr from './locales/tr.json';
-import fi from './locales/fi.json';
-import hu from './locales/hu.json';
-import th from './locales/th.json';
-import et from './locales/et.json';
-import az from './locales/az.json';
 
-const translations = { en, es, fr, de, it, pt, ja, ko, zh, ru, ar, hi, tr, fi, hu, th, et, az };
+// Vite-compatible lazy locale loader — each locale becomes its own chunk
+const LOCALE_IMPORTERS = import.meta.glob('./locales/*.json', { eager: false });
+const loadedLocales = { en };
+
+async function loadLocale(langCode) {
+    if (loadedLocales[langCode]) return loadedLocales[langCode];
+    if (langCode === 'en') return en;
+    const key = `./locales/${langCode}.json`;
+    if (LOCALE_IMPORTERS[key]) {
+        try {
+            const mod = await LOCALE_IMPORTERS[key]();
+            loadedLocales[langCode] = mod.default;
+            return mod.default;
+        } catch (e) {
+            console.warn(`[i18n] Failed to load locale: ${langCode}`, e);
+        }
+    }
+    return en; // fallback
+}
 
 // Language names — each language shows all other language names in its own script
 const LANGUAGE_NAMES = {
@@ -63,7 +64,7 @@ function getSortedLanguages(currentLang) {
 
 /**
  * Detect the browser/system language and return a supported language code.
- * Falls back to 'en' if the system language is not among our 45 supported languages.
+ * Falls back to 'en' if the system language is not among our 18 supported languages.
  */
 function detectSystemLanguage() {
     try {
@@ -93,6 +94,18 @@ export function I18nProvider({ children }) {
         return detectSystemLanguage();
     });
 
+    // Active locale dictionary — starts with English, updates on language change
+    const [activeDict, setActiveDict] = useState(en);
+
+    // Load locale on language change
+    useEffect(() => {
+        let cancelled = false;
+        loadLocale(language).then(dict => {
+            if (!cancelled) setActiveDict(dict);
+        });
+        return () => { cancelled = true; };
+    }, [language]);
+
     const setLanguage = useCallback((langCode) => {
         setLanguageState(langCode);
         // Also persist to settings
@@ -105,9 +118,8 @@ export function I18nProvider({ children }) {
     }, []);
 
     const t = useCallback((key, params) => {
-        const dict = translations[language] || translations.en;
-        let text = dict[key];
-        if (text === undefined) text = translations.en[key];
+        let text = activeDict[key];
+        if (text === undefined) text = en[key]; // always fallback to bundled English
         if (text === undefined) return key;
         if (params) {
             Object.entries(params).forEach(([k, v]) => {
@@ -115,7 +127,7 @@ export function I18nProvider({ children }) {
             });
         }
         return text;
-    }, [language]);
+    }, [activeDict]);
 
     const getLanguageName = useCallback((langCode, inLanguage) => {
         const lang = inLanguage || language;
@@ -146,10 +158,7 @@ export function useTranslation() {
         return {
             language: 'en',
             setLanguage: () => {},
-            t: (key) => {
-                const dict = translations.en;
-                return dict[key] || key;
-            },
+            t: (key) => en[key] || key,
             getLanguageName: (code) => LANGUAGE_NAMES.en[code] || code,
             sortedLanguages: getSortedLanguages('en'),
             languageCodes: LANGUAGE_CODES,

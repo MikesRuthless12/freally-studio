@@ -245,6 +245,8 @@ export function useCollaboration() {
                 if (remoteAudioNodes.current[data.id]) {
                     try {
                         remoteAudioNodes.current[data.id].source?.disconnect();
+                        remoteAudioNodes.current[data.id].highpass?.disconnect();
+                        remoteAudioNodes.current[data.id].presenceRestore?.disconnect();
                         remoteAudioNodes.current[data.id].compressor?.disconnect();
                         remoteAudioNodes.current[data.id].gain?.disconnect();
                         remoteAudioNodes.current[data.id].analyser?.disconnect();
@@ -561,13 +563,26 @@ export function useCollaboration() {
 
         const source = ctx.createMediaStreamSource(stream);
 
-        // Hard limiter to prevent screaming/clipping
+        // Highpass at 80 Hz — removes any residual rumble from peer's mic
+        const highpass = ctx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = 80;
+        highpass.Q.value = 0.707;
+
+        // Presence restore at 6 kHz — compensates for Opus codec HF rolloff
+        const presenceRestore = ctx.createBiquadFilter();
+        presenceRestore.type = 'highshelf';
+        presenceRestore.frequency.value = 6000;
+        presenceRestore.gain.value = 2;
+
+        // Safety limiter — catches peaks without crushing dynamics
+        // (previous -20dB/20:1 hard limiter compressed everything, causing distortion)
         const compressor = ctx.createDynamicsCompressor();
-        compressor.threshold.value = -20;
-        compressor.knee.value = 0;
-        compressor.ratio.value = 20;
-        compressor.attack.value = 0.003;
-        compressor.release.value = 0.01;
+        compressor.threshold.value = -6;
+        compressor.knee.value = 3;
+        compressor.ratio.value = 12;
+        compressor.attack.value = 0.001;
+        compressor.release.value = 0.100;
 
         // Per-peer gain (controlled by master volume + host mute)
         const gain = ctx.createGain();
@@ -578,8 +593,10 @@ export function useCollaboration() {
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 256;
 
-        // Wire: source -> compressor -> gain -> speakers
-        source.connect(compressor);
+        // Wire: source -> highpass -> presenceRestore -> compressor -> gain -> speakers
+        source.connect(highpass);
+        highpass.connect(presenceRestore);
+        presenceRestore.connect(compressor);
         compressor.connect(gain);
         gain.connect(ctx.destination);
 
@@ -590,13 +607,15 @@ export function useCollaboration() {
         if (remoteAudioNodes.current[peerId]) {
             try {
                 remoteAudioNodes.current[peerId].source.disconnect();
+                remoteAudioNodes.current[peerId].highpass?.disconnect();
+                remoteAudioNodes.current[peerId].presenceRestore?.disconnect();
                 remoteAudioNodes.current[peerId].compressor.disconnect();
                 remoteAudioNodes.current[peerId].gain.disconnect();
                 remoteAudioNodes.current[peerId].analyser.disconnect();
             } catch (_) {}
         }
 
-        remoteAudioNodes.current[peerId] = { source, compressor, gain, analyser };
+        remoteAudioNodes.current[peerId] = { source, highpass, presenceRestore, compressor, gain, analyser };
     };
 
     const handleRecordingStream = (peerId, stream) => {
@@ -697,6 +716,25 @@ export function useCollaboration() {
                 });
                 return next;
             });
+            // Clean up state for peers that have been unresponsive > 30s
+            Object.keys(lastPongTime.current).forEach(pid => {
+                const last = lastPongTime.current[pid] || 0;
+                if (last > 0 && now - last > 30000) {
+                    delete lastPongTime.current[pid];
+                    setPeerLatencies(p => { const n = { ...p }; delete n[pid]; return n; });
+                    setMousePositions(p => { const n = { ...p }; delete n[pid]; return n; });
+                    // Disconnect stale remote audio nodes
+                    if (remoteAudioNodes.current[pid]) {
+                        try { remoteAudioNodes.current[pid].source?.disconnect(); } catch (_) {}
+                        try { remoteAudioNodes.current[pid].highpass?.disconnect(); } catch (_) {}
+                        try { remoteAudioNodes.current[pid].presenceRestore?.disconnect(); } catch (_) {}
+                        try { remoteAudioNodes.current[pid].compressor?.disconnect(); } catch (_) {}
+                        try { remoteAudioNodes.current[pid].gain?.disconnect(); } catch (_) {}
+                        try { remoteAudioNodes.current[pid].analyser?.disconnect(); } catch (_) {}
+                        delete remoteAudioNodes.current[pid];
+                    }
+                }
+            });
         }, 5000);
 
         // --- Audio level metering loop ---
@@ -764,6 +802,8 @@ export function useCollaboration() {
             Object.values(remoteAudioNodes.current).forEach(nodes => {
                 try {
                     nodes.source?.disconnect();
+                    nodes.highpass?.disconnect();
+                    nodes.presenceRestore?.disconnect();
                     nodes.compressor?.disconnect();
                     nodes.gain?.disconnect();
                     nodes.analyser?.disconnect();

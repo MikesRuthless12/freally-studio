@@ -648,7 +648,7 @@ export const GENRE_HOOK_TEMPLATES_EXPANSION2 = {
         'giving {adjective} giving {adjective2}',
         'it\'s giving {adjective} {noun}',
         'the era of {adjective} {noun}',
-        'no skip just {adjective} {noun}',
+        'zero skips - {adjective} {noun} on repeat',
         'we on repeat like {adjective} {noun}',
         'the summer of {adjective} {noun}',
         'catchy {adjective} and {adjective2} always',

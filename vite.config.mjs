@@ -92,7 +92,21 @@ export default defineConfig(({ mode }) => {
             environment: 'node'
         },
         build: {
-            chunkSizeWarningLimit: 1000
+            chunkSizeWarningLimit: 500,
+            rollupOptions: {
+                output: {
+                    manualChunks(id) {
+                        if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'vendor-react';
+                        if (id.includes('node_modules/peerjs')) return 'vendor-peerjs';
+                        if (id.includes('node_modules/emoji-picker-react') || id.includes('node_modules/@twemoji')) return 'vendor-emoji';
+                        if (id.includes('node_modules/lamejs')) return 'vendor-lamejs';
+                        if (id.includes('node_modules/jszip')) return 'vendor-jszip';
+                        if (id.includes('node_modules/qrcode')) return 'vendor-qrcode';
+                        if (id.includes('domain/chordsExpansion')) return 'data-chords-expansion';
+                        if (id.includes('GenreBankExpansion') || id.includes('PunchlineBankExpansion')) return 'data-lyric-expansions';
+                    }
+                }
+            }
         }
     }
 })

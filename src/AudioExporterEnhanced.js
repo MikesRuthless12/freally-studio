@@ -3,8 +3,7 @@
  * Exports audio with sampler-rendered MIDI patterns
  */
 
-import lamejs from 'lamejs';
-import JSZip from 'jszip';
+// lamejs and JSZip loaded dynamically on first use to avoid 6.5MB+ startup cost
 import { formatMixFilename, formatStemFilename, formatArrangementFilename, formatStemsZipFilename } from './filenameUtils';
 
 export class AudioExporterEnhanced {
@@ -156,11 +155,14 @@ export class AudioExporterEnhanced {
                         mergedPattern.push({ ...n, time: n.time + clipOffsetSteps });
                     }
                 }
-                renderedTracks[key] = await this.sampler.renderPattern(
-                    track.instrumentId, mergedPattern, tempo, duration, sampleRate
-                );
+                // Skip if merged pattern has no notes
+                if (mergedPattern.length > 0) {
+                    renderedTracks[key] = await this.sampler.renderPattern(
+                        track.instrumentId, mergedPattern, tempo, duration, sampleRate
+                    );
+                }
                 report(`${key} rendered (clips)`);
-            } else if (track && track.instrumentId && track.pattern) {
+            } else if (track && track.instrumentId && track.pattern && track.pattern.length > 0) {
                 if (onProgress) onProgress((completedSteps / totalSteps) * 100, { key: 'exportProgress.renderingTrack', params: { track: key } });
                 renderedTracks[key] = await this.sampler.renderPattern(
                     track.instrumentId,
@@ -171,6 +173,16 @@ export class AudioExporterEnhanced {
                 );
                 report(`${key} rendered`);
             }
+        }
+
+        // Remove tracks that rendered as null (no audible content)
+        for (const key of Object.keys(renderedTracks)) {
+            if (!renderedTracks[key]) delete renderedTracks[key];
+        }
+
+        // Nothing to export — no tracks had audible content
+        if (Object.keys(renderedTracks).length === 0) {
+            throw new Error('Nothing to export — no tracks contain audio content. Generate patterns or load samples first.');
         }
 
         // Apply per-track volume and pan if provided
@@ -194,7 +206,7 @@ export class AudioExporterEnhanced {
             if (format === 'wav') {
                 return this.exportWAV(mixedBuffer, sampleRate, mixFilename, bitDepth);
             } else if (format === 'mp3') {
-                return this.exportMP3(mixedBuffer, sampleRate, bitrate, mixFilename);
+                return await this.exportMP3(mixedBuffer, sampleRate, bitrate, mixFilename);
             }
         }
 
@@ -205,6 +217,7 @@ export class AudioExporterEnhanced {
      * Package individual tracks into a Zip file
      */
     async exportStemsZip(renderedTracks, format, sampleRate, bitrate, bitDepth, projectName, tempo, key, scale, onProgress = null) {
+        const { default: JSZip } = await import('jszip');
         const zip = new JSZip();
         const trackEntries = Object.entries(renderedTracks);
         const totalStems = trackEntries.length;
@@ -220,7 +233,7 @@ export class AudioExporterEnhanced {
             const stemName = formatStemFilename(projectName, tempo, key, scale, trackName);
 
             if (format === 'mp3') {
-                const result = this.exportMP3(buffer, sampleRate, bitrate, stemName);
+                const result = await this.exportMP3(buffer, sampleRate, bitrate, stemName);
                 fileData = result.blob;
                 ext = 'mp3';
             } else {
@@ -258,6 +271,7 @@ export class AudioExporterEnhanced {
         const states = drumData.drumStates || drumData;
 
         // Schedule all drum hits
+        let hitCount = 0;
         Object.keys(states).forEach(drumId => {
             const state = states[drumId];
             if (!state.powered || state.mute) return;
@@ -287,9 +301,13 @@ export class AudioExporterEnhanced {
                     gainNode.connect(offlineContext.destination);
 
                     source.start(hitTime);
+                    hitCount++;
                 });
             }
         });
+
+        // No audible content — skip this track
+        if (hitCount === 0) return null;
 
         return await offlineContext.startRendering();
     }
@@ -307,6 +325,7 @@ export class AudioExporterEnhanced {
         const offlineContext = new OfflineAudioContext(2, numFrames, sampleRate);
         const beatDuration = 60 / tempo;
         const stepDuration = beatDuration / 8;
+        let hitCount = 0;
 
         for (const clip of clips) {
             const clipStartTime = (clip.timelineBar || 0) * 4 * beatDuration; // bars to seconds
@@ -341,10 +360,14 @@ export class AudioExporterEnhanced {
                         source.connect(gainNode);
                         gainNode.connect(offlineContext.destination);
                         source.start(hitTime);
+                        hitCount++;
                     });
                 });
             });
         }
+
+        // No audible content — skip this track
+        if (hitCount === 0) return null;
 
         return await offlineContext.startRendering();
     }
@@ -549,7 +572,8 @@ export class AudioExporterEnhanced {
     /**
      * Export to MP3 format
      */
-    exportMP3(audioBuffer, sampleRate, bitrate, filenamePrefix = 'export') {
+    async exportMP3(audioBuffer, sampleRate, bitrate, filenamePrefix = 'export') {
+        const lamejs = (await import('lamejs')).default;
         const numChannels = audioBuffer.numberOfChannels;
         const length = audioBuffer.length;
 
@@ -894,7 +918,7 @@ export class AudioExporterEnhanced {
         if (format === 'wav') {
             result = this.exportWAV(finalBuffer, sampleRate, arrFilename, bitDepth);
         } else if (format === 'mp3') {
-            result = this.exportMP3(finalBuffer, sampleRate, bitrate, arrFilename);
+            result = await this.exportMP3(finalBuffer, sampleRate, bitrate, arrFilename);
         } else {
             throw new Error(`Unsupported format: ${format}`);
         }

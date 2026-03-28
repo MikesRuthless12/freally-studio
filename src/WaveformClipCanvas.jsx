@@ -11,7 +11,7 @@ import React, { useRef, useEffect } from 'react';
  *   reversed: boolean
  *   fadeInCurve / fadeOutCurve: -1 (concave) to 1 (convex), 0 = linear
  */
-export default function WaveformClipCanvas({ audioBuffer, width, height, color, trimStart = 0, trimEnd = 0, reversed = false, fadeIn = 0, fadeOut = 0, fadeInCurve = 0, fadeOutCurve = 0, isDark = true }) {
+export default function WaveformClipCanvas({ audioBuffer, width, height, color, trimStart = 0, trimEnd = 0, reversed = false, fadeIn = 0, fadeOut = 0, fadeInCurve = 0, fadeOutCurve = 0, isDark = true, gain = 1.0 }) {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -58,7 +58,7 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
         ctx.globalAlpha = 0.7;
 
         for (let px = 0; px < w; px++) {
-            const barH = peaks[px] * mid * 0.9;
+            const barH = peaks[px] * mid * 0.9 * Math.min(gain, 2);
             if (barH < 0.5) continue;
             ctx.fillRect(px, mid - barH, 1, barH * 2);
         }
@@ -103,7 +103,7 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
             ctx.quadraticCurveTo(cpX, cpY, w, h);
             ctx.stroke();
         }
-    }, [audioBuffer, width, height, color, trimStart, trimEnd, reversed, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, isDark]);
+    }, [audioBuffer, width, height, color, trimStart, trimEnd, reversed, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, isDark, gain]);
 
     return (
         <canvas

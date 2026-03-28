@@ -6,3 +6,4 @@ dist/
 Thumbs.db
 nul
 release/
+native/audio_capture/build/

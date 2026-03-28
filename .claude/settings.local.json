@@ -170,7 +170,16 @@
       "Bash(rm -rf \"/c/Users/miken/AppData/Roaming/wavloom-studio/GPUCache\" \"/c/Users/miken/AppData/Roaming/wavloom-studio/Cache\" \"/c/Users/miken/AppData/Roaming/wavloom-studio/Code Cache\")",
       "Read(//c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/$APPDATA/wavloom-studio/**)",
       "Read(//c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/$LOCALAPPDATA/wavloom-studio/**)",
-      "Bash(grep -A 20 '\"\"native:install\"\"' package.json)"
+      "Bash(grep -A 20 '\"\"native:install\"\"' package.json)",
+      "Bash(taskkill //F //IM \"WavLoom Studio.exe\")",
+      "Bash(taskkill:*)",
+      "Bash(npx vite:*)",
+      "Bash(grep -A 20 '\"\"scripts\"\"' package.json)",
+      "Bash(find '/c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/src' -type f \\\\\\(-name *.jsx -o -name *.js -o -name *.ts \\\\\\))",
+      "Bash(xargs du:*)",
+      "Bash(sort -k5 -n -r)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(find '/c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/src' -type f \\\\\\(-name *.js -o -name *.jsx \\\\\\))"
     ]
   }
 }

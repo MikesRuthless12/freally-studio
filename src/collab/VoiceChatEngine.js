@@ -1,14 +1,16 @@
 /**
- * VoiceChatEngine — Core voice capture engine for push-to-talk.
+ * VoiceChatEngine — Broadcast-quality voice capture engine for push-to-talk.
  *
  * Audio graph:
- *   micSource -> gainNode (PTT gate) -> compressor -> analyserNode -> mediaStreamDest (sent to peers)
+ *   micSource -> inputGain -> gainNode (PTT gate) -> highpass (80Hz) -> lowpass (14kHz)
+ *   -> presenceBoost (3.5kHz) -> compressor (gentle) -> limiter -> analyser -> mediaStreamDest
  *
  * Self-monitor is ON by default so users hear what others hear.
  * Can be disabled via setSelfMonitor(false) if feedback occurs on speakers.
  *
- * getUserMedia constraints optimised for voice chat:
- *   echoCancellation, noiseSuppression, autoGainControl, mono
+ * getUserMedia captures RAW audio with all browser processing DISABLED.
+ * Browser echoCancellation/noiseSuppression/autoGainControl cause static,
+ * cutouts, and robotic artifacts — clean DSP filtering handles noise instead.
  */
 export class VoiceChatEngine {
     constructor(audioContext) {
@@ -16,10 +18,13 @@ export class VoiceChatEngine {
         this._ownsCtx = !audioContext;
         this.stream = null;
         this.micSource = null;
+        this.inputGain = null;
         this.gainNode = null;
         this.highpass = null;
         this.lowpass = null;
+        this.presenceBoost = null;
         this.compressor = null;
+        this.limiter = null;
         this.analyser = null;
         this.mediaStreamDest = null;
         this.selfMonitorGain = null;
@@ -43,39 +48,64 @@ export class VoiceChatEngine {
             await this.ctx.resume();
         }
 
+        // Capture raw audio — all browser processing DISABLED.
+        // echoCancellation / noiseSuppression / autoGainControl cause static,
+        // cutouts, and robotic artifacts. Clean DSP handles noise instead.
         this.stream = await navigator.mediaDevices.getUserMedia({
             audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                channelCount: 1
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                channelCount: 1,
+                sampleRate: { ideal: 48000 }
             }
         });
 
         this.micSource = this.ctx.createMediaStreamSource(this.stream);
 
+        // Input gain — normalize mic level before processing
+        this.inputGain = this.ctx.createGain();
+        this.inputGain.gain.value = 1.2;
+
         // PTT gate — gain 0 = silent, 1 = talking
         this.gainNode = this.ctx.createGain();
         this.gainNode.gain.value = 0;
 
-        // Bandpass filtering for voice — cuts rumble and hiss that cause static
+        // Highpass at 80 Hz — removes room rumble, handling noise, HVAC
         this.highpass = this.ctx.createBiquadFilter();
         this.highpass.type = 'highpass';
-        this.highpass.frequency.value = 85;
-        this.highpass.Q.value = 0.7;
+        this.highpass.frequency.value = 80;
+        this.highpass.Q.value = 0.707;
 
+        // Lowpass at 14 kHz — preserves full voice clarity including sibilants
+        // (previous 7.5 kHz cutoff removed consonant detail causing muffled audio)
         this.lowpass = this.ctx.createBiquadFilter();
         this.lowpass.type = 'lowpass';
-        this.lowpass.frequency.value = 7500;
-        this.lowpass.Q.value = 0.7;
+        this.lowpass.frequency.value = 14000;
+        this.lowpass.Q.value = 0.707;
 
-        // Outgoing compressor to prevent clipping/crackling on the send side
+        // Presence boost at 3.5 kHz — adds vocal clarity and intelligibility
+        this.presenceBoost = this.ctx.createBiquadFilter();
+        this.presenceBoost.type = 'peaking';
+        this.presenceBoost.frequency.value = 3500;
+        this.presenceBoost.Q.value = 1.0;
+        this.presenceBoost.gain.value = 3;
+
+        // Gentle compressor — smooths levels without crushing dynamics
         this.compressor = this.ctx.createDynamicsCompressor();
-        this.compressor.threshold.value = -18;
-        this.compressor.knee.value = 10;
-        this.compressor.ratio.value = 3;
-        this.compressor.attack.value = 0.005;
-        this.compressor.release.value = 0.2;
+        this.compressor.threshold.value = -24;
+        this.compressor.knee.value = 12;
+        this.compressor.ratio.value = 2.5;
+        this.compressor.attack.value = 0.010;
+        this.compressor.release.value = 0.250;
+
+        // Safety limiter — catches peaks without audible pumping
+        this.limiter = this.ctx.createDynamicsCompressor();
+        this.limiter.threshold.value = -2;
+        this.limiter.knee.value = 0;
+        this.limiter.ratio.value = 20;
+        this.limiter.attack.value = 0.001;
+        this.limiter.release.value = 0.050;
 
         // Analyser for local level metering
         this.analyser = this.ctx.createAnalyser();
@@ -90,12 +120,17 @@ export class VoiceChatEngine {
         this.selfMonitorGain = this.ctx.createGain();
         this.selfMonitorGain.gain.value = 0; // Starts at 0; activated in startTalking() when PTT pressed
 
-        // Wire the graph: micSource -> gainNode -> highpass -> lowpass -> compressor -> analyser -> mediaStreamDest
-        this.micSource.connect(this.gainNode);
+        // Wire the graph:
+        // micSource -> inputGain -> gainNode (PTT) -> highpass -> lowpass
+        //   -> presenceBoost -> compressor -> limiter -> analyser -> mediaStreamDest
+        this.micSource.connect(this.inputGain);
+        this.inputGain.connect(this.gainNode);
         this.gainNode.connect(this.highpass);
         this.highpass.connect(this.lowpass);
-        this.lowpass.connect(this.compressor);
-        this.compressor.connect(this.analyser);
+        this.lowpass.connect(this.presenceBoost);
+        this.presenceBoost.connect(this.compressor);
+        this.compressor.connect(this.limiter);
+        this.limiter.connect(this.analyser);
         this.analyser.connect(this.mediaStreamDest);
 
         // Self-monitor path: analyser -> selfMonitorGain -> speakers
@@ -177,9 +212,17 @@ export class VoiceChatEngine {
                 this.analyser.disconnect();
                 this.analyser = null;
             }
+            if (this.limiter) {
+                this.limiter.disconnect();
+                this.limiter = null;
+            }
             if (this.compressor) {
                 this.compressor.disconnect();
                 this.compressor = null;
+            }
+            if (this.presenceBoost) {
+                this.presenceBoost.disconnect();
+                this.presenceBoost = null;
             }
             if (this.lowpass) {
                 this.lowpass.disconnect();
@@ -192,6 +235,10 @@ export class VoiceChatEngine {
             if (this.gainNode) {
                 this.gainNode.disconnect();
                 this.gainNode = null;
+            }
+            if (this.inputGain) {
+                this.inputGain.disconnect();
+                this.inputGain = null;
             }
             if (this.micSource) {
                 this.micSource.disconnect();

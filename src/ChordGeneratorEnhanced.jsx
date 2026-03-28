@@ -512,8 +512,10 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
             lastProcessedStepRef.current = currentStep;
         };
 
-        const id = setInterval(poll, 25);
-        return () => clearInterval(id);
+        let rafId;
+        const loop = () => { poll(); rafId = requestAnimationFrame(loop); };
+        rafId = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(rafId);
     }, [globalCurrentStepRef, globalIsPlayingRef]);
 
     const clearPattern = () => { if (locked || chordPattern.length === 0) return; if (confirmBeforeClear && !window.confirm(t('chords.clearConfirm'))) return; setChordPattern([]); if (setIsGenerated) setIsGenerated(false); if (onPatternChange) onPatternChange([]); };

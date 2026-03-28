@@ -554,6 +554,76 @@ class MidiExporter {
         return bytes;
     }
 
+    /**
+     * Export selected generator patterns as MIDI files.
+     * @param {Object} patternData - { drums, chords, melody, bass } raw pattern data
+     * @param {number} tempo - BPM
+     * @param {Object} selected - { drums: bool, chords: bool, melody: bool, bass: bool }
+     * @param {string} projectName - for filename
+     * @returns {Promise<{blob: Blob, filename: string}>}
+     */
+    async exportGeneratorMIDI(patternData, tempo, selected, projectName = 'WavLoom') {
+        const tempoTrack = this.createTempoTrack(tempo);
+        const generatedTracks = [];
+        const labels = [];
+
+        // Drums — wrap drum states as a single clip at bar 0 (skip if empty)
+        if (selected.drums && patternData.drums && typeof patternData.drums === 'object' && Object.keys(patternData.drums).length > 0) {
+            const clip = { timelineBar: 0, drumStates: patternData.drums };
+            const track = this.createDrumTrackFromClips([clip]);
+            // Only include if the track has actual note events (not just header/footer)
+            const hasNotes = track.some(e => e.type === 'noteOn');
+            if (hasNotes) {
+                generatedTracks.push({ name: 'Drums', track });
+                labels.push('Drums');
+            }
+        }
+
+        // Chords — wrap note array as a single clip at bar 0
+        if (selected.chords && patternData.chords && patternData.chords.length > 0) {
+            const clip = { timelineBar: 0, pattern: patternData.chords };
+            const track = this.createNoteTrackFromClips([clip], 'Chords', 1);
+            generatedTracks.push({ name: 'Chords', track });
+            labels.push('Chords');
+        }
+
+        // Melody
+        if (selected.melody && patternData.melody && patternData.melody.length > 0) {
+            const clip = { timelineBar: 0, pattern: patternData.melody };
+            const track = this.createNoteTrackFromClips([clip], 'Melody', 0);
+            generatedTracks.push({ name: 'Melody', track });
+            labels.push('Melody');
+        }
+
+        // Bass
+        if (selected.bass && patternData.bass && patternData.bass.length > 0) {
+            const clip = { timelineBar: 0, pattern: patternData.bass };
+            const track = this.createNoteTrackFromClips([clip], 'Bass', 2);
+            generatedTracks.push({ name: 'Bass', track });
+            labels.push('Bass');
+        }
+
+        if (generatedTracks.length === 0) {
+            return null; // nothing selected or no data
+        }
+
+        // Single generator → single .mid file; multiple → zip
+        if (generatedTracks.length === 1) {
+            const midiData = this.createMidiFile([tempoTrack, generatedTracks[0].track]);
+            const blob = new Blob([midiData], { type: 'audio/midi' });
+            return { blob, filename: `${projectName}_${generatedTracks[0].name}.mid` };
+        }
+
+        // Multiple generators → zip of .mid files
+        const zip = new JSZip();
+        for (const gt of generatedTracks) {
+            const midiData = this.createMidiFile([tempoTrack, gt.track]);
+            zip.file(`${gt.name}.mid`, midiData);
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        return { blob: zipBlob, filename: `${projectName}_MIDI_${labels.join('_')}.zip` };
+    }
+
     // Download MIDI file (Updated for Blob/Zip usage mostly)
     downloadMidi(sequencer, filename = 'wavloom_pattern.mid') {
         const midiData = this.exportPattern(sequencer);

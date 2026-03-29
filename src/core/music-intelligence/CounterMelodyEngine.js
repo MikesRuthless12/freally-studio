@@ -204,7 +204,7 @@ function generateDisplacedRhythm(analysis, totalSteps, density = 0.5) {
  * Applies contrary motion relative to the lead melody's local direction.
  */
 function generateCounterPitches({
-    positions, analysis, root, scale, chordToneMap, totalSteps
+    positions, analysis, root, scale, chordToneMap, totalSteps, motionBias = 'contrary'
 }) {
     const { sorted, avgPitch, minPitch, maxPitch } = analysis;
 
@@ -246,24 +246,46 @@ function generateCounterPitches({
         const isStrongBeat = (time % 8) === 0;
         const chordTones = chordToneMap[time] || [];
 
+        // Determine effective motion for this note: contrary, oblique, or mixed
+        const effectiveMotion = motionBias === 'mixed'
+            ? (coinFlip() ? 'contrary' : 'oblique')
+            : motionBias;
+
         // Generate candidate pitches
         const candidates = [];
 
-        // Strategy 1: Contrary motion — move opposite to lead
-        const contraryDir = leadDir > 0 ? -1 : leadDir < 0 ? 1 : (coinFlip() ? 1 : -1);
-        const contraryIntervals = [3, 4, 7, 8, 9]; // 3rd, M3, 5th, m6, M6 in semitones
-        for (const interval of contraryIntervals) {
-            candidates.push(leadPitch + contraryDir * interval);
-            candidates.push(leadPitch - contraryDir * interval);
+        if (effectiveMotion === 'oblique') {
+            // Oblique motion — counter holds steady or barely moves while lead moves
+            // Strongly prefer repeating the previous pitch or staying within a step
+            if (prevPitch !== null) {
+                candidates.push(prevPitch);          // exact repeat (hold)
+                candidates.push(prevPitch + 1);      // half-step neighbor
+                candidates.push(prevPitch - 1);
+                candidates.push(prevPitch + 2);      // whole-step neighbor
+                candidates.push(prevPitch - 2);
+            }
+            // Also add consonant intervals from lead as fallback (for first note or variety)
+            candidates.push(leadPitch + 3, leadPitch + 4);
+            candidates.push(leadPitch - 3, leadPitch - 4);
+            candidates.push(leadPitch + 7, leadPitch + 8, leadPitch + 9);
+            candidates.push(leadPitch - 7, leadPitch - 8, leadPitch - 9);
+        } else {
+            // Contrary motion — move opposite to lead
+            const contraryDir = leadDir > 0 ? -1 : leadDir < 0 ? 1 : (coinFlip() ? 1 : -1);
+            const contraryIntervals = [3, 4, 7, 8, 9]; // 3rd, M3, 5th, m6, M6 in semitones
+            for (const interval of contraryIntervals) {
+                candidates.push(leadPitch + contraryDir * interval);
+                candidates.push(leadPitch - contraryDir * interval);
+            }
+
+            // Parallel 3rds/6ths (classic counterpoint)
+            candidates.push(leadPitch + 3, leadPitch + 4);    // 3rds above
+            candidates.push(leadPitch - 3, leadPitch - 4);    // 3rds below
+            candidates.push(leadPitch + 8, leadPitch + 9);    // 6ths above
+            candidates.push(leadPitch - 8, leadPitch - 9);    // 6ths below
         }
 
-        // Strategy 2: Parallel 3rds/6ths (classic counterpoint)
-        candidates.push(leadPitch + 3, leadPitch + 4);    // 3rds above
-        candidates.push(leadPitch - 3, leadPitch - 4);    // 3rds below
-        candidates.push(leadPitch + 8, leadPitch + 9);    // 6ths above
-        candidates.push(leadPitch - 8, leadPitch - 9);    // 6ths below
-
-        // Strategy 3: If chord tones available, add chord tones in range
+        // If chord tones available, add chord tones in range
         if (chordTones.length > 0) {
             for (let oct = 2; oct <= 6; oct++) {
                 for (const pc of chordTones) {
@@ -288,9 +310,22 @@ function generateCounterPitches({
             // 1. Interval consonance with lead
             score += scoreInterval(candidate - leadPitch) * 3;
 
-            // 2. Contrary motion bonus
-            if (contraryDir > 0 && candidate > leadPitch) score += 4;
-            if (contraryDir < 0 && candidate < leadPitch) score += 4;
+            // 2. Motion-specific scoring
+            if (effectiveMotion === 'oblique') {
+                // Oblique: strongly reward holding the same pitch or minimal movement
+                if (prevPitch !== null) {
+                    const move = Math.abs(candidate - prevPitch);
+                    if (move === 0) score += 12;       // exact hold — strongest reward
+                    else if (move <= 2) score += 8;    // half/whole step — still good
+                    else if (move <= 4) score += 3;    // small move — acceptable
+                    else score -= move * 0.8;          // penalize larger motion
+                }
+            } else {
+                // Contrary: reward moving opposite to the lead direction
+                const contraryDir = leadDir > 0 ? -1 : leadDir < 0 ? 1 : (coinFlip() ? 1 : -1);
+                if (contraryDir > 0 && candidate > leadPitch) score += 4;
+                if (contraryDir < 0 && candidate < leadPitch) score += 4;
+            }
 
             // 3. Strong beat = chord tone bonus
             const candidatePC = ((candidate % 12) + 12) % 12;
@@ -432,9 +467,9 @@ export function generateCounterMelody({
     // Step 2: Generate displaced rhythm positions
     const positions = generateDisplacedRhythm(analysis, totalSteps, density);
 
-    // Step 3: Generate pitches with contrary motion and harmony scoring
+    // Step 3: Generate pitches with motion-aware harmony scoring
     let counterNotes = generateCounterPitches({
-        positions, analysis, root, scale, chordToneMap, totalSteps
+        positions, analysis, root, scale, chordToneMap, totalSteps, motionBias
     });
 
     // Step 4: Remove harsh clashes

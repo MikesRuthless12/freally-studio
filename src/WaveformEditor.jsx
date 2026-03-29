@@ -32,6 +32,7 @@ export default function WaveformEditor({
     const [gain, setGain] = useState(clip.gain ?? 1.0); // linear gain 0-2 (0dB = 1.0)
     const [fadeInCurve, setFadeInCurve] = useState(clip.fadeInCurve ?? 0.5); // 0-1, vertical curve midpoint
     const [fadeOutCurve, setFadeOutCurve] = useState(clip.fadeOutCurve ?? 0.5);
+    const [speed, setSpeed] = useState(clip.playbackRate ?? 1.0); // 0.25-4.0x playback speed
 
     // Time-stretch per-clip state
     const [timeStretch, setTimeStretch] = useState(clip.timeStretch || false);
@@ -77,7 +78,7 @@ export default function WaveformEditor({
             name: clipName,
             reversed,
             pitch,
-            playbackRate: Math.pow(2, pitch / 12),
+            playbackRate: speed,
             fadeIn,
             fadeOut,
             fadeInCurve,
@@ -88,7 +89,7 @@ export default function WaveformEditor({
             timeStretch,
             originalBpm
         });
-    }, [clipName, reversed, pitch, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, trimStart, trimEnd, gain, timeStretch, originalBpm, onUpdate]);
+    }, [clipName, reversed, pitch, speed, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, trimStart, trimEnd, gain, timeStretch, originalBpm, onUpdate]);
 
     // Auto-apply on change (debounced to reduce re-render churn during slider drags)
     const applyTimeoutRef = useRef(null);
@@ -962,6 +963,49 @@ export default function WaveformEditor({
                     </div>
                     <span style={{ fontSize: '9px', fontWeight: '600', color: accentColor }}>
                         {pitch > 0 ? '+' : ''}{pitch} st
+                    </span>
+                </div>
+
+                <div style={{ width: '1px', height: '40px', background: borderColor, flexShrink: 0 }} />
+
+                {/* Speed knob — playback rate 0.25x-4.0x */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', minWidth: '60px' }}>
+                    <span style={{ fontSize: '9px', fontWeight: '700', color: mutedText, letterSpacing: '0.5px' }}>SPEED</span>
+                    <div
+                        style={{
+                            width: '36px', height: '36px', borderRadius: '50%',
+                            background: isDark ? 'rgba(255,255,255,0.04)' : '#ece6de',
+                            border: `2px solid ${speed !== 1 ? accentColor : (isDark ? 'rgba(255,159,67,0.3)' : 'rgba(200,160,80,0.4)')}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'ns-resize', position: 'relative', userSelect: 'none'
+                        }}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            const startY = e.clientY;
+                            const startSpeed = speed;
+                            const onMove = (ev) => {
+                                const dy = startY - ev.clientY;
+                                const newSpeed = Math.round(Math.max(0.25, Math.min(4, startSpeed + dy * 0.01)) * 100) / 100;
+                                setSpeed(newSpeed);
+                            };
+                            const onUp = () => {
+                                document.removeEventListener('mousemove', onMove);
+                                document.removeEventListener('mouseup', onUp);
+                            };
+                            document.addEventListener('mousemove', onMove);
+                            document.addEventListener('mouseup', onUp);
+                        }}
+                        onDoubleClick={() => setSpeed(1)}
+                    >
+                        <div style={{
+                            width: '2px', height: '14px', background: speed !== 1 ? accentColor : mutedText,
+                            borderRadius: '1px', transformOrigin: 'bottom center',
+                            transform: `rotate(${(speed - 1) * 60}deg)`,
+                            position: 'absolute', top: '4px'
+                        }} />
+                    </div>
+                    <span style={{ fontSize: '9px', fontWeight: '600', color: speed !== 1 ? accentColor : mutedText }}>
+                        {speed.toFixed(2)}x
                     </span>
                 </div>
             </div>

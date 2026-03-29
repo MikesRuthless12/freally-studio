@@ -16,6 +16,14 @@ export const ACCENT_THEMES = {
     ember: { name: 'Ember', type: 'gradient', accent: '#ef4444', secondary: '#f59e0b', gradient: 'linear-gradient(135deg, #ef4444, #f59e0b)' },
     mint: { name: 'Mint', type: 'gradient', accent: '#10b981', secondary: '#06b6d4', gradient: 'linear-gradient(135deg, #10b981, #06b6d4)' },
     twilight: { name: 'Twilight', type: 'gradient', accent: '#6366f1', secondary: '#f43f5e', gradient: 'linear-gradient(135deg, #6366f1, #f43f5e)' },
+
+    // === 6 Additional Accent Themes ===
+    arctic: { name: 'Arctic', type: 'solid', accent: '#38bdf8', secondary: '#818cf8', gradient: 'linear-gradient(135deg, #38bdf8, #818cf8)' },
+    crimson: { name: 'Crimson', type: 'solid', accent: '#dc2626', secondary: '#f97316', gradient: 'linear-gradient(135deg, #dc2626, #f97316)' },
+    forest: { name: 'Forest', type: 'solid', accent: '#16a34a', secondary: '#84cc16', gradient: 'linear-gradient(135deg, #16a34a, #84cc16)' },
+    peach: { name: 'Peach', type: 'gradient', accent: '#fb923c', secondary: '#fbbf24', gradient: 'linear-gradient(135deg, #fb923c, #fbbf24)' },
+    storm: { name: 'Storm', type: 'gradient', accent: '#475569', secondary: '#7c3aed', gradient: 'linear-gradient(135deg, #475569, #7c3aed)' },
+    sakura: { name: 'Sakura', type: 'gradient', accent: '#f472b6', secondary: '#c084fc', gradient: 'linear-gradient(135deg, #f472b6, #c084fc)' },
 };
 
 export const ACCENT_KEYS = Object.keys(ACCENT_THEMES);

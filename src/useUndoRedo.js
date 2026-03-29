@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
 
-const MAX_HISTORY = 20;
+const MAX_HISTORY = 50;
 
 export function useUndoRedo() {
     const historyRef = useRef([]);
@@ -16,17 +16,20 @@ export function useUndoRedo() {
     const pushSnapshot = useCallback((stateSnapshot) => {
         try {
             const patternString = JSON.stringify(stateSnapshot.patterns);
+            const automationString = stateSnapshot.trackAutomation ? JSON.stringify(stateSnapshot.trackAutomation) : '';
             const currentSnapshot = historyRef.current[currentIndexRef.current];
             const currentPatternString = currentSnapshot ? JSON.stringify(currentSnapshot.patterns) : null;
+            const currentAutomationString = currentSnapshot?.trackAutomation ? JSON.stringify(currentSnapshot.trackAutomation) : '';
 
-            // Skip if the patterns haven't changed (prevents initial state clutter)
-            if (currentPatternString === patternString) {
+            // Skip if neither patterns nor automation have changed
+            if (currentPatternString === patternString && currentAutomationString === automationString) {
                 return;
             }
 
             const snapshot = {
                 ...stateSnapshot,
                 patterns: JSON.parse(patternString), // Ensure deep clone
+                trackAutomation: stateSnapshot.trackAutomation ? JSON.parse(automationString) : undefined,
                 timestamp: Date.now()
             };
 

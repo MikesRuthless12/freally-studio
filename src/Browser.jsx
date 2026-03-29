@@ -2337,6 +2337,15 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                             }}>
                                 {item.name}
                             </span>
+                            {(() => {
+                                const meta = extractMetadataFromFilename(item.name);
+                                return (meta.tempo || meta.likelyKey) ? (
+                                    <span style={{ display: 'flex', gap: '3px', flexShrink: 0, zIndex: 1 }}>
+                                        {meta.tempo && <span style={{ fontSize: '8px', fontWeight: '700', color: isDark ? '#888' : '#999', background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', padding: '1px 4px', borderRadius: '3px' }}>{meta.tempo}</span>}
+                                        {meta.likelyKey && <span style={{ fontSize: '8px', fontWeight: '700', color: ac, background: hexToRgba(ac, 0.1), padding: '1px 4px', borderRadius: '3px' }}>{meta.likelyKey}{meta.likelyScale === 'Minor' ? 'm' : ''}</span>}
+                                    </span>
+                                ) : null;
+                            })()}
                             {(item.type === 'audio' || item.type === 'midi') && (
                                 <button
                                     onClick={(e) => {

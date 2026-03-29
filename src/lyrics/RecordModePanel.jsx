@@ -32,6 +32,7 @@ const LANG_CODE_TO_NAME = {
     id: 'Indonesian', uk: 'Ukrainian', el: 'Greek', he: 'Hebrew',
 };
 const NAME_TO_LANG_CODE = Object.fromEntries(Object.entries(LANG_CODE_TO_NAME).map(([k, v]) => [v, k]));
+const RTL_LANGUAGES = new Set(['Arabic', 'Hebrew', 'Persian', 'Urdu']);
 const MOODS = ['Happy', 'Sad', 'Romantic', 'Aggressive', 'Dreamy', 'Dark', 'Epic', 'Hopeful', 'Melancholic'];
 const KEYS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const SCALES = ['Major', 'Minor', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian'];
@@ -146,6 +147,7 @@ export default function RecordModePanel({
     const [structureKey, setStructureKey] = useState('verse-chorus-verse-chorus');
     const [rhymeScheme, setRhymeScheme] = useState('AABB');
     const [lyricLanguage, setLyricLanguage] = useState(() => LANG_CODE_TO_NAME[uiLanguage] || 'English');
+    const isRtl = RTL_LANGUAGES.has(lyricLanguage);
     const [creativity, setCreativity] = useState(50);
     const [usePunchlines, setUsePunchlines] = useState(false);
 
@@ -702,7 +704,7 @@ export default function RecordModePanel({
                                     </div>
 
                                     {/* Lines */}
-                                    <div style={{ padding: '6px 10px' }}>
+                                    <div style={{ padding: '6px 10px', direction: isRtl ? 'rtl' : 'ltr' }}>
                                         {section.lines.map((line, lIdx) => {
                                             const syllables = countLineSyllables(line);
                                             const indicator = rhymeIndicators[lIdx] || { color: textSecondary, symbol: '-' };
@@ -728,6 +730,7 @@ export default function RecordModePanel({
                                                     <span style={{
                                                         fontSize: '13px', color: textPrimary, flex: 1,
                                                         lineHeight: '1.5', fontWeight: section.type === 'chorus' ? '600' : '400',
+                                                        textAlign: isRtl ? 'right' : 'left',
                                                     }}>
                                                         {line}
                                                     </span>

@@ -1,6 +1,6 @@
 # R&B Lyrics Generation Audit Report
 
-Generated: 2026-03-26T18:24:13.568Z
+Generated: 2026-03-29T06:18:16.841Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 6 |
+| Total quality issues | 4 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -31,12 +31,12 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Mood | Lines | Rhyme Pairs | Rhyme Failures | Accuracy | Quality Issues |
 |------|-------|-------------|----------------|----------|----------------|
-| happy | 192 | 84 | 0 | 100.0% | 0 |
+| happy | 192 | 84 | 0 | 100.0% | 2 |
 | sad | 176 | 76 | 0 | 100.0% | 0 |
-| romantic | 176 | 76 | 0 | 100.0% | 2 |
-| aggressive | 176 | 72 | 0 | 100.0% | 2 |
-| dreamy | 176 | 84 | 0 | 100.0% | 2 |
-| dark | 176 | 76 | 0 | 100.0% | 0 |
+| romantic | 176 | 76 | 0 | 100.0% | 0 |
+| aggressive | 176 | 72 | 0 | 100.0% | 0 |
+| dreamy | 176 | 84 | 0 | 100.0% | 0 |
+| dark | 176 | 76 | 0 | 100.0% | 2 |
 | epic | 176 | 76 | 0 | 100.0% | 0 |
 | hopeful | 176 | 72 | 0 | 100.0% | 0 |
 | melancholic | 176 | 84 | 0 | 100.0% | 0 |
@@ -45,16 +45,14 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 6 |
+| WEAK_ENDING | 4 |
 
-## Weak Ending Examples (6 total, showing up to 25)
+## Weak Ending Examples (4 total, showing up to 25)
 
-- Gen#5 [dreamy/AABB] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
-- Gen#5 [dreamy/AABB] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
-- Gen#49 [aggressive/AABB] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
-- Gen#49 [aggressive/AABB] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
-- Gen#93 [romantic/AABB] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
-- Gen#93 [romantic/AABB] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
+- Gen#15 [dark/AAAA] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
+- Gen#15 [dark/AAAA] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
+- Gen#55 [happy/AAAA] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
+- Gen#55 [happy/AAAA] Chorus: `I left a light on for the person I was - meant to be` — WEAK_ENDING: ends with "be"
 
 ---
 
@@ -63,140 +61,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. screenshot the moment save - the day [day]
-  2. you painted over every shade - of grey [grey]
-  3. i fall along - the shore [shore]
-  4. a thousand paper hearts - along the floor [floor]
+  1. the highlight reel - is on display [display]
+  2. screenshot the moment save - the day [day]
+  3. the river keeps on moving - letting overflow [overflow]
+  4. we travelled up the mountain high - and low [low]
 
 **[Chorus]** (pattern: AABB)
-  1. this feeling tastes - like paradise [paradise]
-  2. the parking lot - became our dance floor twice [twice]
-  3. watching everything we built - just fade away [away]
-  4. a lavender sky at the end - of the day [day]
+  1. I'm all in all - in all in on you [you]
+  2. a version of myself - that never knew [knew]
+  3. light me up I'm - ready for the show [show]
+  4. I melt - like the snow [snow]
 
 **[Verse 2]** (pattern: AABB)
-  1. I celebrated underneath - the constellation [constellation]
-  2. you turned a comma - into an exclamation [exclamation]
-  3. I scroll through photographs of nights - we spent awake [awake]
-  4. my heart is yours - for you to take [take]
+  1. I communicated everything - inside my heart [heart]
+  2. the vinyl skipped right - on our favorite part [part]
+  3. we balanced on the edge - and did not fall [fall]
+  4. the shadows dance - across the wall [wall]
 
 **[Chorus]** (pattern: AABB)
-  1. this feeling tastes - like paradise [paradise]
-  2. the parking lot - became our dance floor twice [twice]
-  3. watching everything we built - just fade away [away]
-  4. a lavender sky at the end - of the day [day]
+  1. I'm all in all - in all in on you [you]
+  2. a version of myself - that never knew [knew]
+  3. light me up I'm - ready for the show [show]
+  4. I melt - like the snow [snow]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. i fly in the moonlight [moonlight]
-  2. i sing into the dawn [dawn]
-  3. i rise - in the spotlight [spotlight]
-  4. I caught - it just before the wind had gone [gone]
+  1. we dance - through the rain [rain]
+  2. I fade - in the moonlight [moonlight]
+  3. the corner store - that sold our cheap champagne [champagne]
+  4. I fly - in the spotlight [spotlight]
 
 **[Chorus]** (pattern: ABAB)
-  1. I would yearn the whole - receipts for you [you]
-  2. the constellation - guiding us to light [light]
-  3. a sunset dip - inside the ocean blue [blue]
-  4. the curtain rises - lights are shining bright [bright]
+  1. the night will - dissolve the flame [flame]
+  2. the highlight - reel is on display [display]
+  3. I learned your coffee order - before your last name [name]
+  4. this feeling takes my - breath away [away]
 
 **[Verse 2]** (pattern: ABAB)
-  1. this feeling right - here is sublime [sublime]
-  2. i fall - in the moonlight [moonlight]
-  3. forever chasing - after time [time]
-  4. we danced - until the morning light [light]
+  1. we dance - into the dawn [dawn]
+  2. screenshot the moment save - the day [day]
+  3. the spotlight chasing - what is gone [gone]
+  4. the highlight reel - is on display [display]
 
 **[Chorus]** (pattern: ABAB)
-  1. I would yearn the whole - receipts for you [you]
-  2. the constellation - guiding us to light [light]
-  3. a sunset dip - inside the ocean blue [blue]
-  4. the curtain rises - lights are shining bright [bright]
+  1. the night will - dissolve the flame [flame]
+  2. the highlight - reel is on display [display]
+  3. I learned your coffee order - before your last name [name]
+  4. this feeling takes my - breath away [away]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. your voice echoes - in my mind [mind]
-  2. extraordinary how - the universe aligned [aligned]
-  3. your love is gentle - and it's kind [kind]
-  4. the moment that we shared - was hard to find [find]
+  1. the voicemail - that you never played [played]
+  2. the Wi-Fi dropped - but the connection stayed [stayed]
+  3. I painted over all the cracks - we made [made]
+  4. lost and found - inside the conveyed [conveyed]
 
 **[Chorus]** (pattern: AAAA)
-  1. all gas no - blossom tonight [tonight]
-  2. i crash - in the moonlight [moonlight]
-  3. i fall - in the spotlight [spotlight]
-  4. the world is - glowing burning bright [bright]
+  1. the DJ drops - the side we rewind [rewind]
+  2. the moment that we - shared was hard to find [find]
+  3. I navigated - through the complications blind [blind]
+  4. i pushed the heavy - memories left behind [behind]
 
 **[Verse 2]** (pattern: AAAA)
-  1. the speakers thump - and everyone is free [free]
-  2. you showed me constellations - I can't unsee [unsee]
-  3. The world is spinning - and I can see [see]
-  4. a little sign - from the universe to me [me]
+  1. i dance - in the moonlight [moonlight]
+  2. i glow - in the spotlight [spotlight]
+  3. I fly - through the night [night]
+  4. we danced - until the morning light [light]
 
 **[Chorus]** (pattern: AAAA)
-  1. all gas no - blossom tonight [tonight]
-  2. i crash - in the moonlight [moonlight]
-  3. i fall - in the spotlight [spotlight]
-  4. the world is - glowing burning bright [bright]
+  1. the DJ drops - the side we rewind [rewind]
+  2. the moment that we - shared was hard to find [find]
+  3. I navigated - through the complications blind [blind]
+  4. i pushed the heavy - memories left behind [behind]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. the umbrella broke - and we just let it rain [rain]
-  2. this is the place - where everything begins [begins]
-  3. i drift - like a diamond [diamond]
-  4. a polaroid of you beneath - the sun [sun]
+  1. the hardest thing - to do is let it go [go]
+  2. I fall - in the spotlight [spotlight]
+  3. I fade - through the silence [silence]
+  4. I spark - under the stars [stars]
 
 **[Chorus]** (pattern: XXXX)
-  1. bussin and free - that's how we motivate [motivate]
-  2. irresistible I cannot - help but celebrate [celebrate]
-  3. unstoppable together - we are great [great]
-  4. you smiled and said forever - and I knew it must be fate [fate]
+  1. streetwear dead - overture culture [culture]
+  2. Rihanna taught me diamonds - form in pressure [pressure]
+  3. the swimming pool - reflected our whole future [future]
+  4. the vessel - carries the amour [amour]
 
 **[Verse 2]** (pattern: XXXX)
-  1. i fall - in the spotlight [spotlight]
-  2. Something - changed inside of me [me]
-  3. the Wi-Fi dropped - but the connection stayed [stayed]
-  4. the sparklers burn - between our fingertips [fingertips]
+  1. a rhythm - I could not repeat [repeat]
+  2. we stared into the fading light [light]
+  3. we glow - across the room [room]
+  4. the ringtone changed - but I still hear your voice [voice]
 
 **[Chorus]** (pattern: XXXX)
-  1. bussin and free - that's how we motivate [motivate]
-  2. irresistible I cannot - help but celebrate [celebrate]
-  3. unstoppable together - we are great [great]
-  4. you smiled and said forever - and I knew it must be fate [fate]
+  1. streetwear dead - overture culture [culture]
+  2. Rihanna taught me diamonds - form in pressure [pressure]
+  3. the swimming pool - reflected our whole future [future]
+  4. the vessel - carries the amour [amour]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. I catch myself rehearsing - what I'd say [say]
-  2. I keep searching - for a way [way]
-  3. the beautiful connection - was our liberation [liberation]
-  4. I elevated - every single celebration [celebration]
+  1. we shine into the dawn [dawn]
+  2. the playlist shuffles - to our favorite song [song]
+  3. i dance - across the room [room]
+  4. like a flower waiting - just to bloom [bloom]
 
 **[Chorus]** (pattern: AABB)
-  1. we're running wild - and we're running free [free]
-  2. I left a light on for the person I was - meant to be [be] ⚠️ WEAK_ENDING: ends with "be"
-  3. our imagination takes - us to the light [light]
-  4. everything feels - perfect here tonight [tonight]
+  1. we fascinate - the universe with light [light]
+  2. I fade - in the moonlight [moonlight]
+  3. the seconds stretched - like taffy in the summer heat [heat]
+  4. the music echoes - down the street [street]
 
 **[Verse 2]** (pattern: AABB)
-  1. I kept the ticket - stub from our first date [date]
-  2. irresistible I cannot help - but celebrate [celebrate]
-  3. the feeling - of the golden crush [crush]
-  4. the neon fading - in a blush [blush]
+  1. my feet are floating - inches off the ground [ground]
+  2. glitter on the dance floor - spinning round [round]
+  3. we dance - in the moonlight [moonlight]
+  4. I can feel - it in the air tonight [tonight]
 
 **[Chorus]** (pattern: AABB)
-  1. we're running wild - and we're running free [free]
-  2. I left a light on for the person I was - meant to be [be] ⚠️ WEAK_ENDING: ends with "be"
-  3. our imagination takes - us to the light [light]
-  4. everything feels - perfect here tonight [tonight]
+  1. we fascinate - the universe with light [light]
+  2. I fade - in the moonlight [moonlight]
+  3. the seconds stretched - like taffy in the summer heat [heat]
+  4. the music echoes - down the street [street]
 
 ---
 

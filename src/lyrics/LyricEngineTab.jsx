@@ -39,6 +39,7 @@ const LANG_CODE_TO_NAME = {
     be: 'Belarusian',
 };
 const NAME_TO_LANG_CODE = Object.fromEntries(Object.entries(LANG_CODE_TO_NAME).map(([k, v]) => [v, k]));
+const RTL_LANG_CODES = new Set(['ar', 'he', 'fa', 'ur']);
 const MELODY_MODES = ['Auto Detect', 'Manual Pattern', 'Import MIDI'];
 const STRUCTURES = getAvailableStructures();
 const EXPORT_FORMATS = [
@@ -107,7 +108,7 @@ function LESlider({ label, value, onChange, min, max, suffix, textSecondary, ac,
     );
 }
 
-function SectionCard({ section, sectionIndex, isLocked, rhymeIndicators, isDark, ac, acSec, cardBg, borderColor, textPrimary, textSecondary, hoverBg, onRegenerate, onToggleLock, onLineEdit, t, isNonEnglish }) {
+function SectionCard({ section, sectionIndex, isLocked, rhymeIndicators, isDark, ac, acSec, cardBg, borderColor, textPrimary, textSecondary, hoverBg, onRegenerate, onToggleLock, onLineEdit, t, isNonEnglish, isRtl }) {
     const sectionTypeColors = {
         verse: isDark ? '#4ade80' : '#16a34a',
         chorus: ac,
@@ -185,7 +186,7 @@ function SectionCard({ section, sectionIndex, isLocked, rhymeIndicators, isDark,
             </div>
 
             {/* Lines */}
-            <div style={{ padding: '10px 14px' }}>
+            <div style={{ padding: '10px 14px', direction: isRtl ? 'rtl' : 'ltr' }}>
                 {section.lines.map((line, lineIdx) => {
                     const syllables = countLineSyllables(line);
                     const rhymeInd = rhymeIndicators[lineIdx] || { color: textSecondary, symbol: '-' };
@@ -209,12 +210,14 @@ function SectionCard({ section, sectionIndex, isLocked, rhymeIndicators, isDark,
                                 value={line}
                                 onChange={(e) => onLineEdit(sectionIndex, lineIdx, e.target.value)}
                                 disabled={isLocked}
+                                dir={isRtl ? 'rtl' : undefined}
                                 style={{
                                     flex: 1, background: 'transparent', border: 'none',
                                     color: textPrimary, fontSize: '13px', lineHeight: '1.6',
                                     padding: '2px 4px', borderRadius: '4px', outline: 'none',
                                     fontFamily: 'inherit',
                                     opacity: isLocked ? 0.7 : 1,
+                                    textAlign: isRtl ? 'right' : 'left',
                                 }}
                                 onFocus={(e) => { if (!isLocked) e.target.style.background = hoverBg; }}
                                 onBlur={(e) => { e.target.style.background = 'transparent'; }}
@@ -433,6 +436,7 @@ export default function LyricEngineTab({
     // Translated lyric language options — English first, rest sorted alphabetically
     // Show language names in the currently selected LYRIC language (not UI language)
     const lyricLangCode = NAME_TO_LANG_CODE[lyricLanguage] || 'en';
+    const isRtl = RTL_LANG_CODES.has(lyricLangCode);
     const lyricLanguageOptions = useMemo(() => {
         const all = LYRIC_LANGUAGES.map(lang => {
             const code = NAME_TO_LANG_CODE[lang];
@@ -923,6 +927,7 @@ export default function LyricEngineTab({
                                     onLineEdit={handleLineEdit}
                                     t={t}
                                     isNonEnglish={lyricLangCode !== 'en'}
+                                    isRtl={isRtl}
                                 />
                             ))}
                         </div>

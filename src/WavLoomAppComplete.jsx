@@ -17,6 +17,10 @@ import { generateAllPatterns, determineComplexity, humanizePattern, createVariat
 import { loopMelodicPattern, loopDrumPattern } from './patternUtils';
 import { getProPattern } from './drumPatterns';
 import HumanizePanel from './HumanizePanel';
+import BeatEnergyPanel from './BeatEnergyPanel';
+import Bass808Panel from './Bass808Panel';
+import ArrangementIntelligencePanel from './ArrangementIntelligencePanel';
+import { applyArrangementToTimeline } from './core/music-intelligence/ArrangementEngine';
 import { useCollaboration } from './collab/useCollaboration';
 import { useTimeTracker } from './collab/TimeTracker';
 // CollabPanel lazy-loaded below (pulls in 34MB emoji-picker-react)
@@ -1198,7 +1202,7 @@ const WavLoomAppComplete = () => {
     const [patterns, setPatterns] = useState({ drums: [], chords: [], melody: [], bass: [] });
 
     // Humanization parameters — applied during generation and via the APPLY button
-    const [humanizeParams, setHumanizeParams] = useState({ swing: 30, velocityVariation: 20, timingJitter: 10, ghostNotes: 15 });
+    const [humanizeParams, setHumanizeParams] = useState({ swing: 30, shuffle: 0, velocityVariation: 20, timingJitter: 10, ghostNotes: 15 });
 
     // Auto-save banner
     const [showAutosaveBanner, setShowAutosaveBanner] = useState(false);
@@ -1231,7 +1235,7 @@ const WavLoomAppComplete = () => {
     // ── Audio track undo/redo history ──
     // Snapshots audioTracks metadata (without buffers — those are immutable refs)
     // and trackAutomation state for Ctrl+Z / Ctrl+Shift+Z in arrange tab.
-    const MAX_AUDIO_HISTORY = 20;
+    const MAX_AUDIO_HISTORY = 50;
     const audioHistoryRef = useRef([]);
     const audioHistoryIndexRef = useRef(-1);
     const audioHistoryRestoringRef = useRef(false);
@@ -2309,9 +2313,10 @@ const WavLoomAppComplete = () => {
 
     useEffect(() => {
         currentStateRef.current = {
-            patterns, globalKey, globalScale, globalTempo, globalBars, globalGenre, globalMood, chordsOctave, melodyOctave, bassOctave
+            patterns, globalKey, globalScale, globalTempo, globalBars, globalGenre, globalMood, chordsOctave, melodyOctave, bassOctave,
+            trackAutomation: JSON.parse(JSON.stringify(trackAutomation))
         };
-    }, [patterns, globalKey, globalScale, globalTempo, globalBars, globalGenre, globalMood, chordsOctave, melodyOctave, bassOctave]);
+    }, [patterns, globalKey, globalScale, globalTempo, globalBars, globalGenre, globalMood, chordsOctave, melodyOctave, bassOctave, trackAutomation]);
 
     const handleUndo = useCallback(() => {
         if (isProcessingUndoRedo.current) return;
@@ -2328,6 +2333,7 @@ const WavLoomAppComplete = () => {
             setChordsOctave(snapshot.chordsOctave);
             setMelodyOctave(snapshot.melodyOctave);
             setBassOctave(snapshot.bassOctave);
+            if (snapshot.trackAutomation) setTrackAutomation(JSON.parse(JSON.stringify(snapshot.trackAutomation)));
 
             // Push to generators safely
             setTimeout(() => {
@@ -2359,6 +2365,7 @@ const WavLoomAppComplete = () => {
             setChordsOctave(snapshot.chordsOctave);
             setMelodyOctave(snapshot.melodyOctave);
             setBassOctave(snapshot.bassOctave);
+            if (snapshot.trackAutomation) setTrackAutomation(JSON.parse(JSON.stringify(snapshot.trackAutomation)));
 
             // Push to generators safely
             setTimeout(() => {
@@ -4051,6 +4058,24 @@ const WavLoomAppComplete = () => {
                 e.preventDefault();
                 const activeSec = arr.arrangement.find(s => s.id === arr.activeSection);
                 if (activeSec) toggleStopMarker(activeSec.id);
+            }
+
+            // Shift+D: Duplicate active tab pattern (double by repeating)
+            if (e.shiftKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyD') {
+                e.preventDefault();
+                const track = activeTab;
+                if (['chords', 'melody', 'bass'].includes(track)) {
+                    setPatterns(prev => {
+                        const notes = prev[track];
+                        if (!notes || notes.length === 0) return prev;
+                        const totalSteps = globalBars * 32;
+                        const duplicated = notes.map(n => ({
+                            ...n,
+                            time: n.time + totalSteps
+                        }));
+                        return { ...prev, [track]: [...notes, ...duplicated] };
+                    });
+                }
             }
 
             // Tempo adjustments (permission-guarded)
@@ -8143,6 +8168,34 @@ const WavLoomAppComplete = () => {
                     accentColors={accent}
                 />
 
+                {activeTab === 'drums' && (
+                    <BeatEnergyPanel
+                        drumPattern={patterns.drums}
+                        onApplyEnergy={(modified) => setPatterns(prev => ({ ...prev, drums: modified }))}
+                        arrangement={arr.arrangementMode ? arr.arrangement : null}
+                        onApplyToArrangement={arr.arrangementMode ? (idx, energy) => {
+                            arr.updateSection(arr.arrangement[idx]?.id, { intensity: energy });
+                        } : null}
+                        theme={theme}
+                        accentColors={accent}
+                        sampler={samplerRef.current}
+                    />
+                )}
+
+                {activeTab === 'bass' && (
+                    <Bass808Panel
+                        drumPattern={patterns.drums}
+                        chordPattern={patterns.chords}
+                        globalKey={globalKey}
+                        globalScale={globalScale}
+                        globalBars={globalBars}
+                        globalOctave={bassOctave}
+                        theme={theme}
+                        accentColors={accent}
+                        onInsert={(notes) => setPatterns(prev => ({ ...prev, bass: notes }))}
+                    />
+                )}
+
                 {/* Generator Content - Tab Exclusive Rendering */}
                 <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
                     <div style={{ display: activeTab === 'drums' ? 'block' : 'none', height: '100%', overflowY: 'auto' }}>
@@ -8495,6 +8548,30 @@ const WavLoomAppComplete = () => {
 
                     {/* Arrange Tab — includes mini mixer for live mixing during arrangement playback */}
                     <div style={{ display: activeTab === 'arrange' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
+                                <ArrangementIntelligencePanel
+                                    genre={globalGenre}
+                                    mood={globalMood}
+                                    tempo={globalTempo}
+                                    theme={theme}
+                                    accentColors={accent}
+                                    onApplyToTimeline={(clipPlacements) => {
+                                        applyArrangementToTimeline(clipPlacements, {
+                                            setTimelineBars,
+                                            addDrumClip: (bar, bars, sectionType, intensity) => {
+                                                addDrumClip({ timelineBar: bar, bars, name: `${sectionType} Drums`, intensity });
+                                            },
+                                            addChordClip: (bar, bars, sectionType, intensity) => {
+                                                addChordClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Chords`, intensity });
+                                            },
+                                            addMelodyClip: (bar, bars, sectionType, intensity) => {
+                                                addMelodyClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Melody`, intensity });
+                                            },
+                                            addBassClip: (bar, bars, sectionType, intensity) => {
+                                                addBassClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Bass`, intensity });
+                                            }
+                                        });
+                                    }}
+                                />
                                 <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
                                     <ArrangementTimeline
                                         arrangement={arr.arrangement}

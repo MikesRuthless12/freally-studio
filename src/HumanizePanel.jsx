@@ -18,6 +18,7 @@ const HumanizePanel = ({ humanizeParams, setHumanizeParams, onHumanize, onVariat
 
     const sliders = [
         { key: 'swing',             label: t('humanize.swing'),    color: ac },
+        { key: 'shuffle',           label: t('groove.shuffle') !== 'groove.shuffle' ? t('groove.shuffle') : 'Shuffle', color: '#22d3ee' },
         { key: 'velocityVariation', label: t('humanize.vel'),  color: acSec },
         { key: 'timingJitter',      label: t('humanize.jitter'),   color: '#54a0ff' },
         { key: 'ghostNotes',        label: t('humanize.ghosts'),   color: '#5f27cd' }
@@ -102,7 +103,7 @@ const HumanizePanel = ({ humanizeParams, setHumanizeParams, onHumanize, onVariat
                         color: isDark ? '#444' : '#bbb',
                         marginLeft: '8px'
                     }}>
-                        {t('humanize.sw')}:{humanizeParams.swing} {t('humanize.vel')}:{humanizeParams.velocityVariation} {t('humanize.jit')}:{humanizeParams.timingJitter} {t('humanize.gh')}:{humanizeParams.ghostNotes}
+                        {t('humanize.sw')}:{humanizeParams.swing} Shfl:{humanizeParams.shuffle || 0} {t('humanize.vel')}:{humanizeParams.velocityVariation} {t('humanize.jit')}:{humanizeParams.timingJitter} {t('humanize.gh')}:{humanizeParams.ghostNotes}
                     </span>
                 )}
             </div>

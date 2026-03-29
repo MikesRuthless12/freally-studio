@@ -71,14 +71,15 @@ export class SamplerEngine {
         // when multiple audio tracks (vocals, takes) sum together.
         // Zero-cost when signal is below threshold — no processing overhead.
         this._softLimiter = this._createSoftLimiter(this.audioContext);
-        this.masterGain.connect(this._softLimiter);
-        this._softLimiter.connect(this.audioContext.destination);
 
-        // Stub nodes — referenced by other code but not in the hot audio path
-        this.compressor = this.masterGain; // alias so .connect(this.compressor) works
+        // Master panner sits between masterGain and the limiter
         this.masterPanner = this.audioContext.createStereoPanner();
         this.masterPanner.pan.value = 0;
-        // masterPanner is NOT connected to the chain — just exists for API compat
+        this.masterGain.connect(this.masterPanner);
+        this.masterPanner.connect(this._softLimiter);
+        this._softLimiter.connect(this.audioContext.destination);
+
+        this.compressor = this.masterGain; // alias so .connect(this.compressor) works
 
         // Analyser taps off masterGain for metering but doesn't sit in the main path
         this.masterAnalyser = this.audioContext.createAnalyser();
@@ -194,7 +195,7 @@ export class SamplerEngine {
         if (!ctx) return;
 
         if (mono && !this._monoNode) {
-            // Insert mono summing: masterPanner → splitter → sum → merger → compressor
+            // Insert mono summing: masterPanner → splitter → sum → merger → _softLimiter
             // Brief master fade to avoid click on graph reconnect
             const ct = ctx.currentTime;
             this._safeCancelAutomation(this.masterGain.gain, ct);
@@ -217,7 +218,7 @@ export class SamplerEngine {
                 halfGain.connect(merger, 0, 1);
                 halfGain2.connect(merger, 0, 0);
                 halfGain2.connect(merger, 0, 1);
-                merger.connect(this.compressor);
+                merger.connect(this._softLimiter);
 
                 this._monoNode = { splitter, merger, halfGain, halfGain2 };
 
@@ -225,7 +226,7 @@ export class SamplerEngine {
                 this.masterGain.gain.setTargetAtTime(0.3, ctx.currentTime, 0.008);
             }, 25);
         } else if (!mono && this._monoNode) {
-            // Remove mono summing: masterPanner → compressor directly
+            // Remove mono summing: restore masterPanner → _softLimiter
             const ct = ctx.currentTime;
             this._safeCancelAutomation(this.masterGain.gain, ct);
             this.masterGain.gain.setTargetAtTime(0.0001, ct, 0.004);
@@ -237,7 +238,7 @@ export class SamplerEngine {
                 try { this._monoNode.halfGain.disconnect(); } catch (e) {}
                 try { this._monoNode.halfGain2.disconnect(); } catch (e) {}
 
-                this.masterPanner.connect(this.compressor);
+                this.masterPanner.connect(this._softLimiter);
                 this._monoNode = null;
 
                 // Fade back in
@@ -1819,12 +1820,12 @@ export class SamplerEngine {
      * @param {boolean} muted
      */
     muteDesktopOutput(muted) {
-        if (!this.masterAnalyser || !this.audioContext) return;
+        if (!this._softLimiter || !this.audioContext) return;
         if (muted && !this._desktopMuted) {
-            try { this.masterAnalyser.disconnect(this.audioContext.destination); } catch (_) {}
+            try { this._softLimiter.disconnect(this.audioContext.destination); } catch (_) {}
             this._desktopMuted = true;
         } else if (!muted && this._desktopMuted) {
-            this.masterAnalyser.connect(this.audioContext.destination);
+            this._softLimiter.connect(this.audioContext.destination);
             this._desktopMuted = false;
         }
     }
@@ -2034,21 +2035,21 @@ export class SamplerEngine {
             oldMasterGain.gain.linearRampToValueAtTime(0, t + 1.5);
         } catch (_) { /* old context may already be closing */ }
 
-        // Build new minimal master chain (with soft limiter)
+        // Build new minimal master chain (with soft limiter + master panner)
         // Start at 0 gain and fade in over 150ms for a smooth crossfade with the old context
         const newMasterGain = newCtx.createGain();
         newMasterGain.gain.value = 0;
+        const newPanner = newCtx.createStereoPanner();
+        newPanner.pan.value = this.masterPanner.pan.value;
         const newLimiter = this._createSoftLimiter(newCtx);
-        newMasterGain.connect(newLimiter);
+        newMasterGain.connect(newPanner);
+        newPanner.connect(newLimiter);
         newLimiter.connect(newCtx.destination);
 
         const newAnalyser = newCtx.createAnalyser();
         newAnalyser.fftSize = 256;
         newAnalyser.smoothingTimeConstant = 0.3;
         newMasterGain.connect(newAnalyser);
-
-        const newPanner = newCtx.createStereoPanner();
-        newPanner.pan.value = this.masterPanner.pan.value;
 
         // Rebuild track buses on new context, preserving gain/pan values
         const oldBusValues = {};
@@ -2252,17 +2253,17 @@ export class SamplerEngine {
 
         const newMasterGain = newCtx.createGain();
         newMasterGain.gain.value = 0; // start silent — crossfade in after swap
+        const newPanner = newCtx.createStereoPanner();
+        newPanner.pan.value = savedPan;
         const newLimiter = this._createSoftLimiter(newCtx);
-        newMasterGain.connect(newLimiter);
+        newMasterGain.connect(newPanner);
+        newPanner.connect(newLimiter);
         newLimiter.connect(newCtx.destination);
 
         const newAnalyser = newCtx.createAnalyser();
         newAnalyser.fftSize = 256;
         newAnalyser.smoothingTimeConstant = 0.3;
         newMasterGain.connect(newAnalyser);
-
-        const newPanner = newCtx.createStereoPanner();
-        newPanner.pan.value = savedPan;
 
         const newBuses = {};
         for (const busId of Object.keys(this.trackBuses || {})) {

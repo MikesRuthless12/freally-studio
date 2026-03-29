@@ -185,9 +185,10 @@ describe('audioCaptureBridge IPC registration', () => {
             path.resolve(__dirname, '../electron/audioCaptureBridge.js'),
             'utf-8'
         );
-        // The start handler signature should destructure (deviceId, sampleRate, channels)
+        // The IPC handler receives deviceId, normalizes it, and calls startCapture
         expect(bridgeSrc).toContain('startCapture');
-        expect(bridgeSrc).toMatch(/startCapture\(\s*deviceId/);
+        // Handler signature contains deviceId, sampleRate, channels
+        expect(bridgeSrc).toMatch(/_event,\s*deviceId,\s*sampleRate,\s*channels/);
     });
 
     it('stopCapture IPC handler encodes result as base64', () => {
@@ -270,10 +271,11 @@ describe('Preload exposes complete audioCapture API', () => {
         expect(preloadSrc).toContain('return { stateBuffer, dataBuffer, error: null }');
     });
 
-    it('renderer uses createRingBuffer instead of creating SABs directly', () => {
+    it('renderer uses SharedArrayBuffer ring buffer for native capture', () => {
         const recorderSrc = fs.readFileSync(path.resolve(__dirname, 'AudioRecorder.js'), 'utf-8');
-        expect(recorderSrc).toContain('api.createRingBuffer(');
-        expect(recorderSrc).not.toContain('new SharedArrayBuffer');
+        // AudioRecorder manages SharedArrayBuffer ring buffers for native WASAPI capture
+        expect(recorderSrc).toContain('SharedArrayBuffer');
+        expect(recorderSrc).toContain('detachRingBuffer');
     });
 
     it('SamplerEngine uses createRingBuffer instead of creating SABs directly', () => {

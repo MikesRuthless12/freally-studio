@@ -1,6 +1,6 @@
 # METAL Lyrics Generation Audit Report
 
-Generated: 2026-03-26T18:28:34.512Z
+Generated: 2026-03-29T06:22:43.724Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -48,140 +48,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the audience screams the lyrics back with more intensity - than the record [record]
-  2. I forge my will in the furnace - of the distorted low end roar [roar]
-  3. the final blow - a violent gust [gust]
-  4. the fortress - crumbles into dust [dust]
+  1. the battle rages - on and is never done [done]
+  2. the snare drum triggers - like a machine gun [gun]
+  3. the blade obliterate past - the fortress of the damned tonight [tonight]
+  4. the blade destroy through the gates - of hellfire burning bright [bright]
 
 **[Chorus]** (pattern: AABB)
-  1. thunder rolling through the battlefield [battlefield]
-  2. the tech death passage was a maze - but the exit led to something real [real]
-  3. a fortress built from bones - and ancient stone [stone]
-  4. the blade dominate upon the throne of iron - and of bone [bone]
+  1. I close my eyes - and brandish your night [night]
+  2. the army destroy - past the fortress of the damned tonight [tonight]
+  3. a symphony of marrow - and of bone [bone]
+  4. preparing for the battle - all alone [alone]
 
 **[Verse 2]** (pattern: AABB)
-  1. the army annihilate into the heart - of everlasting war [war]
-  2. the headbang rhythm shakes - the very core [core]
-  3. the breakdown crushes - everything in sight [sight]
-  4. the blade consume past - the fortress of the damned tonight [tonight]
+  1. the stage lights go red - and the breakdown begins its descent to the core [core]
+  2. the blade crush into the heart - of everlasting war [war]
+  3. the brutality - of every blackened sword [sword]
+  4. the audience screams the lyrics back with more intensity - than the record [record]
 
 **[Chorus]** (pattern: AABB)
-  1. thunder rolling through the battlefield [battlefield]
-  2. the tech death passage was a maze - but the exit led to something real [real]
-  3. a fortress built from bones - and ancient stone [stone]
-  4. the blade dominate upon the throne of iron - and of bone [bone]
+  1. I close my eyes - and brandish your night [night]
+  2. the army destroy - past the fortress of the damned tonight [tonight]
+  3. a symphony of marrow - and of bone [bone]
+  4. preparing for the battle - all alone [alone]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. the king of iron justice - sits upon his rusted throne [throne]
-  2. the army descend past - the fortress of the damned tonight [tonight]
-  3. the army devour upon the throne of iron - and of bone [bone]
-  4. I keep searching - for the expedite [expedite]
+  1. the poisoned wind infecting - every air [air]
+  2. the blade summon past - the fortress of the damned tonight [tonight]
+  3. the blade consume across the frozen wasteland - of despair [despair]
+  4. the abomination crawling - toward the light [light]
 
 **[Chorus]** (pattern: ABAB)
-  1. the empire - crumbling deep underground [underground]
-  2. the horde - advances no turning back [back]
-  3. the armies - scattered losing ground [ground]
-  4. we leave the world - in smoking wrack [wrack]
+  1. streaming perdition - on every hell [hell]
+  2. the iron gates - begin to crack [crack]
+  3. the torch is lit - inside the dungeon cell [cell]
+  4. the sky above - turns burning black [black]
 
 **[Verse 2]** (pattern: ABAB)
-  1. the final trial - the ultimate test [test]
-  2. a raven perches - on the rusted gate [gate]
-  3. a chainmail vest - across a battle chest [chest]
-  4. the pandemonium of immortality - and hate [hate]
+  1. the blackened blade - begins to rust [rust]
+  2. an iron fist concealed - in a velvet glove [glove]
+  3. a savage fury - born of trust [trust]
+  4. the tectonic plates - begin to move [move]
 
 **[Chorus]** (pattern: ABAB)
-  1. the empire - crumbling deep underground [underground]
-  2. the horde - advances no turning back [back]
-  3. the armies - scattered losing ground [ground]
-  4. we leave the world - in smoking wrack [wrack]
+  1. streaming perdition - on every hell [hell]
+  2. the iron gates - begin to crack [crack]
+  3. the torch is lit - inside the dungeon cell [cell]
+  4. the sky above - turns burning black [black]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. a lightning bolt of pleasure - and of pain [pain]
-  2. the battle drums are thundering across the blackened plain [plain]
-  3. the blood of warriors - is the pouring rain [rain]
-  4. the pinch harmonics squeal - and then sustain [sustain]
+  1. the army summon into the heart - of everlasting war [war]
+  2. I forge my will in the furnace - of the distorted low end roar [roar]
+  3. the stage lights go red - and the breakdown begins its descent to the core [core]
+  4. the breakdown riff repeats - and each time it gets heavier than before [before]
 
 **[Chorus]** (pattern: AAAA)
-  1. our catastrophe - echoes through the lord [lord]
-  2. the brutality of every - blackened sword [sword]
-  3. the audience screams the lyrics back with more - intensity than the record [record]
-  4. I forge my will in the furnace - of the distorted low end roar [roar]
+  1. we stand tall - and we will never crawl [crawl]
+  2. a severed head - upon the castle wall [wall]
+  3. the empire stands - before the final fall [fall]
+  4. the retribution - answering the battle call [call]
 
 **[Verse 2]** (pattern: AAAA)
-  1. the blade resurrect across the frozen wasteland - of despair [despair]
-  2. the chug section bounces heads in unison - like synchronized warfare [warfare]
-  3. the poisoned wind infecting - every air [air]
-  4. the resurrection - echoing everywhere [everywhere]
+  1. the shield wall holds against - the onslaught of the hordes of night [night]
+  2. the army unleash through the gates - of hellfire burning bright [bright]
+  3. we rage against the dying - of the light [light]
+  4. the army destroy past - the fortress of the damned tonight [tonight]
 
 **[Chorus]** (pattern: AAAA)
-  1. our catastrophe - echoes through the lord [lord]
-  2. the brutality of every - blackened sword [sword]
-  3. the audience screams the lyrics back with more - intensity than the record [record]
-  4. I forge my will in the furnace - of the distorted low end roar [roar]
+  1. we stand tall - and we will never crawl [crawl]
+  2. a severed head - upon the castle wall [wall]
+  3. the empire stands - before the final fall [fall]
+  4. the retribution - answering the battle call [call]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. a growl that echoes - through the catacombs [catacombs]
-  2. the army crush with the wrath - of a thousand fallen gods [gods]
-  3. through agony - we rise again [again]
-  4. the guitar solo weaves through modes - like a serpent through tall grass [grass]
+  1. the blade unleash into the heart - of everlasting war [war]
+  2. the blade dominate past - the fortress of the damned tonight [tonight]
+  3. the blade summon with the wrath - of a thousand fallen gods [gods]
+  4. Black Sabbath paranoid - and the riff was born [born]
 
 **[Chorus]** (pattern: XXXX)
-  1. the abomination - rules the night [night]
-  2. the siege begins - and there is fight or flight [flight]
-  3. our demolition - brings eternal blight [blight]
-  4. the army annihilate - past the fortress of the damned tonight [tonight]
+  1. annihilation of the monstrous hell [hell]
+  2. the torch is lit - inside the dungeon cell [cell]
+  3. a story only - devastation can tell [tell]
+  4. a thousand voices - scream a rebel yell [yell]
 
 **[Verse 2]** (pattern: XXXX)
-  1. the pandemonium - of immortality unleashed [unleashed]
-  2. obliterated darkness - in the hellish light [light]
-  3. the blade shatter through the gates - of hellfire burning bright [bright]
-  4. the wall of amplifiers - behind me is my cathedral of destruction [destruction]
+  1. the galloping rhythm - charges through the gate [gate]
+  2. we step into the void - and embrace the dark [dark]
+  3. the blade unleash through the gates - of hellfire burning bright [bright]
+  4. the graves hold secrets none - should know [know]
 
 **[Chorus]** (pattern: XXXX)
-  1. the abomination - rules the night [night]
-  2. the siege begins - and there is fight or flight [flight]
-  3. our demolition - brings eternal blight [blight]
-  4. the army annihilate - past the fortress of the damned tonight [tonight]
+  1. annihilation of the monstrous hell [hell]
+  2. the torch is lit - inside the dungeon cell [cell]
+  3. a story only - devastation can tell [tell]
+  4. a thousand voices - scream a rebel yell [yell]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. indestructible - and merciless we dominate [dominate]
-  2. the obliteration - sealed our very fate [fate]
-  3. the blade destroy across the frozen wasteland - of despair [despair]
-  4. the resurrection - echoing everywhere [everywhere]
+  1. an anthem carved in blood - and bone [bone]
+  2. the fallen warriors - standing lone [lone]
+  3. the cymbal crash marks the beginning - of the end of everything [everything]
+  4. the blade unleash beneath - the crimson sky of reckoning [reckoning]
 
 **[Chorus]** (pattern: AABB)
-  1. the anthem shakes - and we rejoice [rejoice]
-  2. in blood and - fire we have no choice [choice]
-  3. the blade dominate into the heart - of everlasting war [war]
-  4. the headbang rhythm - shakes the very core [core]
+  1. the chaos - thickens in the atmosphere [atmosphere]
+  2. the battle cries are - loud and clear [clear]
+  3. I sharpened every - edge upon the stone [stone]
+  4. the blade obliterate upon the throne of iron - and of bone [bone]
 
 **[Verse 2]** (pattern: AABB)
-  1. the reaper taking - every final breath [breath]
-  2. the army crush through the valley - of the shadow of death [death]
-  3. obliterated everything - carved in stone [stone]
-  4. the army conquer upon the throne of iron - and of bone [bone]
+  1. the army dominate across the frozen wasteland - of despair [despair]
+  2. the poisoned wind infecting - every air [air]
+  3. the prophecy - that ancients read [read]
+  4. the battlefield is soaked - in red [red]
 
 **[Chorus]** (pattern: AABB)
-  1. the anthem shakes - and we rejoice [rejoice]
-  2. in blood and - fire we have no choice [choice]
-  3. the blade dominate into the heart - of everlasting war [war]
-  4. the headbang rhythm - shakes the very core [core]
+  1. the chaos - thickens in the atmosphere [atmosphere]
+  2. the battle cries are - loud and clear [clear]
+  3. I sharpened every - edge upon the stone [stone]
+  4. the blade obliterate upon the throne of iron - and of bone [bone]
 
 ---
 

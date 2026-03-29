@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from '../i18n/I18nContext';
 
 const STORAGE_KEY = 'wavloom-teleprompter-settings';
+const RTL_LANGUAGES = new Set(['Arabic', 'Hebrew', 'Persian', 'Urdu']);
 
 const SECTION_COLORS = {
     verse: '#4ade80',
@@ -298,6 +299,7 @@ const Teleprompter = React.memo(function Teleprompter({
     }, []); // no deps — reads everything from refs
 
     const useDashPause = lyricLanguage === 'English';
+    const isRtl = RTL_LANGUAGES.has(lyricLanguage);
 
     const lineDurationSec = useMemo(() => {
         return barsPerLine * 4 * (60 / (globalTempo || 120));
@@ -582,6 +584,7 @@ const Teleprompter = React.memo(function Teleprompter({
                                 style={{
                                     position: 'relative', textAlign: 'center', maxWidth: '80%', marginBottom: '8px',
                                     cursor: isIdle ? 'pointer' : 'default',
+                                    direction: isRtl ? 'rtl' : 'ltr',
                                 }}
                             >
                                 {/* Start-line marker (visible when idle or during recording) */}

@@ -8411,6 +8411,10 @@ export default function ArrangementTimeline({
                         setStemSepModal({ mode: 'audio', clip: audioClipContextMenu.clip, trackId: audioClipContextMenu.trackId, sectionId: audioClipContextMenu.sectionId });
                         setAudioClipContextMenu(null);
                     }} />
+                    <CtxItem label={t('arrange.extractMidiStems')} isDark={isDark} onClick={() => {
+                        setStemSepModal({ mode: 'midi', clip: audioClipContextMenu.clip, trackId: audioClipContextMenu.trackId, sectionId: audioClipContextMenu.sectionId });
+                        setAudioClipContextMenu(null);
+                    }} />
                     {onBounceToGenerators && (
                         <CtxItem label={t('arrange.bounceToGenerators')} isDark={isDark} onClick={() => {
                             onBounceToGenerators(audioClipContextMenu.clip);

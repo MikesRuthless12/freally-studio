@@ -11,6 +11,14 @@ const { loadNativeAddon: loadAudioCaptureAddon, registerIPC: registerAudioCaptur
 process.stdout?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });
 process.stderr?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });
 
+// Crash diagnostics — log unhandled errors instead of silently dying
+process.on('uncaughtException', (err) => {
+    console.error('[MAIN CRASH] uncaughtException:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[MAIN CRASH] unhandledRejection:', reason);
+});
+
 // --- Window bounds & folder persistence ---
 function getSettingsPath() {
     return path.join(app.getPath('userData'), 'wavloom-settings.json');
@@ -193,10 +201,15 @@ function createWindow() {
     // Forward renderer console messages to terminal for debugging
     mainWindow.webContents.on('console-message', (_event, level, message) => {
         // level: 0=verbose, 1=info, 2=warn, 3=error
-        if (message.includes('[VST3') || message.includes('[DIAG') || level >= 2) {
+        if (message.includes('[VST3') || message.includes('[DIAG') || message.includes('[Recording') || level >= 2) {
             const prefix = level >= 3 ? '[Renderer ERR]' : level >= 2 ? '[Renderer WARN]' : '[Renderer]';
             try { console.log(`${prefix} ${message}`); } catch (_) { /* pipe closed */ }
         }
+    });
+
+    // Detect renderer crash
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        console.error('[MAIN] Renderer process gone:', details.reason, details.exitCode);
     });
 
     // Forward maximize/unmaximize events to renderer

@@ -1100,7 +1100,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 filter: isExpanded ? 'grayscale(0)' : 'grayscale(1)',
                                 opacity: isExpanded ? 1 : 0.7
                             }}>
-                                {isExpanded ? '📂' : '📁'}
+                                {isExpanded ? '▼' : '▶'}
                             </span>
                             <span style={{
                                 fontWeight: isExpanded ? '700' : '400',
@@ -2253,7 +2253,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 filter: isExpanded ? 'grayscale(0)' : 'grayscale(1)',
                                 opacity: isExpanded ? 1 : 0.7
                             }}>
-                                {isExpanded ? '📂' : '📁'}
+                                {isExpanded ? '▼' : '▶'}
                             </span>
                             <span style={{
                                 fontWeight: isExpanded ? '700' : '400',
@@ -2692,7 +2692,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                         backgroundColor: explorerTab === 'local' ? hexToRgba(ac, 0.08) : 'transparent'
                     }}
                 >
-                    📁 {t('browser.local')}
+                    {t('browser.local')}
                 </button>
                 <button
                     onClick={() => setExplorerTab('factory')}
@@ -2713,7 +2713,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                         backgroundColor: explorerTab === 'factory' ? hexToRgba(ac, 0.08) : 'transparent'
                     }}
                 >
-                    🏭 {t('browser.factory')}
+                    {t('browser.factory')}
                     {factoryLoading && <span style={{ color: acSec, fontSize: '8px', marginLeft: '4px', animation: 'pulse 1s infinite' }}>●</span>}
                 </button>
                 <button
@@ -2735,7 +2735,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                         backgroundColor: explorerTab === 'presets' ? hexToRgba(ac, 0.08) : 'transparent'
                     }}
                 >
-                    🎛️ {t('browser.presets')}
+                    {t('browser.presets')}
                 </button>
                 <button
                     onClick={() => setExplorerTab('plugins')}
@@ -2756,7 +2756,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                         backgroundColor: explorerTab === 'plugins' ? hexToRgba(acSec || ac, 0.08) : 'transparent'
                     }}
                 >
-                    🔌 {t('browser.plugins')}
+                    {t('browser.plugins')}
                     {!vst3InitialScanDone && <span style={{ color: '#ffa502', fontSize: '8px', marginLeft: '4px', animation: 'pulse 1s infinite' }}>⏳</span>}
                     {vst3InitialScanDone && vst3Scanning && <span style={{ color: acSec, fontSize: '8px', marginLeft: '4px', animation: 'pulse 1s infinite' }}>●</span>}
                 </button>
@@ -3034,7 +3034,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 transition: 'all 0.2s'
                             }}
                         >
-                            💾 {t('browser.saveCurrentPreset')}
+                            {t('browser.saveCurrentPreset')}
                         </button>
                         <button
                             onClick={() => setShowPresetBrowser(true)}
@@ -3051,7 +3051,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 transition: 'all 0.2s'
                             }}
                         >
-                            📂 {t('browser.browseLoadPresets')}
+                            {t('browser.browseLoadPresets')}
                         </button>
                         <div style={{ fontSize: '10px', color: isDark ? '#555' : '#999', textAlign: 'center', marginTop: '8px', lineHeight: 1.5 }}>
                             {t('browser.presetsDesc')}
@@ -3083,7 +3083,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                     transition: 'transform 0.15s', display: 'inline-block',
                                 }}>▶</span>
                                 <span style={{ fontSize: '11px', fontWeight: '700', color: isDark ? '#ccc' : '#444', letterSpacing: '0.5px' }}>
-                                    🔊 {t('browser.audioEffects')}
+                                    {t('browser.audioEffects')}
                                 </span>
                                 <span style={{ fontSize: '9px', color: isDark ? '#555' : '#aaa', marginLeft: 'auto' }}>
                                     {EFFECT_CATEGORIES.reduce((n, c) => n + c.effects.length, 0)}
@@ -3106,7 +3106,6 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                                     transform: builtinCatExpanded[cat.name] ? 'rotate(90deg)' : 'rotate(0deg)',
                                                     transition: 'transform 0.15s', display: 'inline-block',
                                                 }}>▶</span>
-                                                <span style={{ fontSize: '10px' }}>{CATEGORY_ICONS[cat.name] || '🔌'}</span>
                                                 <span style={{
                                                     fontSize: '10px', fontWeight: '600',
                                                     color: isDark ? '#aaa' : '#555',
@@ -3197,7 +3196,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                     transition: 'transform 0.15s', display: 'inline-block',
                                 }}>▶</span>
                                 <span style={{ fontSize: '11px', fontWeight: '700', color: isDark ? '#ccc' : '#444', letterSpacing: '0.5px' }}>
-                                    🎹 {t('browser.midiEffects')}
+                                    {t('browser.midiEffects')}
                                 </span>
                             </div>
                             {builtinSections.midiEffects && (
@@ -3217,7 +3216,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 fontSize: '12px',
                                 lineHeight: 1.6
                             }}>
-                                🔌 {t('browser.vst3DesktopOnly')}
+                                {t('browser.vst3DesktopOnly')}
                                 <br /><br />
                                 <span style={{ fontSize: '10px', color: isDark ? '#555' : '#aaa' }}>
                                     {t('browser.vst3RunCommand', { command: 'npm run electron:dev' })}
@@ -3236,7 +3235,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                 <div style={{
                                     fontSize: '28px',
                                     animation: 'pulse 1.5s infinite',
-                                }}>🔌</div>
+                                }}>VST3</div>
                                 <div style={{
                                     fontSize: '12px',
                                     fontWeight: '700',
@@ -3509,7 +3508,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                     }
 
                                     const categoryOrder = ['Instruments', 'Effects', 'Utilities'];
-                                    const categoryIcons = { Instruments: '🎹', Effects: '🎚️', Utilities: '🔧' };
+                                    const categoryIcons = { Instruments: 'INST', Effects: 'FX', Utilities: 'UTIL' };
                                     const categoryLabels = { Instruments: t('browser.vst3Instruments'), Effects: t('browser.vst3Effects'), Utilities: t('browser.vst3Utilities') };
 
                                     return (
@@ -3757,7 +3756,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(79, 172, 254, 0.1)'}
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
-                                    💾 {t('browser.extractMidiToFile')}
+                                    {t('browser.extractMidiToFile')}
                                 </div>
                             )}
                         </>

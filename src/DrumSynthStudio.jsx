@@ -228,7 +228,7 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
         }}>
             {/* Header */}
             <div className="dss-header">
-                <div className="dss-title">🔧 {t('drumSynth.title')}</div>
+                <div className="dss-title">{t('drumSynth.title')}</div>
                 <button className="dss-close-btn" onClick={onClose} title={t('drumSynth.close')}>✕</button>
             </div>
 
@@ -313,7 +313,7 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
                         alert(t('common.masterFolderUpdated'));
                     } catch (e) { }
                 }}>
-                    📁 {t('drumSynth.changeMasterFolder')}
+                    {t('drumSynth.changeMasterFolder')}
                 </button>
                 <button className="dss-btn dss-btn-primary" onClick={handleAudition}>
                     ▶ {t('drumSynth.preview')}
@@ -331,7 +331,7 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
                     onClick={handleExport}
                     disabled={isRendering}
                 >
-                    {isRendering ? `⏳ ${t('drumSynth.rendering')}` : `💾 ${t('drumSynth.exportWav')}`}
+                    {isRendering ? t('drumSynth.rendering') : t('drumSynth.exportWav')}
                 </button>
             </div>
         </div>

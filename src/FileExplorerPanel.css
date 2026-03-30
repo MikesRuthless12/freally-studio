@@ -309,7 +309,8 @@
     justify-content: flex-end;
     font-size: 10px;
     color: var(--text-secondary, #999);
-    font-family: monospace;
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
     margin-top: 4px;
 }
 
@@ -383,12 +384,13 @@
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--text-secondary, #888);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.6px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -196,7 +196,7 @@ const ArrangementIntelligencePanel = ({
 
                         {/* Action buttons */}
                         <div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
-                            <button onClick={handleGenerate} style={btnStyle('#39ff14', false)}>
+                            <button onClick={handleGenerate} style={btnStyle(ac, false)}>
                                 GENERATE
                             </button>
                             <button onClick={handleApply} disabled={!generated || applied} style={btnStyle(ac, !generated || applied)}>

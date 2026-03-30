@@ -563,7 +563,7 @@ const MixerPanel = forwardRef(({
                         const isSoloed = globalSolos.has(trackId);
                         const vol = trackMix[trackId]?.volume ?? 0.5;
                         const pan = trackMix[trackId]?.pan ?? 0;
-                        const color = TRACK_COLORS[trackId];
+                        const color = ac;
                         const dimmed = isAnythingSoloed && !isSoloed;
                         return (
                             <React.Fragment key={trackId}>
@@ -609,7 +609,7 @@ const MixerPanel = forwardRef(({
                         const isSoloed = globalSolos.has(trackId);
                         const vol = trackMix[trackId]?.volume ?? 0.5;
                         const pan = trackMix[trackId]?.pan ?? 0;
-                        const color = TRACK_COLORS[trackId];
+                        const color = ac;
                         const dimmed = isAnythingSoloed && !isSoloed;
                         return (
                             <React.Fragment key={trackId}>

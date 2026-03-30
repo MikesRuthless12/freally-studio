@@ -5,7 +5,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow: hidden;
 }
 
@@ -79,12 +79,15 @@
 .global-settings select,
 .global-settings input {
     padding: 8px 12px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 14px;
+    background: var(--input-face, var(--bg-tertiary));
+    border: 1px solid var(--input-border, var(--border-color));
+    border-radius: 4px;
+    color: var(--input-text, var(--text-primary));
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
+    box-shadow: var(--shadow-inset, inset 0 1px 3px rgba(0,0,0,0.1));
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .global-settings select:focus,
@@ -94,25 +97,40 @@
 }
 
 .global-settings span {
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--text-secondary);
+    letter-spacing: 0.2px;
 }
 
 .theme-toggle {
     padding: 8px 16px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 600;
+    background: var(--btn-face, var(--bg-tertiary));
+    border: 1px solid var(--btn-border, var(--border-color));
+    border-radius: 4px;
+    color: var(--btn-text, var(--text-primary));
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow:
+        inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.05)),
+        0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .theme-toggle:hover {
-    background: var(--bg-hover);
-    transform: scale(1.05);
+    background: var(--btn-face-hover, var(--bg-hover));
+    box-shadow:
+        inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.05)),
+        0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.theme-toggle:active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 /* Main Content */
@@ -140,37 +158,48 @@
 
 .generator-tabs button {
     padding: 10px 20px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    background: var(--btn-face, var(--bg-tertiary));
+    border: 1px solid var(--btn-border, var(--border-color));
+    border-radius: 5px;
     color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
+    box-shadow:
+        inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.05)),
+        0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .generator-tabs button:hover {
-    background: var(--bg-hover);
+    background: var(--btn-face-hover, var(--bg-hover));
     color: var(--text-primary);
+    box-shadow:
+        inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.05)),
+        0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.generator-tabs button:active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 .generator-tabs button.active {
     background: var(--accent-glow, rgba(255, 107, 107, 0.15));
     border-color: var(--accent-color);
     color: var(--accent-color);
-    box-shadow: 0 0 15px var(--accent-glow, rgba(255, 107, 107, 0.1));
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        0 0 12px var(--accent-glow, rgba(255, 107, 107, 0.1));
 }
 
 /* Global Button Unification */
 button {
-    font-family: inherit;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
-
-/* Override rainbow buttons if needed, or just let them be if they are drum slots */
-/* The user asked to ensure buttons match the theme and not multicolored */
-/* However, Drum slots usually have colors to distinguish them. */
-/* I will ensure the main UI buttons are unified. */
 
 .generator-content {
     flex: 1;

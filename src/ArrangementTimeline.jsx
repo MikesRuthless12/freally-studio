@@ -77,8 +77,10 @@ function formatTimePrecise(seconds) {
 // ─── Pattern Preview Strip ───
 // Horizontal strip with 4 mini clip cards (Drums, Chords, Melody, Bass) above the timeline.
 // Supports drum sub-pattern switching via keyboard, and drag-to-timeline.
+// Preview card colors match the track lane colors in MELODIC_TRACKS.
+// Drums color is set dynamically from the accent theme (see previewCards below).
 const PREVIEW_TRACK_COLORS = {
-    drums: '#ff6b6b',
+    drums: '#3498db',   // placeholder — overridden by ac at render time
     chords: '#3498db',
     melody: '#2ecc71',
     bass: '#9b59b6'
@@ -3480,7 +3482,7 @@ export default function ArrangementTimeline({
                 <span style={{ opacity: 0.5, fontSize: '10px' }}>
                     {t('arrange.sectionsCount', { count: arrangement.length, max: MAX_SECTIONS, bars: totalBars })}
                 </span>
-                <span style={{ color: '#ffa94d', fontSize: '10px', fontWeight: '800' }}>
+                <span style={{ color: ac, fontSize: '10px', fontWeight: '800' }}>
                     {globalIsPlaying ? formatTime(currentPlaybackSeconds) : '0:00'} / {formatTime(timeMarks.totalSeconds)}
                 </span>
                 {loopSectionIds.size > 0 && (
@@ -3608,7 +3610,7 @@ export default function ArrangementTimeline({
                     }}>↷</button>
                     {/* + SECTION button removed — continuous timeline */}
                     {onAddAudioTrack && (
-                        <ActionBtn label={t('arrange.addAudio')} color="#ff9ff3" isDark={isDark} disabled={addCooldown || audioTracks.length >= 100}
+                        <ActionBtn label={t('arrange.addAudio')} color={ac} isDark={isDark} disabled={addCooldown || audioTracks.length >= 100}
                             onClick={() => {
                                 if (addCooldownRef.current || audioTracks.length >= 100) return;
                                 addCooldownRef.current = true;
@@ -3618,7 +3620,7 @@ export default function ArrangementTimeline({
                             }} />
                     )}
                     {onAddAudioTrack && (
-                        <ActionBtn label={t('arrange.addVocal')} color="#e74c3c" isDark={isDark} disabled={addCooldown || audioTracks.length >= 100}
+                        <ActionBtn label={t('arrange.addVocal')} color={ac} isDark={isDark} disabled={addCooldown || audioTracks.length >= 100}
                             onClick={() => {
                                 if (addCooldownRef.current || audioTracks.length >= 100) return;
                                 addCooldownRef.current = true;
@@ -3630,7 +3632,7 @@ export default function ArrangementTimeline({
                             }} />
                     )}
                     {onAddMidiTrack && (
-                        <ActionBtn label={t('arrange.addMidi')} color="#c56cf0" isDark={isDark} disabled={addCooldown || midiTracks.length >= 100}
+                        <ActionBtn label={t('arrange.addMidi')} color={ac} isDark={isDark} disabled={addCooldown || midiTracks.length >= 100}
                             onClick={() => {
                                 if (addCooldownRef.current || midiTracks.length >= 100) return;
                                 addCooldownRef.current = true;
@@ -3640,9 +3642,9 @@ export default function ArrangementTimeline({
                             }} />
                     )}
                     <span style={{ fontSize: '9px', fontWeight: 600, opacity: 0.7, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
-                        <span style={{ color: '#c56cf0' }}>{t('arrange.midiTracksCount', { count: midiTracks.length, max: 100 })}</span>
+                        <span style={{ color: ac }}>{t('arrange.midiTracksCount', { count: midiTracks.length, max: 100 })}</span>
                         <span style={{ color: isDark ? '#555' : '#aaa', margin: '0 4px' }}>|</span>
-                        <span style={{ color: '#ff9ff3' }}>{t('arrange.audioTracksCount', { count: audioTracks.length, max: 100 })}</span>
+                        <span style={{ color: ac }}>{t('arrange.audioTracksCount', { count: audioTracks.length, max: 100 })}</span>
                     </span>
                     {selectedRow && (
                         <ActionBtn
@@ -3660,7 +3662,7 @@ export default function ArrangementTimeline({
                     )}
                     <ActionBtn
                         label={selectedCells.length > 0 ? t('arrange.genSelected', { count: selectedCells.length }) : t('arrange.genAll')}
-                        color="#69db7c" isDark={isDark}
+                        color={ac} isDark={isDark}
                         disabled={genCooldownRef.current}
                         onClick={() => {
                             if (genCooldownRef.current) return;
@@ -3680,7 +3682,7 @@ export default function ArrangementTimeline({
                     {onGenerateAllMixed && (
                         <ActionBtn
                             label={t('arrange.genAllMixed')}
-                            color="#ffd43b" isDark={isDark}
+                            color={ac} isDark={isDark}
                             disabled={genCooldownRef.current}
                             onClick={() => {
                                 if (genCooldownRef.current) return;
@@ -3690,7 +3692,7 @@ export default function ArrangementTimeline({
                             }}
                         />
                     )}
-                    <ActionBtn label={showMixer ? t('arrange.hideMix') : t('arrange.mix')} color="#9775fa" isDark={isDark} onClick={() => {
+                    <ActionBtn label={showMixer ? t('arrange.hideMix') : t('arrange.mix')} color={ac} isDark={isDark} onClick={() => {
                         if (mixCooldownRef.current) return;
                         mixCooldownRef.current = true;
                         requestAnimationFrame(() => { mixCooldownRef.current = false; });

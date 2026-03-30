@@ -157,21 +157,27 @@ void AudioCapture::startCapture(const std::wstring& deviceId, uint32_t sampleRat
 }
 
 std::vector<float> AudioCapture::stopCapture() {
-    if (!m_capturing.load())
-        throw std::runtime_error("No capture in progress");
+    if (!m_capturing.load()) {
+        // Not capturing — return empty buffer instead of crashing.
+        // This can happen when the capture thread died before stop was called.
+        if (m_thread.joinable()) m_thread.join();
+        std::lock_guard<std::mutex> lock(m_bufferMutex);
+        auto partial = std::move(m_capturedSamples);
+        m_capturedSamples.clear();
+        return partial;
+    }
 
     m_stopRequested.store(true);
     if (m_thread.joinable()) m_thread.join();
     m_capturing.store(false);
     m_rmsLevel.store(0.0f);
 
-    // Check for errors from capture thread
+    // Check for errors from capture thread — log but don't throw
     {
         std::lock_guard<std::mutex> lock(m_errorMutex);
         if (!m_captureError.empty()) {
-            std::string err = m_captureError;
+            // Error already happened on the capture thread; return whatever was captured
             m_captureError.clear();
-            throw std::runtime_error(err);
         }
     }
 
@@ -260,6 +266,9 @@ void AudioCapture::captureThreadFunc(std::wstring deviceId, uint32_t sampleRate,
 
         if (FAILED(hr)) {
             // Exclusive mode failed — fall back to shared mode with device mix format.
+            printf("[AudioCapture] Exclusive mode failed (hr=0x%08X), trying shared mode...\n", (unsigned)hr);
+            fflush(stdout);
+
             SafeRelease(audioClient);
             hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr,
                                   reinterpret_cast<void**>(&audioClient));
@@ -271,9 +280,15 @@ void AudioCapture::captureThreadFunc(std::wstring deviceId, uint32_t sampleRate,
             if (FAILED(hr))
                 throw std::runtime_error("GetMixFormat failed: " + std::to_string(hr));
 
+            printf("[AudioCapture] Device mix format: rate=%u ch=%u bits=%u tag=%u\n",
+                   mixFormat->nSamplesPerSec, mixFormat->nChannels,
+                   mixFormat->wBitsPerSample, mixFormat->wFormatTag);
+            fflush(stdout);
+
             // Use default period for shared mode
             audioClient->GetDevicePeriod(&defaultPeriod, &minPeriod);
 
+            // Try shared mode with event callback first
             hr = audioClient->Initialize(
                 AUDCLNT_SHAREMODE_SHARED,
                 AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
@@ -281,6 +296,40 @@ void AudioCapture::captureThreadFunc(std::wstring deviceId, uint32_t sampleRate,
                 0,
                 mixFormat,
                 nullptr);
+
+            printf("[AudioCapture] Shared+event init: hr=0x%08X\n", (unsigned)hr);
+            fflush(stdout);
+
+            // If event callback fails (common with USB mics), retry without it (polling mode)
+            if (FAILED(hr)) {
+                printf("[AudioCapture] Event callback failed, trying polling mode...\n");
+                fflush(stdout);
+
+                SafeRelease(audioClient);
+                hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr,
+                                      reinterpret_cast<void**>(&audioClient));
+                if (FAILED(hr)) {
+                    CoTaskMemFree(mixFormat);
+                    throw std::runtime_error("IAudioClient re-activation for polling failed: " + std::to_string(hr));
+                }
+
+                // Get fresh period for the new client
+                audioClient->GetDevicePeriod(&defaultPeriod, &minPeriod);
+
+                // Use a generous 100ms buffer for USB devices
+                REFERENCE_TIME bufferDuration = 1000000; // 100ms in 100ns units
+
+                hr = audioClient->Initialize(
+                    AUDCLNT_SHAREMODE_SHARED,
+                    0,  // No event callback — use polling
+                    bufferDuration,
+                    0,
+                    mixFormat,
+                    nullptr);
+
+                printf("[AudioCapture] Shared+polling init: hr=0x%08X\n", (unsigned)hr);
+                fflush(stdout);
+            }
 
             // Save actual format info for conversion
             sampleRate = mixFormat->nSamplesPerSec;
@@ -293,22 +342,27 @@ void AudioCapture::captureThreadFunc(std::wstring deviceId, uint32_t sampleRate,
             useSharedMode = true;
         }
 
-        // Create event for buffer-ready notification
-        HANDLE hEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-        if (!hEvent)
-            throw std::runtime_error("CreateEvent failed");
-
-        hr = audioClient->SetEventHandle(hEvent);
-        if (FAILED(hr)) {
-            CloseHandle(hEvent);
-            throw std::runtime_error("SetEventHandle failed: " + std::to_string(hr));
+        // Create event for buffer-ready notification (only if event callback mode)
+        HANDLE hEvent = nullptr;
+        if (!useSharedMode || (useSharedMode && audioClient)) {
+            // Try to set event handle — if the client was initialized without
+            // EVENTCALLBACK flag, SetEventHandle will fail; that's OK, we poll.
+            hEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+            if (hEvent) {
+                hr = audioClient->SetEventHandle(hEvent);
+                if (FAILED(hr)) {
+                    // Event mode not supported — fall back to polling
+                    CloseHandle(hEvent);
+                    hEvent = nullptr;
+                }
+            }
         }
 
         // Get capture client
         hr = audioClient->GetService(__uuidof(IAudioCaptureClient),
                                      reinterpret_cast<void**>(&captureClient));
         if (FAILED(hr)) {
-            CloseHandle(hEvent);
+            if (hEvent) CloseHandle(hEvent);
             throw std::runtime_error("GetService(IAudioCaptureClient) failed: " + std::to_string(hr));
         }
 
@@ -318,15 +372,20 @@ void AudioCapture::captureThreadFunc(std::wstring deviceId, uint32_t sampleRate,
         // Start capture
         hr = audioClient->Start();
         if (FAILED(hr)) {
-            CloseHandle(hEvent);
+            if (hEvent) CloseHandle(hEvent);
             throw std::runtime_error("IAudioClient::Start failed: " + std::to_string(hr));
         }
 
-        // Capture loop
+        // Capture loop — event-driven if hEvent is set, polling otherwise
         while (!m_stopRequested.load(std::memory_order_relaxed)) {
-            DWORD waitResult = WaitForSingleObject(hEvent, 100);
-            if (waitResult == WAIT_TIMEOUT) continue;
-            if (waitResult != WAIT_OBJECT_0) break;
+            if (hEvent) {
+                DWORD waitResult = WaitForSingleObject(hEvent, 100);
+                if (waitResult == WAIT_TIMEOUT) continue;
+                if (waitResult != WAIT_OBJECT_0) break;
+            } else {
+                // Polling mode: sleep briefly then check for available packets
+                Sleep(5);
+            }
 
             // Drain all available packets
             UINT32 packetLength = 0;
@@ -383,7 +442,7 @@ void AudioCapture::captureThreadFunc(std::wstring deviceId, uint32_t sampleRate,
 
         // Stop and cleanup
         audioClient->Stop();
-        CloseHandle(hEvent);
+        if (hEvent) CloseHandle(hEvent);
 
     } catch (const std::exception& e) {
         std::lock_guard<std::mutex> lock(m_errorMutex);

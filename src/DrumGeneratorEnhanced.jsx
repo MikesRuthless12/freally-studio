@@ -12,7 +12,15 @@ import { useTranslation } from './i18n/I18nContext.jsx';
 import EuclideanPanel, { EuclideanMiniButton } from './euclidean/EuclideanPanel';
 import { euclidean } from './PatternEngine';
 
-const DrumGeneratorEnhanced = React.forwardRef(({ 
+// WinForms-style hover: brightens on enter, restores on leave
+const hoverProps = {
+    onMouseEnter: (e) => { e.currentTarget.style.filter = 'brightness(1.6)'; e.currentTarget.style.outline = '2px solid rgba(255,255,255,0.4)'; e.currentTarget.style.outlineOffset = '-1px'; },
+    onMouseLeave: (e) => { e.currentTarget.style.filter = ''; e.currentTarget.style.outline = ''; e.currentTarget.style.outlineOffset = ''; },
+    onMouseDown: (e) => { e.currentTarget.style.filter = 'brightness(0.7)'; },
+    onMouseUp: (e) => { e.currentTarget.style.filter = 'brightness(1.6)'; },
+};
+
+const DrumGeneratorEnhanced = React.forwardRef(({
     selectedFolder,
     globalSelectedSample,
     sampler,
@@ -1702,9 +1710,9 @@ const DrumGeneratorEnhanced = React.forwardRef(({
             <div style={{ padding: '20px 25px', borderBottom: `1px solid ${isDark ? '#1a1a1f' : '#e0e0e0'}`, background: isDark ? '#0c0c0f' : '#f9f9f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <div>
                     <h3 style={{ margin: '0 0 5px 0', fontSize: '18px' }}>
-                        🥁 {t('drums.title')}
+                        {t('drums.title')}
                         {isGenerated && <span style={{ color: ac, fontSize: '14px', marginLeft: '8px' }} title={t('drums.patternGenerated')}>✅</span>}
-                        {hasAnySample && <span style={{ color: '#4facfe', fontSize: '14px', marginLeft: '8px' }} title={t('drums.samplesLoaded')}>🔉</span>}
+                        {hasAnySample && <span style={{ color: ac, fontSize: '14px', marginLeft: '8px' }} title={t('drums.samplesLoaded')}>🔉</span>}
                     </h3>
                     <p style={{ margin: 0, fontSize: '11px', color: isDark ? '#888' : '#666' }}>{t('drums.subtitle')}</p>
                     {editingDrumClipId && (
@@ -1723,28 +1731,32 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button
+                        {...hoverProps}
                         onClick={onNewProject}
-                        style={{ background: isDark ? 'rgba(255, 77, 77, 0.1)' : '#fff', border: `1.5px solid ${isDark ? 'rgba(255, 77, 77, 0.3)' : '#eee'}`, borderRadius: '6px', color: '#ff4d4d', fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                         title={t('common.startNewProject')}
                     >
-                        📄 {t('drums.newProject')}
+                        {t('drums.newProject')}
                     </button>
                     <button
+                        {...hoverProps}
                         onClick={onLoadClick}
-                        style={{ background: isDark ? 'rgba(79, 172, 254, 0.1)' : '#fff', border: `1.5px solid ${isDark ? 'rgba(79, 172, 254, 0.3)' : '#eee'}`, borderRadius: '6px', color: '#4facfe', fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                         title={t('drums.loadProject')}
                     >
-                        📂 {t('drums.loadProject')}
+                        {t('drums.loadProject')}
                     </button>
                     <button
+                        {...hoverProps}
                         data-tour-id="tour-export"
                         onClick={onExportClick}
                         style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                         title={t('drums.export')}
                     >
-                        💾 {t('drums.export')}
+                        {t('drums.export')}
                     </button>
                     <button
+                        {...hoverProps}
                         onClick={() => {
                             const hasContent = Object.values(drumStates).some(drum =>
                                 Object.values(drum.lanes).some(lane => lane.pattern.some(Boolean))
@@ -1754,7 +1766,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                             setDrumStates(createInitialDrumStates(totalSteps));
                             if (setIsGenerated) setIsGenerated(false);
                         }}
-                        style={{ background: isDark ? 'rgba(255, 77, 77, 0.1)' : '#fff', border: `1.5px solid ${isDark ? '#ff4d4d22' : '#eee'}`, borderRadius: '6px', color: '#ff4d4d', fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer' }}
+                        style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.22) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '8px 15px', cursor: 'pointer' }}
                         title={t('drums.clearPattern')}
                     >
                         {t('drums.clearPattern')}
@@ -1802,10 +1814,10 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                     </div>
                 )}
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                    <button onClick={() => setShowEuclidean(true)} title="Euclidean Rhythm Generator" style={{ padding: '10px 24px', background: isDark ? hexToRgba(acSec, 0.05) : '#f0f0f0', border: `1px solid ${acSec}`, borderRadius: '6px', color: acSec, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>EUCLID</button>
-                    <button data-tour-id="tour-groove-gen" onClick={generateAllPatterns} title={t('drums.generateGroove')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.05) : '#f0f0f0', border: `1px solid ${ac}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>✦ {t('drums.generateGroove')}</button>
-                    {onSuggest && <button onClick={onSuggest} title={t('drums.suggest')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(acSec, 0.05) : '#f0f0f0', border: `1px solid ${acSec}`, borderRadius: '6px', color: acSec, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>💡 {t('drums.suggest')}</button>}
-                    <button data-tour-id="tour-global-gen" onClick={onGlobalGenerate} title={t('drums.globalGen')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.15) : ac, border: `1px solid ${ac}`, borderRadius: '6px', color: isDark ? ac : '#fff', fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>✨ {t('drums.globalGen')}</button>
+                    <button {...hoverProps} onClick={() => setShowEuclidean(true)} title="Euclidean Rhythm Generator" style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.05) : '#f0f0f0', border: `1px solid ${ac}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>EUCLID</button>
+                    <button {...hoverProps} data-tour-id="tour-groove-gen" onClick={generateAllPatterns} title={t('drums.generateGroove')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.05) : '#f0f0f0', border: `1px solid ${ac}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>{t('drums.generateGroove')}</button>
+                    {onSuggest && <button {...hoverProps} onClick={onSuggest} title={t('drums.suggest')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.05) : '#f0f0f0', border: `1px solid ${ac}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>{t('drums.suggest')}</button>}
+                    <button {...hoverProps} data-tour-id="tour-global-gen" onClick={onGlobalGenerate} title={t('drums.globalGen')} style={{ padding: '10px 24px', background: isDark ? hexToRgba(ac, 0.15) : ac, border: `1px solid ${ac}`, borderRadius: '6px', color: isDark ? ac : '#fff', fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>{t('drums.globalGen')}</button>
                 </div>
             </div>
 
@@ -1863,7 +1875,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                     title={t('drums.randomizeSample')}
                                     style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '2px', opacity: 0.7 }}
                                 >
-                                    🎲
+                                    STX
                                 </button>
                                 <button
                                     onClick={(e) => {
@@ -1966,7 +1978,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                             }}
                                             title={t('drums.drumSettings')}
                                         >
-                                            🔧
+                                            CFG
                                         </button>
                                         <button
                                             onClick={(e) => toggleSolo(drum.id, e)}
@@ -2032,10 +2044,10 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                         >🔒</button>
                                         <button
                                             onClick={() => randomizeSound(drum.id)}
-                                            style={{ background: isDark ? '#1a1a1f' : '#eee', border: 'none', borderRadius: '4px', color: '#4facfe', fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: '0 6px' }}
+                                            style={{ background: isDark ? '#1a1a1f' : '#eee', border: 'none', borderRadius: '4px', color: ac, fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: '0 6px' }}
                                             title={t('drums.randomizeSample')}
                                         >
-                                            🎲 {t('drums.stx')}
+                                            {t('drums.stx')}
                                         </button>
                                         {drum.id !== 'kick' && (
                                             <button
@@ -2043,7 +2055,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                                 title={t('drums.randomizeVelocities')}
                                                 style={{ background: isDark ? '#1a1a1f' : '#eee', border: 'none', borderRadius: '4px', color: ac, fontSize: '9px', fontWeight: '900', cursor: 'pointer', padding: '0 6px' }}
                                             >
-                                                🎲 {t('drums.vel')}
+                                                {t('drums.vel')}
                                             </button>
                                         )}
                                     </div>

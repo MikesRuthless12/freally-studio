@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { hoverProps } from './buttonHover';
 import { SamplerEngine } from './SamplerEngine';
 import { AudioExporterEnhanced } from './AudioExporterEnhanced';
 import Browser from './Browser';
@@ -1713,7 +1714,7 @@ const WavLoomAppComplete = () => {
                 onProgress: ({ elapsed }) => { recordingElapsedRef.current = elapsed; }
             });
         } catch (err) {
-            console.error('Recording failed:', err);
+            console.error('[Recording] START failed:', err, err?.stack);
             setIsCountingIn(false);
             setIsRecording(false);
             alert(t('app.microphoneError', { error: err.message }));
@@ -1722,6 +1723,7 @@ const WavLoomAppComplete = () => {
 
     const handleStopRecording = useCallback(async () => {
         if (!recorderRef.current) return;
+        console.log('[Recording] handleStopRecording called');
         // Clean up loop recording timer
         if (loopRecordingRef.current?.timerId) {
             clearTimeout(loopRecordingRef.current.timerId);
@@ -1736,7 +1738,15 @@ const WavLoomAppComplete = () => {
         setCountInBeat(null);
 
         // Await buffer drain — ensures all pending worklet messages are captured
-        const result = await recorderRef.current.stopRecording();
+        let result;
+        try {
+            result = await recorderRef.current.stopRecording();
+            console.log('[Recording] stopRecording returned:', result ? `buffer=${result.audioBuffer?.duration?.toFixed(2)}s` : 'null');
+        } catch (err) {
+            console.error('[Recording] stopRecording crashed:', err);
+            setRecordingTrackId(null);
+            return;
+        }
 
         if (!result || !result.audioBuffer) return;
 
@@ -7270,11 +7280,12 @@ const WavLoomAppComplete = () => {
                                         background: isDark ? 'rgba(255,255,255,0.05)' : '#eee',
                                         border: 'none',
                                         borderRadius: '6px',
-                                        width: '32px',
-                                        height: '32px',
+                                        width: '36px',
+                                        height: '36px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
+                                        fontSize: '16px',
                                         color: canUndo ? ac : (isDark ? '#444' : '#ccc'),
                                         cursor: canUndo ? 'pointer' : 'not-allowed',
                                         transition: 'all 0.2s'
@@ -7292,11 +7303,12 @@ const WavLoomAppComplete = () => {
                                         background: isDark ? 'rgba(255,255,255,0.05)' : '#eee',
                                         border: 'none',
                                         borderRadius: '6px',
-                                        width: '32px',
-                                        height: '32px',
+                                        width: '36px',
+                                        height: '36px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
+                                        fontSize: '16px',
                                         color: canRedo ? ac : (isDark ? '#444' : '#ccc'),
                                         cursor: canRedo ? 'pointer' : 'not-allowed',
                                         transition: 'all 0.2s'
@@ -7332,22 +7344,25 @@ const WavLoomAppComplete = () => {
                                 }}
                                 title={globalIsPlaying ? t('ui.stopPlayback') : t('ui.startPlayback')}
                                 style={{
-                                    width: '44px',
-                                    height: '44px',
-                                    borderRadius: '50%',
-                                    background: globalIsPlaying ? 'rgba(255, 57, 57, 0.2)' : 'rgba(57, 255, 20, 0.2)',
-                                    border: `2px solid ${globalIsPlaying ? '#ff3939' : acSec}`,
-                                    color: globalIsPlaying ? '#ff3939' : acSec,
-                                    fontSize: '18px',
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '8px',
+                                    background: globalIsPlaying ? hexToRgba(ac, 0.15) : hexToRgba(ac, 0.15),
+                                    border: 'none',
+                                    color: ac,
+                                    fontSize: '16px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
-                                    boxShadow: `0 0 20px ${globalIsPlaying ? 'rgba(255, 57, 57, 0.2)' : 'rgba(57, 255, 20, 0.2)'}`,
+                                    boxShadow: globalIsPlaying ? `0 0 15px ${hexToRgba(ac, 0.3)}` : 'none',
                                 }}
                             >
-                                {globalIsPlaying ? '⏹' : '▶'}
+                                {globalIsPlaying
+                                    ? <div style={{ width: '12px', height: '12px', borderRadius: '2px', background: ac }} />
+                                    : <div style={{ width: 0, height: 0, borderLeft: '12px solid ' + ac, borderTop: '7px solid transparent', borderBottom: '7px solid transparent', marginLeft: '2px' }} />
+                                }
                             </button>
 
                             {/* Record Button — visible on vocal/arrange tabs when arrangement is enabled */}
@@ -7365,23 +7380,28 @@ const WavLoomAppComplete = () => {
                                     }}
                                     title={isRecording ? t('ui.stopRecording') : isCountingIn ? t('ui.countingIn') : t('ui.startRecording')}
                                     style={{
-                                        width: '44px',
-                                        height: '44px',
-                                        borderRadius: '50%',
-                                        background: (isRecording || isCountingIn) ? 'rgba(255, 57, 57, 0.2)' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
-                                        border: `2px solid ${(isRecording || isCountingIn) ? '#ff3939' : (isDark ? '#444' : '#bbb')}`,
-                                        color: (isRecording || isCountingIn) ? '#ff3939' : (isDark ? '#888' : '#666'),
-                                        fontSize: '18px',
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '8px',
+                                        background: (isRecording || isCountingIn) ? hexToRgba(ac, 0.25) : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
+                                        border: 'none',
+                                        color: (isRecording || isCountingIn) ? ac : (isDark ? '#888' : '#666'),
+                                        fontSize: '14px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
-                                        boxShadow: (isRecording || isCountingIn) ? '0 0 20px rgba(255, 57, 57, 0.3)' : 'none',
+                                        boxShadow: (isRecording || isCountingIn) ? `0 0 15px ${hexToRgba(ac, 0.3)}` : 'none',
                                         animation: isRecording ? 'pulse 1.5s infinite' : 'none',
                                     }}
                                 >
-                                    {isCountingIn ? '…' : '⏺'}
+                                    {isCountingIn
+                                        ? '…'
+                                        : isRecording
+                                            ? <div style={{ width: '12px', height: '12px', borderRadius: '2px', background: ac }} />
+                                            : <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: ac }} />
+                                    }
                                 </button>
                             )}
 
@@ -7424,36 +7444,52 @@ const WavLoomAppComplete = () => {
 
                     {/* Right side controls */}
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexShrink: 0, WebkitAppRegion: 'no-drag' }}>
-                        {/* Theme Toggle Button */}
-                        <button
-                            data-tour-id="tour-theme"
-                            onClick={toggleTheme}
-                            title={`${t('settings.theme')}: ${isDark ? t('settings.light') : t('settings.dark')}`}
-                            style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '50%',
-                                background: isDark ? '#2a2a3e' : '#fff',
-                                border: `1px solid ${isDark ? '#444' : '#ccc'}`,
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            {isDark ? '☀️' : '🌙'}
-                        </button>
+                        {/* Dark/Light Toggle with label */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: isDark ? '#666' : '#999', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+                                {isDark ? t('settings.dark') : t('settings.light')}:
+                            </span>
+                            <div
+                                data-tour-id="tour-theme"
+                                onClick={toggleTheme}
+                                title={`${t('settings.theme')}: ${isDark ? t('settings.light') : t('settings.dark')}`}
+                                style={{
+                                    width: '36px',
+                                    height: '18px',
+                                    borderRadius: '9px',
+                                    background: isDark ? '#2a2a3e' : '#ccc',
+                                    border: `1px solid ${isDark ? '#444' : '#bbb'}`,
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    transition: 'background 0.2s ease',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <div style={{
+                                    width: '14px',
+                                    height: '14px',
+                                    borderRadius: '50%',
+                                    background: isDark ? ac : '#fff',
+                                    position: 'absolute',
+                                    top: '1px',
+                                    left: isDark ? '19px' : '1px',
+                                    transition: 'left 0.2s ease, background 0.2s ease',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                                }} />
+                            </div>
+                        </div>
 
-                        {/* Accent Color Picker Dropdown */}
-                        <div ref={accentPickerRef} style={{ position: 'relative' }}>
+                        {/* Theme (Accent Color Picker) with label */}
+                        <div ref={accentPickerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: isDark ? '#666' : '#999', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+                                {t('settings.theme')}:
+                            </span>
                             <button
                                 onClick={() => setShowAccentPicker(prev => !prev)}
                                 title={t('settings.accentColor')}
                                 style={{
-                                    width: '36px',
-                                    height: '36px',
+                                    width: '24px',
+                                    height: '24px',
                                     borderRadius: '50%',
                                     background: acGrad,
                                     border: `2px solid ${isDark ? '#444' : '#ccc'}`,
@@ -7462,7 +7498,8 @@ const WavLoomAppComplete = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     transition: 'all 0.2s',
-                                    boxShadow: showAccentPicker ? `0 0 12px ${hexToRgba(ac, 0.5)}` : 'none'
+                                    boxShadow: showAccentPicker ? `0 0 12px ${hexToRgba(ac, 0.5)}` : 'none',
+                                    flexShrink: 0
                                 }}
                             />
                             {showAccentPicker && (
@@ -7603,31 +7640,32 @@ const WavLoomAppComplete = () => {
                             title={t('app.hostControls')}
                             style={{
                                 position: 'relative',
-                                width: '42px',
-                                height: '42px',
-                                borderRadius: '12px',
-                                background: ac,
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: 'transparent',
                                 border: 'none',
-                                color: '#fff',
+                                color: isDark ? ac : '#333',
                                 cursor: 'pointer',
-                                fontSize: '20px',
+                                fontSize: '18px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                transition: 'all 0.2s',
-                                boxShadow: `0 4px 20px ${hexToRgba(ac, 0.4)}`,
-                                fontWeight: 'bold'
+                                transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.05)';
-                                e.currentTarget.style.boxShadow = `0 6px 25px ${hexToRgba(ac, 0.5)}`;
+                                e.currentTarget.style.background = isDark ? hexToRgba(ac, 0.1) : 'rgba(0,0,0,0.05)';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.boxShadow = `0 4px 20px ${hexToRgba(ac, 0.4)}`;
+                                e.currentTarget.style.background = 'transparent';
                             }}
                         >
-                            👥
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
                             {collab.unreadCount > 0 && (
                                 <span style={{
                                     position: 'absolute',
@@ -7878,6 +7916,7 @@ const WavLoomAppComplete = () => {
                         <div>
                             <label style={{ display: 'block', fontSize: '9px', color: '#888', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '3px' }}>AUTO-TUNE</label>
                             <button
+                                {...hoverProps}
                                 onClick={() => setAutoTuneSamples(prev => !prev)}
                                 title={autoTuneSamples ? 'Auto-tune ON: imported samples are pitch-matched to project key' : 'Auto-tune OFF: samples play at original pitch'}
                                 style={{
@@ -7915,14 +7954,14 @@ const WavLoomAppComplete = () => {
                                     title={t('app.dragBpm')}
                                 >{globalTempo}</div>
                             )}
-                            <button ref={tapBtnRef} onClick={handleTapTempo} style={{ padding: '5px 8px', background: 'transparent', border: `1px solid ${isDark ? '#2a2a3e' : '#ccc'}`, borderRadius: '12px', color: isDark ? '#888' : '#666', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.1s', lineHeight: 1, whiteSpace: 'nowrap' }} title={t('app.tapTempo')}>{t('app.tap')}</button>
-                            <button onClick={() => setMetronomeEnabled(prev => !prev)} style={{ padding: '5px 8px', background: metronomeEnabled ? (isDark ? hexToRgba(acSec, 0.25) : hexToRgba(acSec, 0.15)) : 'transparent', border: `1px solid ${metronomeEnabled ? acSec : (isDark ? '#2a2a3e' : '#ccc')}`, borderRadius: '12px', color: metronomeEnabled ? acSec : (isDark ? '#888' : '#666'), fontSize: '9px', fontWeight: '800', letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.15s', lineHeight: 1, whiteSpace: 'nowrap' }} title={t('app.toggleMetronome')}>{t('app.met')}</button>
+                            <button {...hoverProps} ref={tapBtnRef} onClick={handleTapTempo} style={{ padding: '5px 8px', background: 'transparent', border: `1px solid ${isDark ? '#2a2a3e' : '#ccc'}`, borderRadius: '12px', color: isDark ? '#888' : '#666', fontSize: '9px', fontWeight: '800', letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.1s', lineHeight: 1, whiteSpace: 'nowrap' }} title={t('app.tapTempo')}>{t('app.tap')}</button>
+                            <button {...hoverProps} onClick={() => setMetronomeEnabled(prev => !prev)} style={{ padding: '5px 8px', background: metronomeEnabled ? (isDark ? hexToRgba(acSec, 0.25) : hexToRgba(acSec, 0.15)) : 'transparent', border: `1px solid ${metronomeEnabled ? acSec : (isDark ? '#2a2a3e' : '#ccc')}`, borderRadius: '12px', color: metronomeEnabled ? acSec : (isDark ? '#888' : '#666'), fontSize: '9px', fontWeight: '800', letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.15s', lineHeight: 1, whiteSpace: 'nowrap' }} title={t('app.toggleMetronome')}>{t('app.met')}</button>
                             {metronomeEnabled && (
                                 <input type="range" min={0} max={1} step={0.05} value={metronomeVolume} onChange={(e) => setMetronomeVolume(parseFloat(e.target.value))} style={{ width: '50px', height: '3px', accentColor: acSec, cursor: 'pointer' }} title={t('app.metronomeVolume', { volume: Math.round(metronomeVolume * 100) })} />
                             )}
-                            <button onClick={() => setGlobalTimeStretch(prev => !prev)} style={{ padding: '4px 8px', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', background: globalTimeStretch ? (isDark ? 'rgba(0,210,210,0.12)' : 'rgba(0,180,180,0.15)') : (isDark ? 'rgba(255,255,255,0.04)' : '#eee'), border: `1px solid ${globalTimeStretch ? '#00d2d2' : (isDark ? 'rgba(255,255,255,0.08)' : '#ddd')}`, borderRadius: '4px', color: globalTimeStretch ? '#00d2d2' : (isDark ? '#666' : '#999'), cursor: 'pointer', whiteSpace: 'nowrap' }} title={t('app.toggleTimeStretch')}>{t('app.stretch')}</button>
+                            <button {...hoverProps} onClick={() => setGlobalTimeStretch(prev => !prev)} style={{ padding: '4px 8px', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', background: globalTimeStretch ? (isDark ? 'rgba(0,210,210,0.12)' : 'rgba(0,180,180,0.15)') : (isDark ? 'rgba(255,255,255,0.04)' : '#eee'), border: `1px solid ${globalTimeStretch ? '#00d2d2' : (isDark ? 'rgba(255,255,255,0.08)' : '#ddd')}`, borderRadius: '4px', color: globalTimeStretch ? '#00d2d2' : (isDark ? '#666' : '#999'), cursor: 'pointer', whiteSpace: 'nowrap' }} title={t('app.toggleTimeStretch')}>{t('app.stretch')}</button>
                             {globalTimeStretch && (
-                                <button onClick={() => setPreservePitch(prev => !prev)} style={{ padding: '4px 8px', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', background: preservePitch ? (isDark ? 'rgba(190,100,230,0.12)' : 'rgba(170,80,210,0.15)') : (isDark ? 'rgba(255,255,255,0.04)' : '#eee'), border: `1px solid ${preservePitch ? '#be64e6' : (isDark ? 'rgba(255,255,255,0.08)' : '#ddd')}`, borderRadius: '4px', color: preservePitch ? '#be64e6' : (isDark ? '#666' : '#999'), cursor: 'pointer', whiteSpace: 'nowrap' }} title={t('app.preservePitch')}>{t('app.pitch')}</button>
+                                <button {...hoverProps} onClick={() => setPreservePitch(prev => !prev)} style={{ padding: '4px 8px', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', background: preservePitch ? (isDark ? 'rgba(190,100,230,0.12)' : 'rgba(170,80,210,0.15)') : (isDark ? 'rgba(255,255,255,0.04)' : '#eee'), border: `1px solid ${preservePitch ? '#be64e6' : (isDark ? 'rgba(255,255,255,0.08)' : '#ddd')}`, borderRadius: '4px', color: preservePitch ? '#be64e6' : (isDark ? '#666' : '#999'), cursor: 'pointer', whiteSpace: 'nowrap' }} title={t('app.preservePitch')}>{t('app.pitch')}</button>
                             )}
                         </div>
                     </div>
@@ -7953,6 +7992,7 @@ const WavLoomAppComplete = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {[4, 8, 16, 32, 64].map(bars => (
                             <button
+                                {...hoverProps}
                                 key={bars}
                                 onClick={() => setGlobalBars(bars)}
                                 title={t('app.setPatternBars', { bars })}
@@ -7984,6 +8024,7 @@ const WavLoomAppComplete = () => {
 
                     {/* REPEAT Toggle */}
                     <button
+                        {...hoverProps}
                         onClick={() => setGlobalRepeat(prev => !prev)}
                         title={globalRepeat ? t('app.repeatOnDesc') : t('app.repeatOffDesc')}
                         style={{
@@ -8017,6 +8058,7 @@ const WavLoomAppComplete = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {[4, 8, 16, 32].map(res => (
                             <button
+                                {...hoverProps}
                                 key={res}
                                 onClick={() => setGlobalResolution(res)}
                                 title={t('app.setGridRes', { res })}
@@ -8052,6 +8094,7 @@ const WavLoomAppComplete = () => {
                             { label: 'ST', sign: '-', val: -1 }
                         ].map(btn => (
                             <button
+                                {...hoverProps}
                                 key={btn.label + btn.sign}
                                 onClick={() => handleGlobalTranspose(btn.val)}
                                 style={{
@@ -8107,6 +8150,7 @@ const WavLoomAppComplete = () => {
                             const tabAccentGlowLight = hexToRgba(tabAccent, 0.1);
                             return (
                                 <button
+                                    {...hoverProps}
                                     key={tab.id}
                                     onClick={() => !isLocked && setActiveTab(tab.id)}
                                     disabled={isLocked}

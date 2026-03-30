@@ -93,26 +93,35 @@
 .button-group button {
     flex: 1;
     padding: 10px 16px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
+    background: var(--btn-face, var(--bg-secondary));
+    border: 1px solid var(--btn-border, var(--border-color));
+    border-radius: 5px;
+    color: var(--btn-text, var(--text-secondary));
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .button-group button:hover {
-    background: var(--bg-hover);
+    background: var(--btn-face-hover, var(--bg-hover));
     border-color: var(--accent-color);
     color: var(--text-primary);
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.button-group button:active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 .button-group button.active {
     background: var(--accent-color);
     border-color: var(--accent-color);
     color: white;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .stem-checkboxes {
@@ -155,25 +164,26 @@
 .export-input {
     width: 100%;
     padding: 10px 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 14px;
-    font-family: inherit;
-    transition: all 0.2s;
+    background: var(--input-face, var(--bg-secondary));
+    border: 1px solid var(--input-border, var(--border-color));
+    border-radius: 4px;
+    color: var(--input-text, var(--text-primary));
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-inset, inset 0 1px 3px rgba(0,0,0,0.1));
 }
 
 .export-select:hover,
 .export-input:hover {
-    border-color: var(--accent-color);
+    border-color: var(--text-tertiary, var(--accent-color));
 }
 
 .export-select:focus,
 .export-input:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: var(--shadow-inset, inset 0 1px 3px rgba(0,0,0,0.1)), 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .export-dialog-footer {
@@ -189,36 +199,48 @@
     flex: 1;
     padding: 12px 24px;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .cancel-btn {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
+    background: var(--btn-face, var(--bg-primary));
+    border: 1px solid var(--btn-border, var(--border-color));
+    color: var(--btn-text, var(--text-primary));
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .cancel-btn:hover {
-    background: var(--bg-hover);
+    background: var(--btn-face-hover, var(--bg-hover));
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.cancel-btn:active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 .export-btn {
     background: var(--accent-color);
     color: white;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .export-btn:hover {
     background: var(--accent-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    transform: translateY(-0.5px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.35);
 }
 
 .export-btn:active {
-    transform: translateY(0);
+    transform: translateY(0.5px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
 /* Dark theme adjustments */

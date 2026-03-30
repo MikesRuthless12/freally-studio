@@ -1,6 +1,6 @@
 # LATIN Lyrics Generation Audit Report
 
-Generated: 2026-03-29T06:20:44.057Z
+Generated: 2026-03-29T06:24:50.873Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -48,140 +48,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the bongos pattering - like tropical rain [rain]
-  2. the fire inside - that I cannot contain [contain]
-  3. the bongo rhythm makes - the people sway [sway]
-  4. the steel pan ringing - clear across the bay [bay]
+  1. we move our hips together - found in Caribbean time [time]
+  2. the trombone slides a melody that tastes - like honey and lime [lime]
+  3. the piano montuno cycling round - and round [round]
+  4. the most intoxicating - kind of sound [sound]
 
 **[Chorus]** (pattern: AABB)
-  1. the conga drums are - calling out my name [name]
-  2. the candles flicker - with a burning flame [flame]
-  3. the ancestors are - making us feel whole [whole]
-  4. the salsa the cumbia the merengue the sound of our - collective soul [soul]
+  1. passion in every - raw sensation [sensation]
+  2. the trombone glissando slid between the sadness - and the celebration [celebration]
+  3. Shakira's hips translated - every language known [known]
+  4. the bongos keep the heartbeat - underneath the starlit dome [dome]
 
 **[Verse 2]** (pattern: AABB)
-  1. you sing - in the moonlight [moonlight]
-  2. the flute solo rises above the percussion - like a bird in flight [flight]
-  3. I feel the fire - in my soul [soul]
-  4. the ancestors are making us - feel whole [whole]
+  1. we fly along - the shore [shore]
+  2. i never felt - this kind of love before [before]
+  3. a merengue tempo - racing through the night [night]
+  4. fuego in my veins - and rhythm in my hips tonight [tonight]
 
 **[Chorus]** (pattern: AABB)
-  1. the conga drums are - calling out my name [name]
-  2. the candles flicker - with a burning flame [flame]
-  3. the ancestors are - making us feel whole [whole]
-  4. the salsa the cumbia the merengue the sound of our - collective soul [soul]
+  1. passion in every - raw sensation [sensation]
+  2. the trombone glissando slid between the sadness - and the celebration [celebration]
+  3. Shakira's hips translated - every language known [known]
+  4. the bongos keep the heartbeat - underneath the starlit dome [dome]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. the colours of the music - on display [display]
-  2. the sunset painted the ocean the color of passion - and desire [desire]
-  3. the spanish guitar - has so much to say [say]
-  4. the passion falling higher - and higher [higher]
+  1. the trumpet calls out baby - let me know [know]
+  2. you fall - through the rain [rain]
+  3. the trombone player wipes his brow - and launches into the next solo [solo]
+  4. the fire inside - that I cannot contain [contain]
 
 **[Chorus]** (pattern: ABAB)
-  1. sabor and - gold street [street]
-  2. our shadows - merge into the night [night]
-  3. sabor in every step - and every beat [beat]
-  4. the bomba circle gathers - close and tight [tight]
+  1. electrifying carnival - of love [love]
+  2. we fade - through the night [night]
+  3. a reggaeton beat - making bodies move [move]
+  4. we dance - until the morning light [light]
 
 **[Verse 2]** (pattern: ABAB)
-  1. the horns blare - like a declaration of Saturday night [night]
-  2. you sing - in the spotlight [spotlight]
-  3. fuego in my veins - and rhythm in my hips tonight [tonight]
-  4. your eyes are sparkling - and it feels so right [right]
+  1. the descarga jam session starts - and nobody plans to stop soon [soon]
+  2. the dancers spin like hurricanes - without a single care [care]
+  3. the guitar strums - a lovers tune [tune]
+  4. the guiro scrapes - the beat into the hot night air [air]
 
 **[Chorus]** (pattern: ABAB)
-  1. sabor and - gold street [street]
-  2. our shadows - merge into the night [night]
-  3. sabor in every step - and every beat [beat]
-  4. the bomba circle gathers - close and tight [tight]
+  1. electrifying carnival - of love [love]
+  2. we fade - through the night [night]
+  3. a reggaeton beat - making bodies move [move]
+  4. we dance - until the morning light [light]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. you sing - in the spotlight [spotlight]
-  2. we drift - through the night [night]
-  3. we spin together - underneath the candlelight [candlelight]
-  4. you shine - in the moonlight [moonlight]
+  1. we fall - through the rain [rain]
+  2. the fire inside - that I cannot contain [contain]
+  3. this flame will never - be the same again [again]
+  4. the guiro scrapes a rhythm - on the grain [grain]
 
 **[Chorus]** (pattern: AAAA)
-  1. reggaeton pulse - of right beat [beat]
-  2. the conga rhythm echoes - down the street [street]
-  3. our pulses - racing to the latin heartbeat [heartbeat]
-  4. the flamenco fire - underneath the feet [feet]
+  1. the dembow - rides the sensation [sensation]
+  2. the transition from son to mambo - is the sound of liberation [liberation]
+  3. the quiet before the brass hits is the inhale - before the celebration [celebration]
+  4. the rhythm never dies it - just transforms into the next generation [generation]
 
 **[Verse 2]** (pattern: AAAA)
-  1. we own the dance floor spinning - without a care [care]
-  2. the moonlight falling - softly on your hair [hair]
-  3. a cumbia accordion - pumping through the air [air]
-  4. the rose between your lips - beyond compare [compare]
+  1. the spanish guitar - has so much to say [say]
+  2. the carnival will never - fade away [away]
+  3. the fiesta starts - at the break of day [day]
+  4. the bongo rhythm makes - the people sway [sway]
 
 **[Chorus]** (pattern: AAAA)
-  1. reggaeton pulse - of right beat [beat]
-  2. the conga rhythm echoes - down the street [street]
-  3. our pulses - racing to the latin heartbeat [heartbeat]
-  4. the flamenco fire - underneath the feet [feet]
+  1. the dembow - rides the sensation [sensation]
+  2. the transition from son to mambo - is the sound of liberation [liberation]
+  3. the quiet before the brass hits is the inhale - before the celebration [celebration]
+  4. the rhythm never dies it - just transforms into the next generation [generation]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. we crossed the bridge between strangers - through a single dance [dance]
-  2. we crash - across the sky [sky]
-  3. the steel pan ringing - clear across the bay [bay]
-  4. the revolution of the rhythm - has begun [begun]
+  1. we break - across the room [room]
+  2. the mojito sweats in my hand - like the walls of this club [club]
+  3. you dance - under the stars [stars]
+  4. we rise along - the shore [shore]
 
 **[Chorus]** (pattern: XXXX)
-  1. cumbia the old delight [delight]
-  2. we spark - in the spotlight [spotlight]
-  3. mesmerizing passion - sets our souls alight [alight]
-  4. the celebration - fills the atmosphere tonight [tonight]
+  1. we dance - until the morning light [light]
+  2. the music and the embers - burning bright [bright]
+  3. you fly - through the night [night]
+  4. you fly - in the spotlight [spotlight]
 
 **[Verse 2]** (pattern: XXXX)
-  1. we burn - across the room [room]
-  2. the trumpet blares - the rhythm flows [flows]
-  3. Encanto we don't talk about Bruno - but we dance [dance]
-  4. you fly in the moonlight [moonlight]
+  1. The salsa beats - ignite the floor [floor]
+  2. you fall - across the sky [sky]
+  3. we melt into your arms [arms]
+  4. the colors swirl - beneath the lights [lights]
 
 **[Chorus]** (pattern: XXXX)
-  1. cumbia the old delight [delight]
-  2. we spark - in the spotlight [spotlight]
-  3. mesmerizing passion - sets our souls alight [alight]
-  4. the celebration - fills the atmosphere tonight [tonight]
+  1. we dance - until the morning light [light]
+  2. the music and the embers - burning bright [bright]
+  3. you fly - through the night [night]
+  4. you fly - in the spotlight [spotlight]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. we sing through the rain [rain]
-  2. the fire inside - that I cannot contain [contain]
-  3. the rhythm calls - us to the open floor [floor]
-  4. i never felt - this kind of love before [before]
+  1. i never felt - this kind of love before [before]
+  2. we bloom along - the shore [shore]
+  3. we burn - through the rain [rain]
+  4. the fire inside - that I cannot contain [contain]
 
 **[Chorus]** (pattern: AABB)
-  1. feel the fire - feel the beat tonight [tonight]
-  2. we spin together - underneath the candlelight [candlelight]
-  3. we bloom - in the moonlight [moonlight]
-  4. the rhythm section - playing it just right [right]
+  1. the cumbia - plays the maestro [maestro]
+  2. the fire - burning down below [below]
+  3. you shine - in the moonlight [moonlight]
+  4. we are the rhythm nation - dancing under tropical stars tonight [tonight]
 
 **[Verse 2]** (pattern: AABB)
-  1. the guitar echoes through the dance - the night [night]
-  2. we bloom - in the spotlight [spotlight]
-  3. the conga drums - set hearts ablaze [ablaze]
-  4. we trade dance partners - but the rhythm stays constant always [always]
+  1. Shakira's hips translated - every language known [known]
+  2. the night belongs - to us alone [alone]
+  3. you fly in the moonlight [moonlight]
+  4. the cuatro strings - are ringing through the night [night]
 
 **[Chorus]** (pattern: AABB)
-  1. feel the fire - feel the beat tonight [tonight]
-  2. we spin together - underneath the candlelight [candlelight]
-  3. we bloom - in the moonlight [moonlight]
-  4. the rhythm section - playing it just right [right]
+  1. the cumbia - plays the maestro [maestro]
+  2. the fire - burning down below [below]
+  3. you shine - in the moonlight [moonlight]
+  4. we are the rhythm nation - dancing under tropical stars tonight [tonight]
 
 ---
 

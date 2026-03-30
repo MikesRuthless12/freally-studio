@@ -5,6 +5,7 @@ import SplashScreen from './SplashScreen.jsx'
 import { loadSettings } from './SettingsModal.jsx'
 import { I18nProvider } from './i18n/I18nContext.jsx'
 import './index.css'
+import './wavloom-daw-theme.css'
 import { installElectronFsPolyfill } from './electronFsPolyfill.js'
 
 // Patch File System Access API with Electron native dialogs (no-op in browser)

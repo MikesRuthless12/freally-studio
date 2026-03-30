@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { hoverProps } from './buttonHover';
 import PianoRollEditor from './PianoRollEditor';
 import { MOOD_MODIFIERS } from './GenreLibraryWithSubGenres';
 import { SCALES } from './MusicTheory';
@@ -612,7 +613,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
             <div style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: `1px solid ${isDark ? '#2a2a3e' : '#e0e0e0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h3 style={{ margin: '0 0 5px 0', fontSize: '18px', textTransform: 'capitalize' }}>
-                        ✨ {t(isMelody ? 'melodyBass.melodyTitle' : 'melodyBass.bassTitle')}
+                        {t(isMelody ? 'melodyBass.melodyTitle' : 'melodyBass.bassTitle')}
                         {isGenerated && <span style={{ color: ac, fontSize: '14px', marginLeft: '8px' }} title={t('common.patternGenerated')}>✅</span>}
                         {loadedInstrument && <span style={{ color: acSec, fontSize: '14px', marginLeft: '8px' }} title={t('common.instrumentLoaded')}>🔉</span>}
                     </h3>
@@ -641,32 +642,35 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                         boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                     }}
                 >
-                    <div style={{ width: '40px', height: '40px', background: isDark ? '#0f0f1a' : '#fff', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>{type === 'melody' ? '🎹' : '🎸'}</div>
+                    <div style={{ width: '40px', height: '40px', background: isDark ? '#0f0f1a' : '#fff', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, color: ac, letterSpacing: '0.5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>INST</div>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '9px', fontWeight: '900', color: ac, letterSpacing: '1px', textTransform: 'uppercase' }}>{t(isMelody ? 'melodyBass.melodyInstrument' : 'melodyBass.bassInstrument')}</div>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#fff' : '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{instrumentName || t('melodyBass.dropSample')}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         <button
+                            {...hoverProps}
                             onClick={onNewProject}
                             style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             title={t('common.startNewProject')}
                         >
-                            📄 {t('melodyBass.new')}
+                            {t('melodyBass.new')}
                         </button>
                         <button
+                            {...hoverProps}
                             onClick={onLoadClick}
-                            style={{ background: isDark ? 'rgba(79, 172, 254, 0.1)' : '#fff', border: `1.5px solid ${isDark ? '#4facfe' : '#eee'}`, borderRadius: '6px', color: '#4facfe', fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             title={t('common.loadProject')}
                         >
-                            📂 {t('melodyBass.load')}
+                            {t('melodyBass.load')}
                         </button>
                         <button
+                            {...hoverProps}
                             onClick={onExportClick}
-                            style={{ background: isDark ? 'rgba(79, 172, 254, 0.1)' : '#fff', border: `1.5px solid ${isDark ? '#4facfe' : '#eee'}`, borderRadius: '6px', color: '#4facfe', fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             title={t('common.exportProject')}
                         >
-                            💾 {t('melodyBass.export')}
+                            {t('melodyBass.export')}
                         </button>
                         <button
                             onClick={(e) => updateGlobalSolo(trackId, !isGlobalSoloed, e.ctrlKey)}
@@ -739,7 +743,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                                 padding: '6px 10px'
                             }}
                             title={t('common.randomizeSample')}
-                        >🎲 {t('melodyBass.stx')}</button>
+                        >{t('melodyBass.stx')}</button>
                         <div
                             onClick={() => setPowered(!powered)}
                             title={t('common.togglePower')}
@@ -771,10 +775,10 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                             {[0, 1, 2, 3, 4, 5, 6].map(o => <option key={o} value={o}>{t('melodyBass.octLabel', { oct: o })}</option>)}
                         </select>
                     </div>
-                    <button onClick={generatePattern} title={t('melodyBass.gen')} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🎲 {t('melodyBass.gen')}</button>
-                    <button onClick={handleGenerateFromMIDI} title={t('melodyBass.midi')} style={{ padding: '8px 15px', background: acSec, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🎹 {t('melodyBass.midi')}</button>
+                    <button {...hoverProps} onClick={generatePattern} title={t('melodyBass.gen')} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{t('melodyBass.gen')}</button>
+                    <button {...hoverProps} onClick={handleGenerateFromMIDI} title={t('melodyBass.midi')} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{t('melodyBass.midi')}</button>
                     {type === 'melody' && pattern.length > 0 && (
-                        <button onClick={handleCounterMelody} style={{ padding: '8px 15px', background: '#54a0ff', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }} title={t('melodyBass.counterTooltip')}>🎵 {t('melodyBass.counter')}</button>
+                        <button {...hoverProps} onClick={handleCounterMelody} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }} title={t('melodyBass.counterTooltip')}>{t('melodyBass.counter')}</button>
                     )}
 
                     <button
@@ -796,12 +800,12 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                             transition: 'all 0.2s'
                         }}
                     >
-                        <span>✨</span> {t('melodyBass.globalGen')}
+                        {t('melodyBass.globalGen')}
                     </button>
 
-                    {onSuggest && <button onClick={onSuggest} title={t('melodyBass.suggest')} style={{ padding: '8px 16px', background: isDark ? 'rgba(255, 159, 67, 0.12)' : `${acSec}22`, border: `1px solid ${acSec}`, borderRadius: '4px', color: acSec, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>✦ {t('melodyBass.suggest')}</button>}
+                    {onSuggest && <button {...hoverProps} onClick={onSuggest} title={t('melodyBass.suggest')} style={{ padding: '8px 16px', background: isDark ? hexToRgba(ac, 0.12) : `${ac}22`, border: `1px solid ${ac}`, borderRadius: '4px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>{t('melodyBass.suggest')}</button>}
 
-                    {onAddToArrangement && <button onClick={onAddToArrangement} style={{ padding: '8px 16px', background: isDark ? 'rgba(84, 160, 255, 0.15)' : '#54a0ff', border: '1px solid #54a0ff', borderRadius: '4px', color: isDark ? '#54a0ff' : '#fff', fontSize: '10px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }} title={t('melodyBass.addToArrangement', { type })}>{t('melodyBass.addArr')}</button>}
+                    {onAddToArrangement && <button {...hoverProps} onClick={onAddToArrangement} style={{ padding: '8px 16px', background: isDark ? hexToRgba(ac, 0.15) : ac, border: `1px solid ${ac}`, borderRadius: '4px', color: isDark ? ac : '#fff', fontSize: '10px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }} title={t('melodyBass.addToArrangement', { type })}>{t('melodyBass.addArr')}</button>}
 
                                         {/* Separator */}
                     <div style={{ width: '1px', height: '28px', background: isDark ? '#333' : '#ccc', margin: '0 4px', alignSelf: 'center' }} />
@@ -858,7 +862,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
                         <span style={{ fontSize: '12px' }}>↻</span> {t('melodyBass.rpt')}
                     </button>
 
-                    <button onClick={clearPattern} disabled={pattern.length === 0} title={t('melodyBass.clear')} style={{ padding: '8px 15px', background: pattern.length > 0 ? '#ff4d4d' : '#555', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: pattern.length > 0 ? 'pointer' : 'not-allowed' }}>🗑️ {t('melodyBass.clear')}</button>
+                    <button {...hoverProps} onClick={clearPattern} disabled={pattern.length === 0} title={t('melodyBass.clear')} style={{ padding: '8px 15px', background: pattern.length > 0 ? ac : '#555', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: pattern.length > 0 ? 'pointer' : 'not-allowed' }}>{t('melodyBass.clear')}</button>
                 </div>
             </div>
 
@@ -891,7 +895,7 @@ const MelodyBassGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler,
             )}
 
             <div style={{ marginTop: '10px', padding: '10px', background: isDark ? '#0a0a0a' : '#f0f0f0', borderRadius: '4px', fontSize: '11px', color: isDark ? '#888' : '#666' }}>
-                💡 <strong>{t('common.tip')}:</strong> {t('melodyBass.tipLoad')} {isMelody ? t('melodyBass.tipMelody') : t('melodyBass.tipBass')} {t('melodyBass.tipCommon')}
+                <strong>{t('common.tip')}:</strong> {t('melodyBass.tipLoad')} {isMelody ? t('melodyBass.tipMelody') : t('melodyBass.tipBass')} {t('melodyBass.tipCommon')}
             </div>
 
             {/* Sample Slicer Overlay */}

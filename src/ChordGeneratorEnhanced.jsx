@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { hoverProps } from './buttonHover';
 import { SCALES, CHORD_PROGRESSIONS, CHORD_TYPES, ROMAN_TO_CHORD } from './MusicTheory';
 import { generateChordPattern } from './PatternEngine';
 import PianoRollEditor from './PianoRollEditor';
@@ -526,7 +527,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
             <div style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: `1px solid ${isDark ? '#2a2a3e' : '#e0e0e0'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h3 style={{ margin: '0 0 5px 0', fontSize: '18px' }}>
-                        {'🎹 ' + t('chords.title')}
+                        {t('chords.title')}
                         {isGenerated && <span style={{ color: ac, fontSize: '14px', marginLeft: '8px' }} title={t('common.patternGenerated')}>✅</span>}
                         {loadedInstrument && <span style={{ color: acSec, fontSize: '14px', marginLeft: '8px' }} title={t('common.instrumentLoaded')}>🔉</span>}
                     </h3>
@@ -556,32 +557,35 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                         boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                     }}
                 >
-                    <div style={{ width: '40px', height: '40px', background: isDark ? '#0f0f1a' : '#fff', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>🎹</div>
+                    <div style={{ width: '40px', height: '40px', background: isDark ? '#0f0f1a' : '#fff', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, color: ac, letterSpacing: '0.5px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>INST</div>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '9px', fontWeight: '900', color: ac, letterSpacing: '1px', textTransform: 'uppercase' }}>{t('chords.instrument')}</div>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: isDark ? '#fff' : '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' }}>{instrumentName || t('chords.dropSample')}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                         <button
+                            {...hoverProps}
                             onClick={onNewProject}
                             style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             title={t('common.startNewProject')}
                         >
-                            {'📄 ' + t('chords.new')}
+                            {t('chords.new')}
                         </button>
                         <button
+                            {...hoverProps}
                             onClick={onLoadClick}
-                            style={{ background: isDark ? 'rgba(79, 172, 254, 0.1)' : '#fff', border: `1.5px solid ${isDark ? '#4facfe' : '#eee'}`, borderRadius: '6px', color: '#4facfe', fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             title={t('common.loadProject')}
                         >
-                            {'📂 ' + t('chords.load')}
+                            {t('chords.load')}
                         </button>
                         <button
+                            {...hoverProps}
                             onClick={onExportClick}
-                            style={{ background: isDark ? 'rgba(79, 172, 254, 0.1)' : '#fff', border: `1.5px solid ${isDark ? '#4facfe' : '#eee'}`, borderRadius: '6px', color: '#4facfe', fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            style={{ background: isDark ? hexToRgba(ac, 0.1) : '#fff', border: `1.5px solid ${isDark ? hexToRgba(ac, 0.3) : '#eee'}`, borderRadius: '6px', color: ac, fontSize: '11px', fontWeight: '900', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             title={t('common.exportProject')}
                         >
-                            {'💾 ' + t('chords.export')}
+                            {t('chords.export')}
                         </button>
                         <button
                             onClick={(e) => updateGlobalSolo('chords', !isSoloed, e.ctrlKey)}
@@ -654,7 +658,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                                 padding: '6px 10px'
                             }}
                             title={t('common.randomizeSample')}
-                        >{'🎲 ' + t('chords.stx')}</button>
+                        >{t('chords.stx')}</button>
                         <div
                             onClick={() => setPowered(!powered)}
                             title={t('common.togglePower')}
@@ -734,10 +738,11 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                         </select>
                     </div>
 
-                    <button onClick={generateChords} title={t('chords.gen')} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{'🎲 ' + t('chords.gen')}</button>
-                    <button onClick={handleGenerateFromMIDI} title={t('chords.midi')} style={{ padding: '8px 15px', background: acSec, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{'🎹 ' + t('chords.midi')}</button>
+                    <button {...hoverProps} onClick={generateChords} title={t('chords.gen')} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{t('chords.gen')}</button>
+                    <button {...hoverProps} onClick={handleGenerateFromMIDI} title={t('chords.midi')} style={{ padding: '8px 15px', background: ac, border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>{t('chords.midi')}</button>
 
                     <button
+                        {...hoverProps}
                         onClick={onGlobalGenerate}
                         title={t('chords.globalGen')}
                         style={{
@@ -756,14 +761,14 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                             transition: 'all 0.2s'
                         }}
                     >
-                        <span>✨</span> {t('chords.globalGen')}
+                        {t('chords.globalGen')}
                     </button>
 
-                    {onSuggest && <button onClick={onSuggest} title={t('chords.suggest')} style={{ padding: '8px 16px', background: isDark ? 'rgba(255, 159, 67, 0.12)' : `${acSec}22`, border: `1px solid ${acSec}`, borderRadius: '4px', color: acSec, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>{'✦ ' + t('chords.suggest')}</button>}
+                    {onSuggest && <button {...hoverProps} onClick={onSuggest} title={t('chords.suggest')} style={{ padding: '8px 16px', background: isDark ? hexToRgba(ac, 0.12) : `${ac}22`, border: `1px solid ${ac}`, borderRadius: '4px', color: ac, fontSize: '11px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }}>{t('chords.suggest')}</button>}
 
-                    {onAddToArrangement && <button onClick={onAddToArrangement} style={{ padding: '8px 16px', background: isDark ? 'rgba(84, 160, 255, 0.15)' : '#54a0ff', border: '1px solid #54a0ff', borderRadius: '4px', color: isDark ? '#54a0ff' : '#fff', fontSize: '10px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }} title={t('chords.addToArrangement')}>{t('chords.addArr')}</button>}
+                    {onAddToArrangement && <button {...hoverProps} onClick={onAddToArrangement} style={{ padding: '8px 16px', background: isDark ? hexToRgba(ac, 0.15) : ac, border: `1px solid ${ac}`, borderRadius: '4px', color: isDark ? ac : '#fff', fontSize: '10px', fontWeight: '900', cursor: 'pointer', letterSpacing: '0.5px' }} title={t('chords.addToArrangement')}>{t('chords.addArr')}</button>}
 
-                    <button onClick={clearPattern} disabled={chordPattern.length === 0} title={t('chords.clear')} style={{ padding: '8px 15px', background: chordPattern.length > 0 ? ac : '#555', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: chordPattern.length > 0 ? 'pointer' : 'not-allowed' }}>{'🗑️ ' + t('chords.clear')}</button>
+                    <button onClick={clearPattern} disabled={chordPattern.length === 0} title={t('chords.clear')} style={{ padding: '8px 15px', background: chordPattern.length > 0 ? ac : '#555', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: 'bold', cursor: chordPattern.length > 0 ? 'pointer' : 'not-allowed' }}>{t('chords.clear')}</button>
 
 
                 </div>
@@ -782,7 +787,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
             </div>
 
             <div style={{ marginTop: '10px', padding: '10px', background: isDark ? '#0a0a0a' : '#f0f0f0', borderRadius: '4px', fontSize: '11px', color: isDark ? '#888' : '#666' }}>
-                {'💡 '}<strong>{t('common.tip')}:</strong> {locked ? t('chords.tipLocked') : t('chords.tipUnlocked')} {t('chords.tipSuffix')}
+                <strong>{t('common.tip')}:</strong> {locked ? t('chords.tipLocked') : t('chords.tipUnlocked')} {t('chords.tipSuffix')}
             </div>
 
             {/* Sample Slicer Overlay */}

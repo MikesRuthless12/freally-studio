@@ -25,26 +25,35 @@
 
 .complexity-toggle button {
     padding: 8px 16px;
-    background: transparent;
-    border: none;
+    background: var(--btn-face, transparent);
+    border: 1px solid transparent;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     color: var(--text-secondary);
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .complexity-toggle button:hover {
-    background: var(--bg-hover);
+    background: var(--btn-face-hover, var(--bg-hover));
     color: var(--text-primary);
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.complexity-toggle button:active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 .complexity-toggle button.active {
     background: var(--accent-color);
     color: white;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .generate-btn,
@@ -52,43 +61,60 @@
 .delete-btn {
     padding: 10px 20px;
     border: none;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 5px;
+    font-size: 12px;
     font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
 }
 
 .generate-btn {
     background: var(--accent-color);
     color: white;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .generate-btn:hover {
     background: var(--accent-hover);
-    transform: translateY(-1px);
+    transform: translateY(-0.5px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.35);
+}
+
+.generate-btn:active {
+    transform: translateY(0.5px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .clear-btn,
 .delete-btn {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
+    background: var(--btn-face, var(--bg-primary));
+    border: 1px solid var(--btn-border, var(--border-color));
+    color: var(--btn-text, var(--text-secondary));
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .clear-btn:hover:not(:disabled),
 .delete-btn:hover:not(:disabled) {
-    background: var(--bg-hover);
+    background: var(--btn-face-hover, var(--bg-hover));
     border-color: var(--accent-color);
     color: var(--text-primary);
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.clear-btn:active:not(:disabled),
+.delete-btn:active:not(:disabled) {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 .clear-btn:disabled,
 .delete-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 .chord-info {
@@ -143,25 +169,34 @@
 
 .chord-tag {
     padding: 8px 16px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 14px;
+    background: var(--btn-face, var(--bg-primary));
+    border: 1px solid var(--btn-border, var(--border-color));
+    border-radius: 5px;
+    font-size: 13px;
     font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
     color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 1px 2px var(--btn-shadow-bottom, rgba(0,0,0,0.2));
 }
 
 .chord-tag:hover {
-    background: var(--bg-hover);
+    background: var(--btn-face-hover, var(--bg-hover));
     border-color: var(--accent-color);
+    box-shadow: inset 0 1px 0 var(--btn-shadow-top, rgba(255,255,255,0.04)), 0 2px 6px var(--btn-shadow-bottom, rgba(0,0,0,0.3));
+}
+
+.chord-tag:active {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    transform: translateY(0.5px);
 }
 
 .chord-tag.selected {
     background: var(--accent-color);
     border-color: var(--accent-color);
     color: white;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .empty-message {

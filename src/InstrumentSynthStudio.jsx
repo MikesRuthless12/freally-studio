@@ -191,7 +191,7 @@ const InstrumentSynthStudio = ({ theme, onClose, accentColors}) => {
         }}>
             {/* Header */}
             <div className="iss-header">
-                <div className="iss-title">{'🎹 '}{t('instSynth.title')}</div>
+                <div className="iss-title">{t('instSynth.title')}</div>
                 <button className="iss-close-btn" onClick={onClose} title={t('instSynth.close')}>✕</button>
             </div>
 
@@ -290,7 +290,7 @@ const InstrumentSynthStudio = ({ theme, onClose, accentColors}) => {
                         alert(t('common.masterFolderUpdated'));
                     } catch (e) { }
                 }}>
-                    {'📁 '}{t('instSynth.changeMasterFolder')}
+                    {t('instSynth.changeMasterFolder')}
                 </button>
                 <button className="iss-btn iss-btn-primary" onClick={handleAudition}>
                     {'▶ '}{t('instSynth.preview')}
@@ -304,7 +304,7 @@ const InstrumentSynthStudio = ({ theme, onClose, accentColors}) => {
                     spellCheck={false}
                 />
                 <button className="iss-btn iss-btn-primary" onClick={handleExport} disabled={isRendering}>
-                    {isRendering ? t('instSynth.rendering') : '💾 ' + t('instSynth.exportWav')}
+                    {isRendering ? t('instSynth.rendering') : t('instSynth.exportWav')}
                 </button>
             </div>
         </div>

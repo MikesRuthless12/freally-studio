@@ -179,7 +179,10 @@
       "Bash(xargs du:*)",
       "Bash(sort -k5 -n -r)",
       "Bash(xargs -I {} basename {})",
-      "Bash(find '/c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/src' -type f \\\\\\(-name *.js -o -name *.jsx \\\\\\))"
+      "Bash(find '/c/Users/miken/Desktop/Havoc Software/WavLoom-Complete-All-Files/src' -type f \\\\\\(-name *.js -o -name *.jsx \\\\\\))",
+      "Bash(find \"C:/Users/miken/Desktop/WavLoom-Complete-All-Files/src\" -name \"*.jsx\" -exec grep -l \"#[0-9a-fA-F]\" {})",
+      "Bash(rm:*)",
+      "Bash(git add:*)"
     ]
   }
 }

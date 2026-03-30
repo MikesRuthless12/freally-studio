@@ -1,0 +1,641 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   WAVLOOM STUDIO — Professional DAW Theme
+   Inspired by FL Studio & Ableton Live hardware aesthetics
+
+   This stylesheet provides consistent, professional styling for ALL
+   interactive controls across both light and dark modes. It uses !important
+   strategically to override inline styles and enforce visual consistency.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ============================================
+   FONT IMPORTS — DM Sans (UI) + JetBrains Mono (values)
+   ============================================ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+/* ============================================
+   GLOBAL FOUNDATION
+   ============================================ */
+
+.wavloom-app,
+.wavloom-app * {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.wavloom-app {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+/* ============================================
+   DARK THEME — Extended Variables
+   FL Studio industrial aesthetic
+   ============================================ */
+.wavloom-app.dark {
+    /* --- Surface Hierarchy --- */
+    --bg-primary: #1a1a20;
+    --bg-secondary: #222228;
+    --bg-tertiary: #2a2a32;
+    --bg-hover: #333340;
+    --border-color: #38383f;
+
+    /* --- Text Hierarchy --- */
+    --text-primary: #d8d8e0;
+    --text-secondary: #8888a0;
+    --text-tertiary: #5a5a70;
+
+    /* --- Button System --- */
+    --btn-face: #2e2e38;
+    --btn-face-hover: #363642;
+    --btn-face-active: #26262e;
+    --btn-highlight: rgba(255, 255, 255, 0.06);
+    --btn-shadow-top: rgba(255, 255, 255, 0.04);
+    --btn-shadow-bottom: rgba(0, 0, 0, 0.5);
+    --btn-border: #1e1e26;
+    --btn-text: #c0c0d0;
+    --btn-text-hover: #e0e0ec;
+
+    /* --- Input/Select System --- */
+    --input-face: #18181f;
+    --input-face-hover: #1e1e26;
+    --input-border: #2a2a34;
+    --input-border-focus: var(--accent, #ff6b6b);
+    --input-text: #c8c8d8;
+    --input-placeholder: #4a4a5a;
+
+    /* --- Label System --- */
+    --label-color: #6e6e84;
+    --label-color-emphasis: #9090a8;
+
+    /* --- Surfaces --- */
+    --surface-raised: #282830;
+    --surface-sunken: #141418;
+    --surface-inset: #101014;
+    --panel-header-bg: rgba(15, 15, 20, 0.6);
+    --panel-border: rgba(255, 255, 255, 0.05);
+
+    /* --- Depth & Shadows --- */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+
+    /* --- Scrollbar --- */
+    --scrollbar-track: #1a1a20;
+    --scrollbar-thumb: #3a3a44;
+    --scrollbar-thumb-hover: #50505e;
+}
+
+/* ============================================
+   LIGHT THEME — Extended Variables
+   Ableton-inspired clean precision
+   ============================================ */
+.wavloom-app.light {
+    /* --- Surface Hierarchy --- */
+    --bg-primary: #f8f8fa;
+    --bg-secondary: #efeff2;
+    --bg-tertiary: #e4e4ea;
+    --bg-hover: #d8d8e0;
+    --border-color: #c8c8d0;
+
+    /* --- Text Hierarchy --- */
+    --text-primary: #1e1e28;
+    --text-secondary: #5a5a6e;
+    --text-tertiary: #8888a0;
+
+    /* --- Button System --- */
+    --btn-face: #e4e4ec;
+    --btn-face-hover: #eaeaf0;
+    --btn-face-active: #d4d4dc;
+    --btn-highlight: rgba(255, 255, 255, 0.7);
+    --btn-shadow-top: rgba(255, 255, 255, 0.9);
+    --btn-shadow-bottom: rgba(0, 0, 0, 0.15);
+    --btn-border: #b8b8c4;
+    --btn-text: #3a3a4a;
+    --btn-text-hover: #1a1a28;
+
+    /* --- Input/Select System --- */
+    --input-face: #ffffff;
+    --input-face-hover: #fafafa;
+    --input-border: #c0c0cc;
+    --input-border-focus: var(--accent, #ff6b6b);
+    --input-text: #2a2a38;
+    --input-placeholder: #a0a0b0;
+
+    /* --- Label System --- */
+    --label-color: #6a6a7e;
+    --label-color-emphasis: #4a4a5e;
+
+    /* --- Surfaces --- */
+    --surface-raised: #f0f0f4;
+    --surface-sunken: #e0e0e6;
+    --surface-inset: #d8d8e0;
+    --panel-header-bg: #f0f0f4;
+    --panel-border: rgba(0, 0, 0, 0.08);
+
+    /* --- Depth & Shadows --- */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+    --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    /* --- Scrollbar --- */
+    --scrollbar-track: #f0f0f4;
+    --scrollbar-thumb: #c4c4ce;
+    --scrollbar-thumb-hover: #a8a8b6;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  BUTTONS — The core of the DAW look                                 ║
+   ║  Real buttons with bevel, depth, and tactile press feedback          ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* --- Base Button Reset --- */
+.wavloom-app button {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    text-rendering: optimizeLegibility !important;
+    -webkit-font-smoothing: antialiased !important;
+    cursor: pointer;
+    position: relative;
+    outline: none !important;
+}
+
+/* --- ALL interactive buttons get the accent gradient ---
+   This gives every button the "Rescan Plugins" look.
+   Exceptions: transparent/ghost buttons, menu items, close buttons,
+   drum grid cells, mixer faders, circular buttons (record, power). */
+.wavloom-app button:not([style*="background: none"]):not([style*="background:none"]):not([style*="background: transparent"]):not([style*="background:transparent"]):not([style*="border-radius: 50%"]):not(.drum-cell):not(.mixer-fader) {
+    background: var(--accent-gradient, var(--theme-gradient, linear-gradient(135deg, #ff6b6b 0%, #ff9f43 100%))) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 2px 6px rgba(0, 0, 0, 0.35) !important;
+    transition: box-shadow 0.12s ease, transform 0.1s ease, filter 0.15s ease, opacity 0.15s ease !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ── WinForms-style hover: EVERY button gets a clear highlight ──
+   Uses filter + outline which are never set inline, so they always apply.
+   Dark mode: bright white highlight ring + brightness boost
+   Light mode: dark border ring + slight dim */
+
+/* HOVER — all buttons universally */
+.wavloom-app button:hover:not(:disabled) {
+    filter: brightness(1.6) !important;
+    outline: 2px solid rgba(255, 255, 255, 0.45) !important;
+    outline-offset: -1px !important;
+    z-index: 2 !important;
+    transition: filter 0.1s ease, outline 0.1s ease !important;
+}
+
+/* Light theme hover — darker outline instead of bright */
+.wavloom-app.light button:hover:not(:disabled) {
+    filter: brightness(1.15) saturate(1.2) !important;
+    outline: 2px solid rgba(0, 0, 0, 0.3) !important;
+    outline-offset: -1px !important;
+}
+
+/* ACTIVE / PRESSED — all buttons universally */
+.wavloom-app button:active:not(:disabled) {
+    filter: brightness(0.7) !important;
+    outline: 2px solid rgba(255, 255, 255, 0.2) !important;
+    outline-offset: -1px !important;
+    transform: translateY(1px) !important;
+}
+
+.wavloom-app.light button:active:not(:disabled) {
+    filter: brightness(0.85) !important;
+    outline: 2px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+/* DISABLED — clearly greyed out and unclickable */
+.wavloom-app button:disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+    filter: grayscale(0.8) brightness(0.6) !important;
+    pointer-events: auto !important;
+}
+
+/* --- Transparent/Ghost Buttons (menu items, close buttons) --- */
+.wavloom-app button[style*="background: none"],
+.wavloom-app button[style*="background:none"],
+.wavloom-app button[style*="background: transparent"],
+.wavloom-app button[style*="background:transparent"] {
+    background: none !important;
+    color: inherit !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+    transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease !important;
+}
+
+/* --- Menu bar top-level buttons stay flat --- */
+.wavloom-app [style*="height: 28px"][style*="gap: 2px"] > div > button {
+    background: none !important;
+    color: inherit !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    border-radius: 3px !important;
+}
+
+.wavloom-app [style*="height: 28px"][style*="gap: 2px"] > div > button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--accent, #ff6b6b) !important;
+}
+
+/* --- Menu dropdown items stay flat --- */
+.wavloom-app [style*="position: absolute"][style*="top: 100%"] button {
+    background: transparent !important;
+    color: inherit !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+.wavloom-app [style*="position: absolute"][style*="top: 100%"] button:hover:not(:disabled) {
+    background: var(--accent-glow, rgba(255, 107, 107, 0.15)) !important;
+    color: var(--accent, #ff6b6b) !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  SELECT DROPDOWNS — Recessed hardware-control look                   ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app select {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    text-rendering: optimizeLegibility !important;
+    border: 1px solid var(--input-border) !important;
+    border-radius: 4px !important;
+    color: var(--input-text) !important;
+    outline: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+    cursor: pointer !important;
+}
+
+.wavloom-app select:hover {
+    border-color: var(--text-tertiary) !important;
+}
+
+.wavloom-app select:focus {
+    border-color: var(--input-border-focus) !important;
+    box-shadow: var(--shadow-inset), 0 0 0 2px rgba(var(--accent-r, 255), var(--accent-g, 107), var(--accent-b, 107), 0.15) !important;
+}
+
+/* Select option styling */
+.wavloom-app select option {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    padding: 6px 8px !important;
+}
+
+.wavloom-app select optgroup {
+    font-weight: 700 !important;
+    font-style: normal !important;
+    color: var(--label-color-emphasis) !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  TEXT & NUMBER INPUTS — Recessed, inset field look                   ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app input[type="text"],
+.wavloom-app input[type="number"],
+.wavloom-app input[type="search"],
+.wavloom-app input[type="url"],
+.wavloom-app input[type="email"],
+.wavloom-app input[type="password"],
+.wavloom-app textarea {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    text-rendering: optimizeLegibility !important;
+    background-color: var(--input-face) !important;
+    border: 1px solid var(--input-border) !important;
+    border-radius: 4px !important;
+    color: var(--input-text) !important;
+    box-shadow: var(--shadow-inset) !important;
+    outline: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.wavloom-app input[type="text"]:hover,
+.wavloom-app input[type="number"]:hover,
+.wavloom-app input[type="search"]:hover,
+.wavloom-app textarea:hover {
+    border-color: var(--text-tertiary) !important;
+}
+
+.wavloom-app input[type="text"]:focus,
+.wavloom-app input[type="number"]:focus,
+.wavloom-app input[type="search"]:focus,
+.wavloom-app textarea:focus {
+    border-color: var(--input-border-focus) !important;
+    box-shadow: var(--shadow-inset), 0 0 0 2px rgba(var(--accent-r, 255), var(--accent-g, 107), var(--accent-b, 107), 0.15) !important;
+}
+
+.wavloom-app input::placeholder,
+.wavloom-app textarea::placeholder {
+    color: var(--input-placeholder) !important;
+}
+
+/* Number input spinner buttons */
+.wavloom-app input[type="number"]::-webkit-inner-spin-button,
+.wavloom-app input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.5;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  RANGE INPUTS / SLIDERS — Pro fader look                            ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app input[type="range"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 4px !important;
+    border-radius: 2px !important;
+    outline: none !important;
+    cursor: pointer !important;
+    position: relative;
+}
+
+/* Track */
+.wavloom-app input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--input-border);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Thumb */
+.wavloom-app input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 14px !important;
+    height: 14px !important;
+    border-radius: 50% !important;
+    background: var(--text-primary) !important;
+    border: 2px solid var(--btn-face) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    cursor: pointer !important;
+    margin-top: -5px;
+    transition: box-shadow 0.12s ease, transform 0.1s ease !important;
+}
+
+.wavloom-app input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    transform: scale(1.15) !important;
+}
+
+.wavloom-app input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Firefox track & thumb */
+.wavloom-app input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--input-border);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.wavloom-app input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 2px solid var(--btn-face);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  LABELS — Consistent uppercase instrument-panel labels               ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* Target the small uppercase labels used across all generator panels */
+.wavloom-app label {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    -webkit-font-smoothing: antialiased !important;
+    text-rendering: optimizeLegibility !important;
+    letter-spacing: 0.6px !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  SCROLLBARS — Thin, professional, non-intrusive                      ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+.wavloom-app ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+.wavloom-app ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.wavloom-app ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: padding-box;
+}
+
+.wavloom-app ::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+}
+
+/* Firefox scrollbar styling */
+.wavloom-app * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  FOCUS STATES — Visible but not garish                               ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app *:focus-visible {
+    outline: 2px solid var(--accent-color, var(--accent, #ff6b6b)) !important;
+    outline-offset: 1px !important;
+}
+
+.wavloom-app button:focus:not(:focus-visible) {
+    outline: none !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  CHECKBOX & RADIO — Styled to match DAW aesthetic                    ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app input[type="checkbox"] {
+    accent-color: var(--accent-color, var(--accent, #ff6b6b)) !important;
+    cursor: pointer !important;
+}
+
+.wavloom-app input[type="radio"] {
+    accent-color: var(--accent-color, var(--accent, #ff6b6b)) !important;
+    cursor: pointer !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  TABS — Consistent tab bar styling                                   ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* Tab buttons in the main tab bar get slightly different treatment */
+.wavloom-app [data-tour-id="tour-tabs"] button {
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    font-weight: 700 !important;
+    border-radius: 5px !important;
+    transition: all 0.15s ease !important;
+}
+
+.wavloom-app [data-tour-id="tour-tabs"] button:hover:not(:disabled) {
+    transform: translateY(-0.5px) !important;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  MODAL OVERLAYS — Consistent backdrop treatment                      ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* All modals get frosted backdrop */
+.wavloom-app [style*="position: fixed"][style*="background: rgba(0"] {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  GLOBAL SETTINGS BAR — Genre/Mood/Key/Scale/BPM row                  ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* The global settings row selects */
+.wavloom-app [data-tour-id="tour-genre"] select,
+.wavloom-app [data-tour-id="tour-mood"] select,
+.wavloom-app [data-tour-id="tour-key-scale"] select {
+    font-weight: 600 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.3px !important;
+}
+
+/* BPM display uses monospace for that hardware readout feel */
+.wavloom-app [data-tour-id="tour-bpm"] div[style*="cursor: ns-resize"],
+.wavloom-app [data-tour-id="tour-bpm"] input[type="number"] {
+    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace !important;
+    font-variant-numeric: tabular-nums !important;
+    letter-spacing: -0.5px !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  OVERRIDE EXISTING CSS FILE CLASSES — Bring consistency              ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* --- All CSS-class buttons inherit the gradient from the global rule above.
+   These overrides just ensure font-family is set. --- */
+.generate-btn,
+.clear-btn,
+.delete-btn,
+.cancel-btn,
+.export-btn,
+.save-btn,
+.load-btn,
+.export-audio-btn,
+.category-btn,
+.import-btn,
+.resolution-btn,
+.folder-select-btn,
+.dss-btn,
+.dss-btn-primary,
+.dss-btn-secondary {
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+/* Ghost buttons in drum synth should NOT get gradient */
+.dss-btn-ghost {
+    background: none !important;
+    color: inherit !important;
+    text-shadow: none !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  TOOLTIPS / TITLE ATTRIBUTES — Better visual treatment               ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* Native tooltips can't be styled, but we ensure consistent font on
+   any custom tooltip elements */
+.wavloom-app [class*="tooltip"],
+.wavloom-app [class*="Tooltip"] {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px !important;
+    letter-spacing: 0.2px !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  MONOSPACE VALUES — BPM, step counts, time displays                  ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* Any element that shows numeric readouts should use monospace */
+.wavloom-app [style*="fontWeight: '900'"][style*="textAlign: 'center'"],
+.wavloom-app [style*="font-weight: 900"][style*="text-align: center"] {
+    font-variant-numeric: tabular-nums !important;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  SELECTION & HIGHLIGHT COLORS                                        ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+.wavloom-app ::selection {
+    background: var(--accent-color, var(--accent, #ff6b6b));
+    color: #fff;
+}
+
+.wavloom-app ::-moz-selection {
+    background: var(--accent-color, var(--accent, #ff6b6b));
+    color: #fff;
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  ANIMATION REFINEMENTS — Smooth, hardware-like transitions           ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .wavloom-app * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  PRINT PROTECTION                                                    ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+@media print {
+    .wavloom-app {
+        background: white !important;
+        color: black !important;
+    }
+}

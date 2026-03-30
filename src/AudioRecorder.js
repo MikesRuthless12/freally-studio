@@ -498,6 +498,113 @@ export class AudioRecorder {
     }
 
     /**
+     * Initialize getUserMedia capture (fallback when native WASAPI fails).
+     * @param {string|undefined} deviceId
+     */
+    async _initGetUserMedia(deviceId) {
+        let echoCancellation = false;
+        let noiseSuppression = false;
+        try {
+            const raw = localStorage.getItem('wavloom_settings');
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (s.recordingEchoCancellation !== undefined) echoCancellation = s.recordingEchoCancellation;
+                if (s.recordingNoiseSuppression !== undefined) noiseSuppression = s.recordingNoiseSuppression;
+            }
+        } catch (_) {}
+
+        this.stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                channelCount: 1,
+                echoCancellation,
+                noiseSuppression,
+                autoGainControl: false,
+                googAutoGainControl: false,
+                googAutoGainControl2: false,
+                googNoiseSuppression: false,
+                googHighpassFilter: false,
+                googTypingNoiseDetection: false,
+                ...(deviceId && { deviceId: { exact: deviceId } })
+            }
+        });
+
+        if (!this._recordingContext || this._recordingContext.state === 'closed') {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            this._recordingContext = new Ctx();
+            this._workletReady = false;
+        }
+
+        const recCtx = this._recordingContext;
+        if (recCtx.state === 'suspended') await recCtx.resume();
+
+        this.sourceNode = recCtx.createMediaStreamSource(this.stream);
+
+        this.analyserNode = recCtx.createAnalyser();
+        this.analyserNode.fftSize = 2048;
+        this.analyserNode.smoothingTimeConstant = 0.8;
+        this._analyserData = new Float32Array(this.analyserNode.fftSize);
+        this.sourceNode.connect(this.analyserNode);
+
+        this.sampleRate = recCtx.sampleRate;
+
+        if (recCtx.audioWorklet && !this._workletReady) {
+            try {
+                await recCtx.audioWorklet.addModule('recording-processor.js');
+                this._useWorklet = true;
+                this._workletReady = true;
+            } catch (e) {
+                this._useWorklet = false;
+            }
+        }
+        console.log('[AudioRecorder] getUserMedia fallback initialized successfully');
+    }
+
+    /**
+     * Start recording via getUserMedia (called as fallback from native capture failure).
+     * Wires up the AudioWorklet or ScriptProcessor and begins capturing.
+     */
+    async _startGetUserMediaRecording(onRecordingStart) {
+        this._startTime = this._recordingContext.currentTime;
+        const recCtx = this._recordingContext;
+
+        if (this._useWorklet) {
+            this.processorNode = new AudioWorkletNode(recCtx, 'recording-processor', {
+                numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1
+            });
+            this.processorNode.port.onmessage = (e) => {
+                if (e.data.type === 'samples') this._handleWorkletSamples(e.data);
+            };
+            this.sourceNode.connect(this.processorNode);
+            this.processorNode.connect(recCtx.destination);
+            this.processorNode.port.postMessage({ type: 'start' });
+        } else {
+            const bufferSize = 4096;
+            this.processorNode = recCtx.createScriptProcessor(bufferSize, 1, 1);
+            this.processorNode.onaudioprocess = (e) => {
+                if (!this.recording) return;
+                const inputData = e.inputBuffer.getChannelData(0);
+                this._appendToMergedBuffer(new Float32Array(inputData));
+                const outputData = e.outputBuffer.getChannelData(0);
+                for (let i = 0; i < outputData.length; i++) outputData[i] = 0;
+                this._totalRecordedSamples += inputData.length;
+                if (this._onProgress) {
+                    const now = performance.now();
+                    if (now - this._lastProgressTime >= this._progressIntervalMs) {
+                        this._lastProgressTime = now;
+                        const elapsed = this._totalRecordedSamples / this.sampleRate;
+                        this._onProgress({ elapsed, samples: this._totalRecordedSamples });
+                    }
+                }
+            };
+            this.sourceNode.connect(this.processorNode);
+            this.processorNode.connect(recCtx.destination);
+        }
+
+        console.log('[AudioRecorder] getUserMedia recording started (fallback from native)');
+        if (onRecordingStart) onRecordingStart();
+    }
+
+    /**
      * Adopt a running native arm state from SamplerEngine.
      * The WASAPI capture and ring buffer are already active — we just take
      * ownership of the SharedArrayBuffers and AudioContext so that
@@ -843,6 +950,22 @@ export class AudioRecorder {
         if (startResult && startResult.error) {
             this.recording = false;
             throw new Error('Native capture start failed: ' + startResult.error);
+        }
+
+        // Quick health check: wait 200ms then verify the capture thread is alive.
+        // USB microphones often fail WASAPI exclusive+shared mode immediately.
+        await new Promise(r => setTimeout(r, 200));
+        const alive = await api.isCapturing().catch(() => false);
+        if (!alive) {
+            console.warn('[AudioRecorder] Native capture thread died immediately — falling back to getUserMedia');
+            await api.stop().catch(() => {});
+            this._useNativeCapture = false;
+            this.recording = false;
+            // Re-init with getUserMedia fallback and restart recording
+            await this._initGetUserMedia(this._nativeDeviceId);
+            this.recording = true;
+            await this._startGetUserMediaRecording(onRecordingStart);
+            return;
         }
 
         // Poll getLevel() for VU meter + waveform + progress reporting.

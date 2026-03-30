@@ -37,14 +37,8 @@ const BeatEnergyPanel = ({
     const level = energy / 100;
     const profile = getEnergyProfile(level);
 
-    // Color interpolation based on energy
-    const getEnergyColor = (e) => {
-        if (e < 30) return '#22d3ee';       // teal
-        if (e < 50) return '#fbbf24';       // yellow
-        if (e < 75) return '#f97316';       // orange
-        return '#ef4444';                    // red
-    };
-    const energyColor = getEnergyColor(energy);
+    // Use accent color consistently for energy display
+    const energyColor = ac;
 
     const handleApply = useCallback(() => {
         if (!drumPattern || !onApplyEnergy) return;
@@ -166,7 +160,7 @@ const BeatEnergyPanel = ({
                             <span style={{ ...labelStyle, marginBottom: '2px' }}>PER-SECTION</span>
                             {arrangement.map((sec, idx) => {
                                 const secVal = sectionEnergies[idx] ?? 50;
-                                const secColor = getEnergyColor(secVal);
+                                const secColor = ac;
                                 return (
                                     <div key={sec.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <span style={{
@@ -192,7 +186,7 @@ const BeatEnergyPanel = ({
 
                     {/* Action buttons */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button onClick={handlePreview} disabled={!drumPattern || isPreviewing} style={btnStyle('#54a0ff', !drumPattern || isPreviewing)}>
+                        <button onClick={handlePreview} disabled={!drumPattern || isPreviewing} style={btnStyle(ac, !drumPattern || isPreviewing)}>
                             {isPreviewing ? 'PREVIEWING...' : 'PREVIEW'}
                         </button>
                         <button onClick={handleApply} disabled={!drumPattern} style={btnStyle(energyColor, !drumPattern)}>

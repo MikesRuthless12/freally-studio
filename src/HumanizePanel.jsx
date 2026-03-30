@@ -18,10 +18,10 @@ const HumanizePanel = ({ humanizeParams, setHumanizeParams, onHumanize, onVariat
 
     const sliders = [
         { key: 'swing',             label: t('humanize.swing'),    color: ac },
-        { key: 'shuffle',           label: t('groove.shuffle') !== 'groove.shuffle' ? t('groove.shuffle') : 'Shuffle', color: '#22d3ee' },
-        { key: 'velocityVariation', label: t('humanize.vel'),  color: acSec },
-        { key: 'timingJitter',      label: t('humanize.jitter'),   color: '#54a0ff' },
-        { key: 'ghostNotes',        label: t('humanize.ghosts'),   color: '#5f27cd' }
+        { key: 'shuffle',           label: t('groove.shuffle') !== 'groove.shuffle' ? t('groove.shuffle') : 'Shuffle', color: ac },
+        { key: 'velocityVariation', label: t('humanize.vel'),  color: ac },
+        { key: 'timingJitter',      label: t('humanize.jitter'),   color: ac },
+        { key: 'ghostNotes',        label: t('humanize.ghosts'),   color: ac }
     ];
 
     const handleSlider = (key, value) => {

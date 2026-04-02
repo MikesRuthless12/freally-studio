@@ -39,6 +39,10 @@ import {
     MOOD_MODIFIERS, composeMood,
     GENRE_DEFINITIONS
 } from './domain/index';
+import {
+    GENRE_VOICING_WEIGHTS, GENRE_CHORD_RHYTHM_MAP,
+    GENRE_INVERSION_WEIGHTS, GENRE_808_PATTERNS, BOUNCE_PATTERN_DEFS
+} from './domain/voicings';
 import { tracker } from './RecentlyUsedTracker';
 import {
     CONTOURS_EXPANSION, MELODY_PROFILES_EXPANSION,
@@ -420,6 +424,31 @@ const VOICING_STRATEGIES = {
     shell: (intervals) => {                                              // root + 3rd + 7th only
         if (intervals.length < 4) return intervals;
         return [intervals[0], intervals[1], intervals[intervals.length - 1]];
+    },
+    /** Power chord — root + 5th + octave, no 3rd (rock/metal/trap dark) */
+    power: (intervals) => {
+        const root = intervals[0];
+        return [root, root + 7, root + 12];
+    },
+    /** Sparse — root + 3rd only, 2 notes (trap/drill minimalism) */
+    sparse: (intervals) => {
+        if (intervals.length < 2) return intervals;
+        return [intervals[0], intervals[1]];
+    },
+    /** Wide — spread across 2+ octaves (ambient/cinematic/trance) */
+    wide: (intervals) => {
+        if (intervals.length <= 1) return intervals;
+        return intervals.map((n, i) => {
+            if (i === 0) return n;           // root stays
+            if (i % 3 === 1) return n + 12;  // voice up an octave
+            if (i % 3 === 2) return n - 12;  // voice down an octave
+            return n;
+        });
+    },
+    /** Rootless — drop root, let bass handle it (jazz/neo-soul) */
+    rootless: (intervals) => {
+        if (intervals.length <= 2) return intervals; // safety: keep at least 2 notes
+        return intervals.slice(1);
     }
 };
 
@@ -515,6 +544,111 @@ const CHORD_RHYTHM_STYLES = {
                     note, velocity: velocity * 0.8
                 });
             });
+        }
+        return notes;
+    },
+
+    /** Off-beat stabs — house/disco chord stabs on the "and" of each beat */
+    offbeat: (startTime, duration, chordNotes, velocity) => {
+        const notes = [];
+        const stabLen = Math.min(4, Math.floor(duration * 0.12));
+        // Off-beat positions within 32-step segments: &1, &2, &3, &4
+        const offbeats = [4, 12, 20, 28];
+        const barLen = 32;
+        for (let t = 0; t < duration; t += barLen) {
+            for (const pos of offbeats) {
+                if (t + pos >= duration) break;
+                if (coinFlip(0.85)) {
+                    chordNotes.forEach(note => {
+                        notes.push({
+                            time: startTime + t + pos, duration: stabLen,
+                            note, velocity: velocity * (pos === 4 ? 0.9 : 0.75 + Math.random() * 0.1)
+                        });
+                    });
+                }
+            }
+        }
+        return notes;
+    },
+
+    /** Trap staccato — short hits on 1 and 3 with optional ghost */
+    trap_staccato: (startTime, duration, chordNotes, velocity) => {
+        const notes = [];
+        const hitLen = Math.min(3, Math.floor(duration * 0.08));
+        const barLen = 32;
+        for (let t = 0; t < duration; t += barLen) {
+            // Hit on beat 1
+            chordNotes.forEach(note => {
+                notes.push({
+                    time: startTime + t, duration: hitLen,
+                    note, velocity: velocity * 0.95
+                });
+            });
+            // Hit on beat 3
+            if (t + 16 < duration) {
+                chordNotes.forEach(note => {
+                    notes.push({
+                        time: startTime + t + 16, duration: hitLen,
+                        note, velocity: velocity * 0.8
+                    });
+                });
+            }
+            // Optional ghost hit on beat 4
+            if (t + 24 < duration && coinFlip(0.3)) {
+                chordNotes.forEach(note => {
+                    notes.push({
+                        time: startTime + t + 24, duration: hitLen,
+                        note, velocity: velocity * 0.55
+                    });
+                });
+            }
+        }
+        return notes;
+    },
+
+    /** Ambient swell — long sustain with low initial velocity, re-trigger */
+    ambient_swell: (startTime, duration, chordNotes, velocity) => {
+        const notes = [];
+        // Main chord — full sustain at reduced velocity (implied swell)
+        chordNotes.forEach(note => {
+            notes.push({
+                time: startTime, duration: duration * 0.95,
+                note, velocity: velocity * 0.6
+            });
+        });
+        // Re-trigger at 75% through at higher velocity for "bloom" feel
+        if (duration >= 16) {
+            const reTime = startTime + Math.floor(duration * 0.75);
+            chordNotes.forEach(note => {
+                notes.push({
+                    time: reTime, duration: Math.floor(duration * 0.2),
+                    note, velocity: velocity * 0.8
+                });
+            });
+        }
+        return notes;
+    },
+
+    /** Boom bap chop — MPC-style rhythmic chord chops */
+    boom_bap_chop: (startTime, duration, chordNotes, velocity) => {
+        const notes = [];
+        // Classic MPC chop positions within 32-step bar
+        const chopPositions = [0, 8, 14, 24];
+        const barLen = 32;
+        for (let t = 0; t < duration; t += barLen) {
+            for (const pos of chopPositions) {
+                if (t + pos >= duration) break;
+                if (coinFlip(0.85)) {
+                    const chopLen = 4 + Math.floor(Math.random() * 3); // 4-6 steps
+                    const chopVel = 0.7 + Math.random() * 0.2;
+                    chordNotes.forEach(note => {
+                        notes.push({
+                            time: startTime + t + pos, duration: chopLen,
+                            note, velocity: velocity * chopVel
+                        });
+                    });
+                }
+            }
         }
         return notes;
     }
@@ -621,14 +755,11 @@ export function generateChordPattern({
         || CHORD_PROGRESSIONS.pop_simple;
     const progression = pick(progSet);
 
-    // 2. Determine voicing and rhythm style from genre
-    const voicingName = weighted([
-        ['close', gd.chordComplexity === 'simple' ? 3 : 1],
-        ['open', 2],
-        ['drop-2', gd.chordComplexity === 'complex' ? 3 : 0.5],
-        ['spread', 1],
-        ['shell', gd.chordComplexity === 'complex' ? 1.5 : 0.3]
-    ]);
+    // 2. Determine voicing and rhythm style from genre (genre-specific weights)
+    const voicingWeights = GENRE_VOICING_WEIGHTS[progType];
+    const voicingName = voicingWeights
+        ? weighted(voicingWeights)
+        : weighted([['close', 3], ['open', 2]]);  // safe fallback
 
     const rhythmStyle = selectChordRhythm(genre, complexity);
     const voicingFn = VOICING_STRATEGIES[voicingName] || VOICING_STRATEGIES.close;
@@ -664,6 +795,18 @@ export function generateChordPattern({
 
         // Apply voice leading (minimize movement from previous chord)
         rawNotes = voiceLead(prevChordNotes, rawNotes);
+
+        // Genre-weighted inversion override: some genres prefer root position
+        const invWeights = GENRE_INVERSION_WEIGHTS[progType];
+        if (invWeights && prevChordNotes) {
+            const roll = Math.random() * (invWeights[0] + invWeights[1] + invWeights[2]);
+            if (roll < invWeights[0]) {
+                // Force root position: reset to un-inverted voicing
+                rawNotes = voicingFn(intervals.map(interval => chordRoot + interval));
+            }
+            // else: keep the voice-led inversion (1st or 2nd)
+        }
+
         prevChordNotes = rawNotes;
 
         // Apply rhythmic style
@@ -716,20 +859,26 @@ export function generateChordPattern({
 
 /** Select chord rhythm style based on genre characteristics */
 function selectChordRhythm(genre, complexity) {
-    if (complexity === 'simple') return 'pad';
     const gd = genreData(genre);
-    const style = gd.grooveStyle || 'standard';
+    const progType = gd.typicalProgressionType || 'pop';
 
-    // Map groove styles to rhythm types
+    // Genre-specific rhythm selection (works for both simple and complex)
+    const rhythmMap = GENRE_CHORD_RHYTHM_MAP[progType];
+    if (rhythmMap) {
+        const choices = rhythmMap[complexity] || rhythmMap['simple'];
+        if (choices && choices.length > 0) return weighted(choices);
+    }
+
+    // Fallback for unmapped genres: use grooveStyle mapping
+    if (complexity === 'simple') return 'pad';
+    const style = gd.grooveStyle || 'standard';
     const mapping = {
         'driving': 'pulse', 'relentless': 'pulse', 'hypnotic': 'pulse',
         'euphoric': 'arpeggio', 'progressive': 'arpeggio', 'bouncy': 'arpeggio',
         'funky': 'stab', 'halftime': 'stab', 'aggressive': 'stab',
         'swinging': 'strum', 'neo-soul': 'strum', 'offbeat': 'strum',
         'smooth': 'pad', 'ambient': 'pad', 'relaxed': 'pad',
-        'laid-back': complexity === 'complex' ? 'strum' : 'pad',
-        'heavy': complexity === 'complex' ? 'stab' : 'pad',
-        'polished': complexity === 'complex' ? 'pulse' : 'pad'
+        'laid-back': 'strum', 'heavy': 'stab', 'polished': 'pulse'
     };
 
     return mapping[style] || (complexity === 'complex' ? 'stab' : 'pad');
@@ -1303,8 +1452,8 @@ const BASS_STYLES = {
         return notes;
     },
 
-    /** 808 with slide/glide markers */
-    '808_slide': (startTime, duration, chordRoot, scale, density) => {
+    /** 808 with slide/glide markers — slides toward next chord root when known */
+    '808_slide': (startTime, duration, chordRoot, scale, density, nextChordRoot) => {
         const notes = [];
         notes.push({
             time: startTime, duration: Math.floor(duration * 0.9),
@@ -1313,10 +1462,19 @@ const BASS_STYLES = {
         // Glide note before next chord
         if (duration >= 16 && coinFlip(0.5)) {
             const glideTime = startTime + duration - 4;
-            const glideTo = chordRoot + pick([2, 3, 5, 7]); // approach from scale tone
+            let glideTo;
+            if (nextChordRoot != null && nextChordRoot !== chordRoot) {
+                // Slide toward next chord root (1-3 semitones in its direction)
+                const dir = Math.sign(nextChordRoot - chordRoot) || 1;
+                glideTo = chordRoot + dir * pick([1, 2, 3]);
+            } else {
+                // Fallback: approach from scale tone
+                glideTo = chordRoot + pick([2, 3, 5, 7]);
+            }
             notes.push({
                 time: glideTime, duration: 4,
-                note: glideTo, velocity: 0.7
+                note: glideTo, velocity: 0.7,
+                slide: true
             });
         }
         return notes;
@@ -1716,6 +1874,54 @@ const BASS_STYLES = {
 Object.assign(BASS_STYLES, BASS_STYLES_EXPANSION);
 
 /**
+ * Apply a named 808 bounce pattern from BOUNCE_PATTERN_DEFS.
+ * Generates note events for a single chord segment.
+ *
+ * @param {string} patternName  Key in BOUNCE_PATTERN_DEFS
+ * @param {number} startTime    Segment start step
+ * @param {number} duration     Segment duration in steps
+ * @param {number} bassRoot     MIDI note for chord root
+ * @param {Array}  scale        Scale intervals
+ * @param {number|null} nextRoot MIDI note for next chord root (for slides)
+ * @returns {Array<{time,duration,note,velocity,slide?}>}
+ */
+function applyBouncePattern(patternName, startTime, duration, bassRoot, scale, nextRoot) {
+    const def = BOUNCE_PATTERN_DEFS[patternName];
+    if (!def) return [{ time: startTime, duration: Math.floor(duration * 0.85), note: bassRoot, velocity: 0.9 }];
+
+    const notes = [];
+    for (const hit of def) {
+        // Resolve step: negative means "N steps before end of segment"
+        const step = hit.step < 0 ? Math.max(0, duration + hit.step) : hit.step;
+        if (step >= duration) continue;
+
+        const noteDur = Math.max(2, Math.floor(duration * hit.durationFrac));
+        let pitch = bassRoot;
+
+        // Slide notes approach the next chord root
+        if (hit.slide && nextRoot != null) {
+            const direction = Math.sign(nextRoot - bassRoot) || 1;
+            pitch = bassRoot + direction * pick([1, 2, 3]);
+        }
+
+        notes.push({
+            time: startTime + step,
+            duration: Math.min(noteDur, duration - step),
+            note: pitch,
+            velocity: hit.velocity,
+            ...(hit.slide ? { slide: true } : {})
+        });
+    }
+
+    // Safety: always produce at least one note
+    if (notes.length === 0) {
+        notes.push({ time: startTime, duration: Math.floor(duration * 0.85), note: bassRoot, velocity: 0.9 });
+    }
+
+    return notes;
+}
+
+/**
  * Generate a professional bassline pattern.
  *
  * @param {Object} params
@@ -1766,13 +1972,32 @@ export function generateBassPattern({
     // Determine chord roots from chord pattern or progression
     const chordRoots = extractChordRoots(chordPattern, root, scaleName, genre, complexity, totalSteps);
 
+    // Check for 808 bounce patterns (trap/drill/phonk)
+    const progType = gd.typicalProgressionType || 'pop';
+    const bounceChoices = GENRE_808_PATTERNS[progType];
+    const useBounce = bounceChoices && (bassStyleName === '808' || bassStyleName === '808_slide' || bassStyleName === 'cowbell');
+    const selectedBounce = useBounce ? weighted(bounceChoices) : null;
+
     // Generate bass for each chord segment
     const notes = [];
 
     for (let i = 0; i < chordRoots.length; i++) {
         const { startTime, duration, chordRoot } = chordRoots[i];
         const bassRoot = chordRoot - (chordRoot >= root + 24 ? 24 : chordRoot >= root + 12 ? 12 : 0);
-        const segmentNotes = bassStyleFn(startTime, duration, bassRoot, scale, finalDensity);
+
+        // Next chord root for slides/approach
+        const nextRoot = (i + 1 < chordRoots.length)
+            ? chordRoots[i + 1].chordRoot - (chordRoots[i + 1].chordRoot >= root + 24 ? 24 : chordRoots[i + 1].chordRoot >= root + 12 ? 12 : 0)
+            : null;
+
+        let segmentNotes;
+        if (selectedBounce) {
+            // Use genre-specific 808 bounce pattern
+            segmentNotes = applyBouncePattern(selectedBounce, startTime, duration, bassRoot, scale, nextRoot);
+        } else {
+            // Use standard bass style, passing nextRoot for 808_slide awareness
+            segmentNotes = bassStyleFn(startTime, duration, bassRoot, scale, finalDensity, nextRoot);
+        }
         notes.push(...segmentNotes);
 
         // Complex: add chromatic/scale approach note before next chord change

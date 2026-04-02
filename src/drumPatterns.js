@@ -61,6 +61,7 @@ const FAMILY_MAP = {
     funk: { family: 'GROOVE', variant: 'funk' },
     rnb: { family: 'GROOVE', variant: 'rnb' },
     orchestral: { family: 'GROOVE', variant: 'orchestral' },
+    gospel: { family: 'GROOVE', variant: 'gospel' },
     ...NEW_FAMILY_MAP_ENTRIES
 };
 
@@ -93,6 +94,243 @@ function tripletProb(density) {
 
 function rollProb(density) {
     return Math.max(0, (density - 0.6) * 2.0);
+}
+
+// ─── Genre Profiles ────────────────────────────────────────────────────────
+// Controls all genre-specific behavior: swing, phrase structure, coordination rules
+
+const GENRE_PROFILES = {
+    TRAP: {
+        trap: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB',
+            snareMainBeats: [16], _808FollowsKick: true,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '8th',
+            hatAllowRolls: true, hatRollResolutions: ['16th', '32nd', 'triplet'],
+            ghostSnareVelocity: [30, 50], fillIntensity: 0.6, kickMaxPerBar: 3,
+        },
+        drill: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [16, 24], _808FollowsKick: true,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: 'tresillo',
+            hatAllowRolls: true, hatRollResolutions: ['16th', '32nd'],
+            ghostSnareVelocity: [30, 50], fillIntensity: 0.5,
+        },
+    },
+    BOOM_BAP: {
+        boom_bap: {
+            swing: 0.58, swingStyle: 'mpc', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [30, 40], fillIntensity: 0.3,
+        },
+        lofi: {
+            swing: 0.62, swingStyle: 'lazy', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [25, 40], fillIntensity: 0.2,
+        },
+    },
+    FOUR_ON_FLOOR: {
+        four_on_floor: {
+            swing: 0.55, swingStyle: 'standard', phraseStructure: 'AAAB',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: 'offbeat',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.4,
+        },
+        trance: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: 'offbeat',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3,
+        },
+        retro: {
+            swing: 0.53, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3,
+        },
+    },
+    TECHNO: {
+        techno: {
+            swing: 0.52, swingStyle: 'standard', phraseStructure: 'AAAB',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '16th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3,
+        },
+    },
+    BASS_MUSIC: {
+        dubstep: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB',
+            snareMainBeats: [16], _808FollowsKick: true,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '8th',
+            hatAllowRolls: true, hatRollResolutions: ['16th', '32nd'],
+            ghostSnareVelocity: [35, 55], fillIntensity: 0.6,
+        },
+        dnb: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '16th',
+            hatAllowRolls: false, ghostSnareVelocity: [35, 55], fillIntensity: 0.5,
+        },
+        future_bass: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB',
+            snareMainBeats: [16], _808FollowsKick: true,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '8th',
+            hatAllowRolls: true, hatRollResolutions: ['16th'],
+            ghostSnareVelocity: [35, 55], fillIntensity: 0.4,
+        },
+    },
+    WORLD: {
+        reggae: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [16], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.2,
+        },
+        reggaeton: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABB',
+            snareMainBeats: [12, 28], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3,
+        },
+        afrobeat: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '16th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.4,
+        },
+        latin: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3,
+        },
+    },
+    GROOVE: {
+        jazz: {
+            swing: 0.67, swingStyle: 'triplet', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: 'triplet',
+            hatAllowRolls: false, ghostSnareVelocity: [30, 45], fillIntensity: 0.4,
+            primaryCymbal: 'ride',
+        },
+        funk: {
+            swing: 0.55, swingStyle: 'mpc', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '16th',
+            hatAllowRolls: false, ghostSnareVelocity: [30, 50], fillIntensity: 0.5,
+        },
+        rnb: {
+            swing: 0.63, swingStyle: 'lazy', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [25, 40], fillIntensity: 0.2,
+        },
+        orchestral: {
+            swing: 0, swingStyle: 'standard', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: false, hatBaseResolution: '8th',
+            hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3,
+        },
+        gospel: {
+            swing: 0.60, swingStyle: 'triplet', phraseStructure: 'AABA',
+            snareMainBeats: [8, 24], _808FollowsKick: false,
+            hatVelocityDipOnKickSnare: true, hatBaseResolution: '16th',
+            hatAllowRolls: false, ghostSnareVelocity: [25, 40], fillIntensity: 0.4,
+        },
+    },
+    // Expansion families — defaults for families from drumPatternsExpansion
+    BREAKBEAT: { breakbeat: { swing: 0, swingStyle: 'standard', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '16th', hatAllowRolls: false, ghostSnareVelocity: [35, 55], fillIntensity: 0.5 },
+                 big_beat: { swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.5 },
+                 jungle: { swing: 0, swingStyle: 'standard', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '16th', hatAllowRolls: true, hatRollResolutions: ['32nd'], ghostSnareVelocity: [35, 55], fillIntensity: 0.6 } },
+    ELECTRO: { electro: { swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '16th', hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.4 },
+               electro_funk: { swing: 0.55, swingStyle: 'mpc', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '16th', hatAllowRolls: false, ghostSnareVelocity: [35, 55], fillIntensity: 0.4 } },
+    METAL: { metal: { swing: 0, swingStyle: 'standard', phraseStructure: 'AABB', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [50, 70], fillIntensity: 0.7, doubleKick: true },
+             thrash: { swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [50, 70], fillIntensity: 0.8, doubleKick: true },
+             blast_beat: { swing: 0, swingStyle: 'standard', phraseStructure: 'AAAB', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [60, 80], fillIntensity: 0.9, doubleKick: true } },
+    INDIE: { indie_rock: { swing: 0, swingStyle: 'standard', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.4 },
+             indie_pop: { swing: 0.52, swingStyle: 'standard', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.3 },
+             post_punk: { swing: 0, swingStyle: 'standard', phraseStructure: 'AABB', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [40, 60], fillIntensity: 0.4 } },
+    COUNTRY: { country: { swing: 0.52, swingStyle: 'standard', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [25, 40], fillIntensity: 0.3, trainBeat: true },
+               bluegrass: { swing: 0.55, swingStyle: 'mpc', phraseStructure: 'AABA', snareMainBeats: [8, 24], _808FollowsKick: false, hatBaseResolution: '8th', hatAllowRolls: false, ghostSnareVelocity: [30, 45], fillIntensity: 0.3 } },
+};
+
+function getGenreProfile(family, variant) {
+    return (GENRE_PROFILES[family] && GENRE_PROFILES[family][variant])
+        || (GENRE_PROFILES[family] && GENRE_PROFILES[family][Object.keys(GENRE_PROFILES[family])[0]])
+        || GENRE_PROFILES.BOOM_BAP.boom_bap;
+}
+
+// ─── Beat Context Cache ────────────────────────────────────────────────────
+// Persists across per-drum calls within a single generation batch so drums
+// can coordinate (kick↔snare↔808↔hat).
+
+let _beatContext = null;
+let _beatContextTs = 0;
+
+export function resetBeatContext() {
+    _beatContext = null;
+    _beatContextTs = 0;
+}
+
+function getBeatContext(family, variant, density, complexity) {
+    // Context is valid for 50ms window (covers all drums in one batch)
+    const now = Date.now();
+    if (_beatContext && (now - _beatContextTs) < 50) {
+        return _beatContext;
+    }
+    _beatContext = generateBeatContext(family, variant, density, complexity);
+    _beatContextTs = now;
+    return _beatContext;
+}
+
+function generateBeatContext(family, variant, density, complexity) {
+    const profile = getGenreProfile(family, variant);
+    const totalSteps = 128; // always 4 bars
+    const stepsPerBar = 32;
+    const phrase = profile.phraseStructure || 'AABA';
+
+    // Select ONE kick skeleton for "A" bars, one for "B" bars
+    const kickSkels = (KICK_SKELETONS[family] && KICK_SKELETONS[family][variant])
+        || KICK_SKELETONS.BOOM_BAP.boom_bap;
+    const snareSkels = (SNARE_SKELETONS[family] && SNARE_SKELETONS[family][variant])
+        || SNARE_SKELETONS.BOOM_BAP.boom_bap;
+
+    const mainKickSkel = getRandomSelection(kickSkels, `ctx_kick_A_${family}_${variant}`);
+    const varKickSkel = getRandomSelection(kickSkels, `ctx_kick_B_${family}_${variant}`);
+    const mainSnareSkel = getRandomSelection(snareSkels, `ctx_snare_A_${family}_${variant}`);
+    const varSnareSkel = getRandomSelection(snareSkels, `ctx_snare_B_${family}_${variant}`);
+
+    // Build 4-bar patterns following phrase structure
+    const kickPattern = new Array(totalSteps).fill(false);
+    const snarePattern = new Array(totalSteps).fill(false);
+
+    const barMap = {
+        'AAAB': [0, 0, 0, 1], 'AABA': [0, 0, 1, 0], 'AABB': [0, 0, 1, 1],
+    };
+    const indices = barMap[phrase] || barMap['AABA'];
+    const kickVariants = [mainKickSkel, varKickSkel];
+    const snareVariants = [mainSnareSkel, varSnareSkel];
+
+    for (let bar = 0; bar < 4; bar++) {
+        const offset = bar * stepsPerBar;
+        const idx = indices[bar];
+        kickVariants[idx].forEach(pos => {
+            if (offset + pos < totalSteps) kickPattern[offset + pos] = true;
+        });
+        snareVariants[idx].forEach(pos => {
+            if (offset + pos < totalSteps) snarePattern[offset + pos] = true;
+        });
+    }
+
+    // Determine fill bar based on phrase
+    const fillBar = phrase === 'AAAB' ? 3 : (phrase === 'AABA' ? 2 : 3);
+
+    return {
+        kickPattern, snarePattern, phraseStructure: phrase, fillBar,
+        swingAmount: profile.swing || 0, swingStyle: profile.swingStyle || 'standard',
+        profile, family, variant, density,
+    };
 }
 
 // ─── Skeleton Segment Tables ────────────────────────────────────────────────
@@ -242,6 +480,12 @@ const KICK_SKELETONS = {
             [0], [0, 16], [0, 8], [0, 24], [0, 8, 16], [0, 16, 24],
             [0, 8, 24], [0, 4], [0, 12], [0, 20], [0, 8, 16, 24],
             [0, 4, 16], [0, 12, 24]
+        ],
+        // Gospel: kick on 1 and 3, sometimes sparse comping
+        gospel: [
+            [0, 16], [0, 16, 24], [0, 8, 16], [0, 16, 20], [0, 12, 16],
+            [0, 4, 16], [0, 16, 28], [0, 8, 16, 24], [0, 16, 22],
+            [0, 6, 16], [0, 16, 20, 28], [0, 12, 16, 24]
         ]
     }
 };
@@ -278,7 +522,8 @@ const KICK_REFINEMENTS = {
         jazz: [4, 8, 12, 16, 20, 24, 28],
         funk: [2, 4, 8, 10, 16, 18, 22, 24, 28, 30],
         rnb: [4, 6, 10, 12, 14, 20, 22, 28],
-        orchestral: [4, 8, 12, 20, 24, 28]
+        orchestral: [4, 8, 12, 20, 24, 28],
+        gospel: [4, 6, 10, 12, 14, 20, 22, 28]
     }
 };
 
@@ -395,6 +640,11 @@ const SNARE_SKELETONS = {
         orchestral: [
             [8, 24], [16], [8, 16, 24], [16, 24], [8, 16],
             [24], [8], [16, 28], [0, 16], [8, 24, 16]
+        ],
+        // Gospel: accented backbeat on 2&4 with ghost setup
+        gospel: [
+            [8, 24], [8, 20, 24], [8, 16, 24], [4, 8, 24], [8, 24, 28],
+            [8, 12, 24], [8, 24, 30], [8, 22, 24], [8, 24, 26], [8, 20, 24, 28]
         ]
     }
 };
@@ -436,7 +686,8 @@ const SNARE_GHOST_POSITIONS = {
         jazz: [2, 4, 6, 10, 12, 14, 18, 20, 22, 26, 28, 30],
         funk: [2, 4, 6, 10, 12, 14, 18, 20, 22, 26, 28, 30],
         rnb: [4, 6, 12, 14, 20, 22, 28, 30],
-        orchestral: [4, 12, 20, 28]
+        orchestral: [4, 12, 20, 28],
+        gospel: [2, 4, 6, 10, 12, 14, 18, 20, 22, 26, 28, 30]
     }
 };
 
@@ -558,6 +809,12 @@ const HAT_SKELETONS = {
         orchestral: [
             [0, 16], [0, 8, 16, 24], [0, 24], [4, 12, 20, 28],
             [0, 4, 16], [0, 8, 24], [0, 16, 24], [0, 12, 16]
+        ],
+        // Gospel: 8th or 16th notes, similar to funk feel
+        gospel: [
+            [0, 8, 16, 24], [0, 4, 8, 12, 16, 20, 24, 28], [0, 16, 24],
+            [0, 8, 24], [0, 4, 8, 16, 24, 28], [0, 8, 16, 20, 24],
+            [0, 4, 12, 16, 24], [0, 8, 12, 20, 24, 28]
         ]
     }
 };
@@ -666,6 +923,10 @@ const OPENHAT_SKELETONS = {
         orchestral: [
             [4, 20], [12], [28], [4, 28], [12, 20], [20],
             [4, 12], [4], [12, 28], [24]
+        ],
+        gospel: [
+            [4, 20], [12, 28], [4, 28], [12, 20],
+            [4, 12], [20, 28], [4, 12, 28], [4, 20, 28]
         ]
     }
 };
@@ -708,7 +969,8 @@ const PERC_MOTIFS = {
         jazz: [[0], [0, 4], [4], [0, 2], [0, 3, 6], [1, 4], [0, 2, 5], [3, 5, 7]],
         funk: [[0, 2, 4, 6], [0, 4], [0, 2, 4], [0, 3, 6], [1, 3, 5, 7], [2, 4, 6], [0, 1, 4, 6]],
         rnb: [[0], [0, 4], [4], [0, 3, 6], [1, 4], [0, 2, 5], [2, 6]],
-        orchestral: [[0], [0, 4], [0, 3, 6], [1, 4], [0, 2, 5], [2, 6]]
+        orchestral: [[0], [0, 4], [0, 3, 6], [1, 4], [0, 2, 5], [2, 6]],
+        gospel: [[0, 2, 4, 6], [0, 4], [0, 2, 4], [0, 3, 6], [1, 3, 5, 7], [2, 4, 6], [0, 1, 4, 6]]
     }
 };
 
@@ -775,30 +1037,39 @@ mergeDrumExpansion(PATTERNS_808, PATTERNS_808_EXPANSION);
  * Generates sparse, heavy sub-bass patterns that complement the kick.
  * Genre-aware: Trap gets sliding 808s, Boom Bap gets accent hits, etc.
  */
-function generate808(lanes, family, variant, totalSteps, density) {
+function generate808(lanes, family, variant, totalSteps, density, beatContext) {
     const root = lanes['root'];
     const stepsPerBar = 32;
     const numBars = Math.floor(totalSteps / stepsPerBar);
+    const profile = beatContext?.profile || {};
+    const dur808 = family === 'TRAP' ? 12 : 8;
 
-    const familyPatterns = PATTERNS_808[family] || PATTERNS_808.TRAP;
-    const skeleton = familyPatterns[Math.floor(Math.random() * familyPatterns.length)];
-
-    for (let bar = 0; bar < numBars; bar++) {
-        const barOffset = bar * stepsPerBar;
+    // When profile says 808 follows kick, mirror kick timing with sustained notes
+    if (profile._808FollowsKick && beatContext?.kickPattern) {
+        for (let s = 0; s < totalSteps; s++) {
+            if (beatContext.kickPattern[s]) {
+                root.pattern[s] = true;
+                root.duration[s] = dur808;
+                root.velocity[s] = 100 + Math.floor(Math.random() * 20);
+            }
+        }
+    } else {
+        // Independent 808: use full multi-bar skeleton patterns
+        const familyPatterns = PATTERNS_808[family] || PATTERNS_808.TRAP;
+        const skeleton = getRandomSelection(familyPatterns, `808_${family}`);
         skeleton.forEach(step => {
-            if (step < stepsPerBar) {
-                const globalStep = barOffset + step;
-                if (globalStep < totalSteps) {
-                    root.pattern[globalStep] = true;
-                    // 808s have longer duration (sustain) — 8 to 16 steps
-                    root.duration[globalStep] = family === 'TRAP' ? 12 : 8;
-                    root.velocity[globalStep] = 100 + Math.floor(Math.random() * 20);
-                }
+            if (step < totalSteps) {
+                root.pattern[step] = true;
+                root.duration[step] = dur808;
+                root.velocity[step] = 100 + Math.floor(Math.random() * 20);
             }
         });
+    }
 
-        // Add occasional variation hits at higher density
+    // Add occasional variation hits at higher density (per-bar)
+    for (let bar = 0; bar < numBars; bar++) {
         if (density > 0.6 && Math.random() < 0.3) {
+            const barOffset = bar * stepsPerBar;
             const extraStep = barOffset + [4, 8, 20, 28][Math.floor(Math.random() * 4)];
             if (extraStep < totalSteps && !root.pattern[extraStep]) {
                 root.pattern[extraStep] = true;
@@ -809,63 +1080,73 @@ function generate808(lanes, family, variant, totalSteps, density) {
     }
 }
 
-function generateKick(lanes, family, variant, totalSteps, density) {
+function generateKick(lanes, family, variant, totalSteps, density, beatContext) {
     const root = lanes['root'];
 
-    // "Professional" Kick Logic
-    // 1. Prioritize Genre Identity: Use specific skeletons for the genre.
-    // 2. Enforce Sparseness: Avoid cluttering the low end.
-    // 3. Control Randomness: Ghost notes are applied sparingly and only at high density.
-
-    const skeletons = (KICK_SKELETONS[family] && KICK_SKELETONS[family][variant])
-        || KICK_SKELETONS.BOOM_BAP.boom_bap;
-
-    // Refinements (Ghost notes) - mapped by family
-    const refinements = (KICK_REFINEMENTS[family] && KICK_REFINEMENTS[family][variant])
-        || [];
-
-    for (let b = 0; b < totalSteps; b += 32) {
-        // Phase 1: Skeleton (The Core Groove)
-        // We pick one skeleton for this bar (or sections of bars) to maintain groove.
-        const skel = getRandomSelection(skeletons);
-
-        skel.forEach(pos => {
-            const step = b + pos;
-            if (step < totalSteps) {
-                root.pattern[step] = true;
-                root.velocity[step] = 115; // Hard hit for main kicks
+    // Use coordinated kick pattern from beat context if available
+    if (beatContext && beatContext.kickPattern) {
+        for (let s = 0; s < totalSteps; s++) {
+            if (beatContext.kickPattern[s]) {
+                root.pattern[s] = true;
+                root.velocity[s] = 115;
             }
-        });
-
-        // Phase 2: Controlled Variance (Ghost Notes)
-        // Only apply if density is high enough (> 0.6)
-        // And even then, keep it sparse (probability checked against density)
-        if (density > 0.6 && refinements.length > 0) {
-            refinements.forEach(pos => {
+        }
+    } else {
+        // Fallback: existing skeleton logic
+        const skeletons = (KICK_SKELETONS[family] && KICK_SKELETONS[family][variant])
+            || KICK_SKELETONS.BOOM_BAP.boom_bap;
+        for (let b = 0; b < totalSteps; b += 32) {
+            const skel = getRandomSelection(skeletons);
+            skel.forEach(pos => {
                 const step = b + pos;
-                // Avoid adjacent kicks (unless it's a specific double-kick genre like Metal/DnB, but generally safe to avoid)
-                if (step < totalSteps && !root.pattern[step]) {
-                    const prev = step > 0 ? root.pattern[step - 1] : false;
-                    const next = step < totalSteps - 1 ? root.pattern[step + 1] : false;
-
-                    if (!prev && !next) {
-                        // Scaled probability: 
-                        // Density 0.6 -> 0% chance
-                        // Density 1.0 -> 30% chance
-                        const prob = (density - 0.6) * 0.75;
-
-                        if (Math.random() < prob) {
-                            root.pattern[step] = true;
-                            root.velocity[step] = 85; // Softer ghost kick
-                        }
-                    }
+                if (step < totalSteps) {
+                    root.pattern[step] = true;
+                    root.velocity[step] = 115;
                 }
             });
         }
     }
+
+    // Metal double kick: fill between main kicks with alternating velocity
+    if (beatContext?.profile?.doubleKick) {
+        const doubleKickVel = [84, 70, 59, 44]; // alternating foot velocity curve
+        for (let b = 0; b < totalSteps; b += 32) {
+            // Fill 16th note positions between existing kick hits
+            for (let s = 0; s < 32; s += 2) {
+                const step = b + s;
+                if (step < totalSteps && !root.pattern[step]) {
+                    if (Math.random() < density * 0.6) {
+                        root.pattern[step] = true;
+                        root.velocity[step] = doubleKickVel[Math.floor(s / 2) % doubleKickVel.length];
+                    }
+                }
+            }
+        }
+    } else {
+        // Phase 2: Controlled Ghost Notes (standard genres)
+        const refinements = (KICK_REFINEMENTS[family] && KICK_REFINEMENTS[family][variant]) || [];
+        if (density > 0.6 && refinements.length > 0) {
+            for (let b = 0; b < totalSteps; b += 32) {
+                refinements.forEach(pos => {
+                    const step = b + pos;
+                    if (step < totalSteps && !root.pattern[step]) {
+                        const prev = step > 0 ? root.pattern[step - 1] : false;
+                        const next = step < totalSteps - 1 ? root.pattern[step + 1] : false;
+                        if (!prev && !next) {
+                            const prob = (density - 0.6) * 0.75;
+                            if (Math.random() < prob) {
+                                root.pattern[step] = true;
+                                root.velocity[step] = 85;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    }
 }
 
-function generateSnareClap(lanes, family, variant, totalSteps, density, drumType) {
+function generateSnareClap(lanes, family, variant, totalSteps, density, drumType, beatContext) {
     const root = lanes['root'];
     const laneNeg1 = lanes['lane_neg1'];
     const laneNeg2 = lanes['lane_neg2'];
@@ -878,42 +1159,83 @@ function generateSnareClap(lanes, family, variant, totalSteps, density, drumType
     lane1.pitch = 1.5;
     lane2.pitch = 3;
 
-    const skeletons = (SNARE_SKELETONS[family] && SNARE_SKELETONS[family][variant])
-        || SNARE_SKELETONS.BOOM_BAP.boom_bap;
     const ghostPositions = (SNARE_GHOST_POSITIONS[family] && SNARE_GHOST_POSITIONS[family][variant])
         || SNARE_GHOST_POSITIONS.BOOM_BAP.boom_bap;
 
-    for (let b = 0; b < totalSteps; b += 32) {
-        // Phase 1: Skeleton — main hits on root
-        const skel = getRandomSelection(skeletons);
-        skel.forEach(pos => {
-            const step = b + pos;
-            if (step < totalSteps) {
-                root.pattern[step] = true;
-                root.velocity[step] = 100;
-
-                // Flam: 1-step-separated double hit (probability scales with density)
+    // Use coordinated snare pattern from beat context if available
+    if (beatContext && beatContext.snarePattern) {
+        for (let s = 0; s < totalSteps; s++) {
+            if (beatContext.snarePattern[s]) {
+                root.pattern[s] = true;
+                root.velocity[s] = 100;
+                // Flam for clap
                 if ((drumType === 'clap' || Math.random() < density * 0.2) && Math.random() < 0.25) {
-                    const flamStep = step + 1;
-                    if (flamStep < totalSteps) {
-                        root.pattern[flamStep] = true;
-                        root.velocity[flamStep] = 100;
+                    if (s + 1 < totalSteps) {
+                        root.pattern[s + 1] = true;
+                        root.velocity[s + 1] = 100;
                     }
                 }
             }
-        });
+        }
+    } else {
+        // Fallback: existing per-bar skeleton logic
+        const skeletons = (SNARE_SKELETONS[family] && SNARE_SKELETONS[family][variant])
+            || SNARE_SKELETONS.BOOM_BAP.boom_bap;
+        for (let b = 0; b < totalSteps; b += 32) {
+            const skel = getRandomSelection(skeletons);
+            skel.forEach(pos => {
+                const step = b + pos;
+                if (step < totalSteps) {
+                    root.pattern[step] = true;
+                    root.velocity[step] = 100;
+                    if ((drumType === 'clap' || Math.random() < density * 0.2) && Math.random() < 0.25) {
+                        if (step + 1 < totalSteps) {
+                            root.pattern[step + 1] = true;
+                            root.velocity[step + 1] = 100;
+                        }
+                    }
+                }
+            });
+        }
+    }
 
-        // Phase 2: Ghost notes filtered by density
-        ghostPositions.forEach(pos => {
-            const step = b + pos;
-            if (step < totalSteps && !root.pattern[step]) {
-                const s = step % 2 === 0 ? step : step - 1;
-                if (!root.pattern[s] && Math.random() < eighthProb(density) * 0.35) {
-                    root.pattern[s] = true;
-                    root.velocity[s] = 100;
+    // Country train beat: 16th note snare pattern with ghosts on 1&3, accents on 2&4
+    if (beatContext?.profile?.trainBeat) {
+        for (let b = 0; b < totalSteps; b += 32) {
+            for (let s = 0; s < 32; s += 2) {
+                const step = b + s;
+                if (step >= totalSteps) break;
+                const beat = Math.floor(s / 8); // 0-3
+                if (beat === 1 || beat === 3) {
+                    // Accented backbeat on 2 & 4
+                    if (s % 8 === 0) {
+                        root.pattern[step] = true;
+                        root.velocity[step] = 110;
+                    } else {
+                        root.pattern[step] = true;
+                        root.velocity[step] = 30 + Math.floor(Math.random() * 15);
+                    }
+                } else {
+                    // Ghost notes on 1 & 3
+                    root.pattern[step] = true;
+                    root.velocity[step] = 25 + Math.floor(Math.random() * 15);
                 }
             }
-        });
+        }
+    } else {
+        // Phase 2: Ghost notes filtered by density (standard path)
+        for (let b = 0; b < totalSteps; b += 32) {
+            ghostPositions.forEach(pos => {
+                const step = b + pos;
+                if (step < totalSteps && !root.pattern[step]) {
+                    const s = step % 2 === 0 ? step : step - 1;
+                    if (!root.pattern[s] && Math.random() < eighthProb(density) * 0.35) {
+                        root.pattern[s] = true;
+                        root.velocity[s] = 100;
+                    }
+                }
+            });
+        }
     }
 
     // Phase 3: Snare roll at end of bar 4 ONLY (steps 120-127)
@@ -944,124 +1266,119 @@ function generateSnareClap(lanes, family, variant, totalSteps, density, drumType
     }
 }
 
-function generateClosedHat(lanes, family, variant, totalSteps, density) {
+function generateClosedHat(lanes, family, variant, totalSteps, density, beatContext) {
     const root = lanes['root'];
-    // We repurpose lane_neg2 as the ONLY pitch variation lane (-3 semitones)
     const laneDown3 = lanes['lane_neg2'];
-
-    // Strict Pitch Rules:
-    // Root = 0
-    // Lane_Neg2 = -3
-    // All others unused/cleared just in case
     laneDown3.pitch = -3;
-
-    // Clear other lanes pitches to avoid confusion (though we won't place notes there)
-    lanes['lane_neg1'].pitch = 0; // effectively root
+    lanes['lane_neg1'].pitch = 0;
     lanes['lane_1'].pitch = 0;
     lanes['lane_2'].pitch = 0;
 
-    const skeletons = (HAT_SKELETONS[family] && HAT_SKELETONS[family][variant])
-        || HAT_SKELETONS.BOOM_BAP.boom_bap;
+    const profile = beatContext?.profile || {};
+    const baseRes = profile.hatBaseResolution || '8th';
+    const allowRolls = profile.hatAllowRolls || false;
+    const rollResolutions = profile.hatRollResolutions || ['16th'];
+    const totalBeats = Math.floor(totalSteps / 8);
 
-    // Genre-aware triplet probability: bounce-heavy genres get more triplets
-    const isBounceGenre = family === 'TRAP' || family === 'BOOM_BAP';
-    const baseTripletChance = isBounceGenre ? 0.65 : tripletProb(density) * 0.6;
-    const perStepTripletChance = isBounceGenre ? 0.45 : tripletProb(density) * 0.4;
-
-    // Phase 1: Place skeleton quarter-note hits on root
-    for (let b = 0; b < totalSteps; b += 32) {
-        const skel = getRandomSelection(skeletons);
-        skel.forEach(pos => {
-            const step = b + pos;
-            if (step < totalSteps) {
-                root.pattern[step] = true;
-                root.velocity[step] = 100;
-            }
-        });
-
-        // Phase 2: 8th and 16th note refinements per 8-step group
-        for (let g = 0; g < 32; g += 8) {
-            const groupStart = b + g;
-
-            // 8th note fills
-            HAT_EIGHTH_POSITIONS.forEach(offset => {
-                const step = groupStart + offset;
-                if (step < totalSteps && !root.pattern[step] && Math.random() < eighthProb(density)) {
-                    root.pattern[step] = true;
-                    root.velocity[step] = 100;
-                }
-            });
-
-            // 16th note fills
-            HAT_SIXTEENTH_POSITIONS.forEach(offset => {
-                const step = groupStart + offset;
-                if (step < totalSteps && !root.pattern[step] && Math.random() < sixteenthProb(density)) {
-                    root.pattern[step] = true;
-                    root.velocity[step] = 100;
-                }
-            });
+    // Helper to place a hat hit with proper velocity
+    const placeHit = (step, vel) => {
+        if (step >= 0 && step < totalSteps) {
+            root.pattern[step] = true;
+            root.velocity[step] = Math.max(40, Math.min(127, vel));
         }
+    };
 
-        // Triplets: odd-step hits adjacent to existing hits (creates bounce)
-        if (Math.random() < baseTripletChance) {
-            for (let s = b; s < b + 32 && s < totalSteps; s += 2) {
-                if (root.pattern[s] && s + 1 < totalSteps && !root.pattern[s + 1]) {
-                    if (Math.random() < perStepTripletChance) {
-                        root.pattern[s + 1] = true;
-                        root.velocity[s + 1] = 100;
-                    }
-                }
+    // STEP 1: Assign resolution per beat (8 steps each)
+    const beatResolutions = new Array(totalBeats);
+    for (let beat = 0; beat < totalBeats; beat++) {
+        beatResolutions[beat] = baseRes;
+
+        if (allowRolls && density > 0.5) {
+            // Before snare hits: upgrade to roll (classic "hat roll into snare")
+            const nextBeatStart = (beat + 1) * 8;
+            const nextIsSnare = beatContext?.snarePattern?.[nextBeatStart];
+            if (nextIsSnare && Math.random() < 0.55) {
+                beatResolutions[beat] = getRandomSelection(rollResolutions);
+            }
+            // Random roll sections for variety
+            else if (Math.random() < density * 0.12) {
+                beatResolutions[beat] = getRandomSelection(rollResolutions);
             }
         }
     }
 
-    // Phase 3: Pitch contour — STRICTLY between Root and Down3
-    const usePitchContour = Math.random() < 0.4;
+    // STEP 2: Place hits according to resolution map with proper velocity curves
+    for (let beat = 0; beat < totalBeats; beat++) {
+        const bs = beat * 8;
+        const res = beatResolutions[beat];
 
-    if (usePitchContour) {
-        let currentLaneId = 'root';
-        let direction = -1; // -1 means we want to go down to -3, 1 means back to root
+        switch (res) {
+            case '8th':
+                placeHit(bs, 100);
+                placeHit(bs + 4, 85);
+                break;
+            case '16th':
+                placeHit(bs, 100);
+                placeHit(bs + 2, 75);
+                placeHit(bs + 4, 90);
+                placeHit(bs + 6, 70);
+                break;
+            case '32nd':
+                // Ascending velocity ramp — the "building roll" before snare
+                for (let i = 0; i < 8; i++) {
+                    placeHit(bs + i, 50 + Math.round(i * (55 / 7)));
+                }
+                break;
+            case 'triplet':
+                // Triplet approximation: positions 0, 3, 5 within 8-step beat
+                placeHit(bs, 100);
+                placeHit(bs + 3, 85);
+                placeHit(bs + 5, 75);
+                break;
+            case 'tresillo':
+                // 3+3+2 drill pattern: positions 0, 3, 6
+                placeHit(bs, 95);
+                placeHit(bs + 3, 85);
+                placeHit(bs + 6, 80);
+                break;
+            case 'offbeat':
+                // House/techno offbeat hats: only position 4 (the "and")
+                placeHit(bs + 4, 95);
+                break;
+            default:
+                // Fallback to 8th
+                placeHit(bs, 100);
+                placeHit(bs + 4, 85);
+                break;
+        }
+    }
 
+    // STEP 3: Pitch contour — push some root hits to laneDown3 for tonal movement
+    if (Math.random() < 0.4) {
+        let currentLane = 'root';
         for (let s = 0; s < totalSteps; s++) {
-            if (root.pattern[s]) {
-                if (Math.random() > 0.6) { // Change pitch occasionally
-                    if (currentLaneId === 'root') {
-                        // Go down to -3
-                        currentLaneId = 'lane_neg2';
-                    } else {
-                        // Back to root
-                        currentLaneId = 'root';
-                    }
-                }
-
-                if (currentLaneId !== 'root') {
-                    root.pattern[s] = false;
-                    laneDown3.pattern[s] = true;
-                    laneDown3.velocity[s] = 100;
-                }
+            if (root.pattern[s] && Math.random() > 0.6) {
+                currentLane = currentLane === 'root' ? 'lane_neg2' : 'root';
+            }
+            if (root.pattern[s] && currentLane !== 'root') {
+                const vel = root.velocity[s];
+                root.pattern[s] = false;
+                laneDown3.pattern[s] = true;
+                laneDown3.velocity[s] = vel;
             }
         }
+    }
 
-        // Pitch roll: Only alternating Root / -3
-        if (Math.random() < rollProb(density) * 0.5) {
-            const rollBar = Math.floor(Math.random() * Math.min(2, totalSteps / 32));
-            const rollOffset = rollBar * 32 + (Math.random() > 0.5 ? 24 : 16);
-
-            // Alternating pattern
-            const pitchRollLanes = ['root', 'lane_neg2', 'root', 'lane_neg2', 'root'];
-
-            for (let i = 0; i < pitchRollLanes.length; i++) {
-                const s = rollOffset + i;
-                if (s < totalSteps) {
-                    Object.keys(lanes).forEach(lid => { lanes[lid].pattern[s] = false; });
-                    if (pitchRollLanes[i] === 'lane_neg2') {
-                        laneDown3.pattern[s] = true;
-                        laneDown3.velocity[s] = 100;
-                    } else {
-                        root.pattern[s] = true;
-                        root.velocity[s] = 100;
+    // STEP 4: Velocity dip on kick/snare (natural drummer behavior)
+    if (beatContext?.profile?.hatVelocityDipOnKickSnare) {
+        const hatLanes = ['root', 'lane_neg2'];
+        for (let s = 0; s < totalSteps; s++) {
+            if (beatContext.kickPattern?.[s] || beatContext.snarePattern?.[s]) {
+                hatLanes.forEach(lid => {
+                    if (lanes[lid]?.pattern[s]) {
+                        lanes[lid].velocity[s] = Math.round(lanes[lid].velocity[s] * 0.55);
                     }
-                }
+                });
             }
         }
     }
@@ -1266,7 +1583,10 @@ function validateMinimumHits(lanes, totalSteps) {
 // Downbeat accents, backbeat emphasis, ghost notes on offbeats, micro-variation.
 // This replaces flat velocity=100 with dynamics that match real drummer feel.
 
-function humanizeDrumVelocity(lanes, totalSteps) {
+function humanizeDrumVelocity(lanes, totalSteps, drumId, beatContext) {
+    const profile = beatContext?.profile || {};
+    const id = (drumId || '').toLowerCase();
+
     Object.keys(lanes).forEach(laneId => {
         const lane = lanes[laneId];
         for (let s = 0; s < totalSteps; s++) {
@@ -1276,34 +1596,85 @@ function humanizeDrumVelocity(lanes, totalSteps) {
             const posInBeat = posInBar % 8;
             let vel = lane.velocity[s] || 100;
 
-            // Downbeat accent (beat 1) — strongest
-            if (posInBar === 0) {
-                vel = 120;
-            }
-            // Backbeat accent (beats 2 & 4)
-            else if (posInBar === 8 || posInBar === 24) {
-                vel = 110;
-            }
-            // On-beat quarter notes (beat 3)
-            else if (posInBar === 16) {
-                vel = 105;
-            }
-            // 8th note positions (offbeat 8ths)
-            else if (posInBeat === 4) {
-                vel = 90;
-            }
-            // 16th note positions (ghost territory)
-            else if (posInBeat === 2 || posInBeat === 6) {
-                vel = 70;
-            }
-            // Odd 32nd positions (deep ghost notes)
-            else {
-                vel = 60;
+            if (id === 'kick' || id === '808') {
+                // Kick: strong downbeat, moderate others, soft ghosts
+                if (posInBar === 0) vel = 120;
+                else if (posInBar === 16) vel = 112;
+                else if (posInBar === 8 || posInBar === 24) vel = 108;
+                else if (posInBeat === 4) vel = 95;
+                else if (posInBeat === 2 || posInBeat === 6) vel = 80;
+                else vel = 70;
+            } else if (id === 'snare' || id === 'clap') {
+                // Snare: main hits loud, ghost notes per genre profile
+                const ghostRange = profile.ghostSnareVelocity || [40, 60];
+                const isMainHit = posInBar === 8 || posInBar === 16 || posInBar === 24 || posInBar === 0;
+                if (isMainHit) {
+                    vel = posInBar === 0 ? 105 : 110;
+                } else {
+                    // Ghost note — use genre-specific velocity range
+                    vel = ghostRange[0] + Math.floor(Math.random() * (ghostRange[1] - ghostRange[0]));
+                }
+            } else if (id === 'closedhat') {
+                // Hi-hat: already has velocity from section-based generator, just add micro-variation
+                // Don't overwrite — skip the curve, only apply micro-variation below
+            } else {
+                // Generic curve for perc, rim, offsnare, openhat
+                if (posInBar === 0) vel = 120;
+                else if (posInBar === 8 || posInBar === 24) vel = 110;
+                else if (posInBar === 16) vel = 105;
+                else if (posInBeat === 4) vel = 90;
+                else if (posInBeat === 2 || posInBeat === 6) vel = 70;
+                else vel = 60;
             }
 
-            // Micro-variation: ±8% randomness for human feel
-            vel = Math.round(vel * (0.92 + Math.random() * 0.16));
-            lane.velocity[s] = Math.max(40, Math.min(127, vel));
+            // Micro-variation: ±6% randomness for human feel (tighter than before)
+            vel = Math.round(vel * (0.94 + Math.random() * 0.12));
+            lane.velocity[s] = Math.max(30, Math.min(127, vel));
+        }
+    });
+}
+
+// ─── Swing Simulation ──────────────────────────────────────────────────────
+// Simulates swing via velocity emphasis (grid positions are fixed, so we
+// modulate velocity on swung positions to create rhythmic push/pull feel).
+// swingAmount: 0.5 = straight, 0.58 = light MPC, 0.67 = triplet
+
+const SWING_UPBEAT_POSITIONS = [2, 6, 10, 14, 18, 22, 26, 30];
+const TRIPLET_GRID_POSITIONS = [0, 3, 5, 8, 11, 13, 16, 19, 21, 24, 27, 29];
+
+function applySwing(lanes, totalSteps, swingAmount, swingStyle) {
+    if (!swingAmount || swingAmount <= 0.5) return;
+
+    const intensity = (swingAmount - 0.5) * 5; // 0 to ~0.85
+
+    Object.keys(lanes).forEach(laneId => {
+        const lane = lanes[laneId];
+        for (let s = 0; s < totalSteps; s++) {
+            if (!lane.pattern[s]) continue;
+            const posInBar = s % 32;
+
+            if (swingStyle === 'mpc') {
+                // MPC swing: emphasize upbeats (the "ands")
+                if (SWING_UPBEAT_POSITIONS.includes(posInBar)) {
+                    lane.velocity[s] = Math.round(lane.velocity[s] * (1 + intensity * 0.15));
+                }
+            } else if (swingStyle === 'lazy') {
+                // Behind-the-beat: soften non-downbeat downbeats, emphasize upbeats
+                if (SWING_UPBEAT_POSITIONS.includes(posInBar)) {
+                    lane.velocity[s] = Math.round(lane.velocity[s] * (1 + intensity * 0.12));
+                } else if (posInBar !== 0 && posInBar % 8 === 0) {
+                    lane.velocity[s] = Math.round(lane.velocity[s] * (1 - intensity * 0.08));
+                }
+            } else if (swingStyle === 'triplet') {
+                // Jazz triplet: strong emphasis on triplet grid, de-emphasize non-triplet
+                if (TRIPLET_GRID_POSITIONS.includes(posInBar)) {
+                    lane.velocity[s] = Math.round(lane.velocity[s] * (1 + intensity * 0.18));
+                } else {
+                    lane.velocity[s] = Math.round(lane.velocity[s] * (1 - intensity * 0.15));
+                }
+            }
+
+            lane.velocity[s] = Math.max(30, Math.min(127, lane.velocity[s]));
         }
     });
 }
@@ -1325,12 +1696,134 @@ function applyEuclideanToLane(lane, pulses, steps, totalSteps, velocity, rotatio
     }
 }
 
+// ─── Fill System ───────────────────────────────────────────────────────────
+// Genre-specific fills placed on the designated fill bar from phrase structure.
+
+const FILL_PATTERNS = {
+    TRAP: {
+        kick: [
+            { steps: [24, 26, 28, 30], velocities: [85, 93, 101, 110] },
+            { steps: [28, 29, 30, 31], velocities: [90, 97, 105, 115] },
+        ],
+        snare: [
+            { steps: [20, 22, 24, 26, 28, 30], velocities: [60, 70, 80, 90, 100, 110] },
+            { steps: [24, 26, 28, 30], velocities: [80, 90, 100, 115] },
+        ],
+        closedhat: [
+            { steps: [24, 25, 26, 27, 28, 29, 30, 31], velocities: [50, 57, 64, 71, 78, 85, 92, 100] },
+        ],
+    },
+    BOOM_BAP: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [70, 80, 90, 100] },
+            { steps: [28, 30], velocities: [85, 100] },
+        ],
+        closedhat: [
+            { steps: [24, 26, 28, 30], velocities: [75, 85, 90, 100] },
+        ],
+    },
+    FOUR_ON_FLOOR: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [70, 80, 90, 105] },
+        ],
+        closedhat: [
+            { steps: [24, 25, 26, 27, 28, 29, 30, 31], velocities: [60, 65, 70, 75, 80, 85, 90, 100] },
+        ],
+    },
+    TECHNO: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [65, 75, 85, 100] },
+        ],
+    },
+    BASS_MUSIC: {
+        snare: [
+            { steps: [20, 22, 24, 26, 28, 30], velocities: [55, 65, 75, 85, 95, 110] },
+            { steps: [24, 26, 28, 30], velocities: [80, 90, 100, 115] },
+        ],
+        closedhat: [
+            { steps: [24, 25, 26, 27, 28, 29, 30, 31], velocities: [45, 55, 65, 70, 80, 85, 95, 105] },
+        ],
+    },
+    WORLD: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [65, 75, 85, 100] },
+        ],
+        closedhat: [
+            { steps: [26, 28, 30], velocities: [80, 90, 100] },
+        ],
+    },
+    GROOVE: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [60, 75, 85, 100] },
+            { steps: [28, 30], velocities: [85, 100] },
+        ],
+        closedhat: [
+            { steps: [24, 26, 28, 30], velocities: [75, 85, 90, 100] },
+        ],
+    },
+    METAL: {
+        kick: [
+            { steps: [24, 25, 26, 27, 28, 29, 30, 31], velocities: [70, 75, 80, 84, 70, 75, 80, 84] },
+        ],
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [80, 90, 100, 115] },
+        ],
+    },
+    INDIE: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [70, 80, 90, 105] },
+        ],
+    },
+    COUNTRY: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [60, 75, 85, 100] },
+        ],
+    },
+    BREAKBEAT: {
+        snare: [
+            { steps: [22, 24, 26, 28, 30], velocities: [65, 75, 85, 95, 110] },
+        ],
+    },
+    ELECTRO: {
+        snare: [
+            { steps: [24, 26, 28, 30], velocities: [70, 80, 90, 105] },
+        ],
+    },
+};
+
+function applyFill(lanes, family, drumId, fillBar, totalSteps) {
+    const id = drumId.toLowerCase();
+    const fillData = FILL_PATTERNS[family]?.[id];
+    if (!fillData || fillData.length === 0) return;
+
+    const barOffset = fillBar * 32;
+    if (barOffset >= totalSteps) return;
+
+    const fill = getRandomSelection(fillData);
+
+    // Clear fill zone (from first fill step to end of bar)
+    const fillStart = barOffset + fill.steps[0];
+    for (let s = fillStart; s < barOffset + 32 && s < totalSteps; s++) {
+        Object.keys(lanes).forEach(lid => { lanes[lid].pattern[s] = false; });
+    }
+
+    // Place fill hits on root lane
+    fill.steps.forEach((step, i) => {
+        const s = barOffset + step;
+        if (s < totalSteps) {
+            lanes['root'].pattern[s] = true;
+            lanes['root'].velocity[s] = fill.velocities[i] || 100;
+        }
+    });
+}
+
 // ─── Consecutive-Hit Caps ─────────────────────────────────────────────────
 // Kick: never more than 3 in a row (across ALL lanes)
 // Snare: never more than 2 in a row UNLESS inside end-of-4-bar roll zone (steps 120-127)
 
-function enforceKickCap(lanes, totalSteps) {
-    // Max 3 consecutive kicks across ALL lanes — no exceptions
+function enforceKickCap(lanes, totalSteps, beatContext) {
+    // Metal/double-kick genres: allow up to 16 consecutive. Others: max 3.
+    const maxConsecutive = beatContext?.profile?.doubleKick ? 16 : 3;
     for (let s = 0; s < totalSteps; s++) {
         let runLen = 0;
         for (let check = s; check >= 0; check--) {
@@ -1341,7 +1834,7 @@ function enforceKickCap(lanes, totalSteps) {
             if (hasHit) runLen++;
             else break;
         }
-        if (runLen > 3) {
+        if (runLen > maxConsecutive) {
             for (const lid of Object.keys(lanes)) {
                 lanes[lid].pattern[s] = false;
             }
@@ -1350,8 +1843,15 @@ function enforceKickCap(lanes, totalSteps) {
 }
 
 function enforceSnareCap(lanes, totalSteps) {
-    // Max 2 consecutive snare hits — NO exceptions, rolls included
+    // Max 2 consecutive snare hits normally, but allow up to 4 in roll zones
+    // Roll zones = last 8 steps of every 4th bar (phrase endings)
+    const stepsPerBar = 32;
     for (let s = 0; s < totalSteps; s++) {
+        const barIndex = Math.floor(s / stepsPerBar);
+        const posInBar = s % stepsPerBar;
+        const isRollZone = (barIndex + 1) % 4 === 0 && posInBar >= 24;
+        const maxConsecutive = isRollZone ? 4 : 2;
+
         let runLen = 0;
         for (let check = s; check >= 0; check--) {
             let hasHit = false;
@@ -1361,7 +1861,7 @@ function enforceSnareCap(lanes, totalSteps) {
             if (hasHit) runLen++;
             else break;
         }
-        if (runLen > 2) {
+        if (runLen > maxConsecutive) {
             for (const lid of Object.keys(lanes)) {
                 lanes[lid].pattern[s] = false;
             }
@@ -1641,19 +2141,22 @@ export const getProPattern = (genre, drumId, bars, key, scale, mood, complexity 
     const { family, variant } = resolveFamily(genre);
     const density = getRhythmDensity(mood);
 
+    // Get or create beat context for coordinated generation
+    const beatContext = getBeatContext(family, variant, density, complexity);
+
     switch (drumId.toLowerCase()) {
         case '808':
-            generate808(lanes, family, variant, genSteps, density);
+            generate808(lanes, family, variant, genSteps, density, beatContext);
             break;
         case 'kick':
-            generateKick(lanes, family, variant, genSteps, density);
+            generateKick(lanes, family, variant, genSteps, density, beatContext);
             break;
         case 'snare':
         case 'clap':
-            generateSnareClap(lanes, family, variant, genSteps, density, drumId);
+            generateSnareClap(lanes, family, variant, genSteps, density, drumId, beatContext);
             break;
         case 'closedhat':
-            generateClosedHat(lanes, family, variant, genSteps, density);
+            generateClosedHat(lanes, family, variant, genSteps, density, beatContext);
             break;
         case 'openhat':
             generateOpenHat(lanes, family, variant, genSteps, density);
@@ -1675,10 +2178,15 @@ export const getProPattern = (genre, drumId, bars, key, scale, mood, complexity 
         applyComplexEnhancements(lanes, family, variant, genSteps, density, drumId);
     }
 
+    // Apply genre-specific fill on designated fill bar (complex mode only)
+    if (complexity === 'complex' && beatContext?.fillBar !== undefined) {
+        applyFill(lanes, family, drumId, beatContext.fillBar, genSteps);
+    }
+
     // Enforce consecutive-hit caps (always, both simple and complex)
     const id = drumId.toLowerCase();
     if (id === 'kick' || id === '808') {
-        enforceKickCap(lanes, genSteps);
+        enforceKickCap(lanes, genSteps, beatContext);
     }
     if (id === 'snare' || id === 'clap' || id === 'offsnare') {
         enforceSnareCap(lanes, genSteps);
@@ -1688,7 +2196,12 @@ export const getProPattern = (genre, drumId, bars, key, scale, mood, complexity 
     validateMinimumHits(lanes, genSteps);
 
     // Apply humanized velocity curves (replaces flat 100)
-    humanizeDrumVelocity(lanes, genSteps);
+    humanizeDrumVelocity(lanes, genSteps, drumId, beatContext);
+
+    // Apply genre-specific swing
+    if (beatContext?.swingAmount > 0.5) {
+        applySwing(lanes, genSteps, beatContext.swingAmount, beatContext.swingStyle);
+    }
 
     // Simple mode: cap consecutive hits at 2
     if (complexity === 'simple') {
@@ -1705,7 +2218,7 @@ export const getProPattern = (genre, drumId, bars, key, scale, mood, complexity 
             for (let i = 0; i < totalSteps; i++) {
                 const sourceIdx = i % genSteps;
                 targetLane.pattern[i] = sourceLane.pattern[sourceIdx];
-                targetLane.velocity[i] = 100;
+                targetLane.velocity[i] = sourceLane.velocity[sourceIdx];
                 targetLane.duration[i] = sourceLane.duration[sourceIdx];
             }
         });
@@ -1715,7 +2228,7 @@ export const getProPattern = (genre, drumId, bars, key, scale, mood, complexity 
         Object.keys(lanes).forEach(laneId => {
             finalLanes[laneId].pitch = lanes[laneId].pitch;
             finalLanes[laneId].pattern = lanes[laneId].pattern.slice(0, totalSteps);
-            finalLanes[laneId].velocity = Array(totalSteps).fill(100);
+            finalLanes[laneId].velocity = lanes[laneId].velocity.slice(0, totalSteps);
             finalLanes[laneId].duration = lanes[laneId].duration.slice(0, totalSteps);
         });
         return finalLanes;

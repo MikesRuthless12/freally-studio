@@ -1,6 +1,6 @@
 # GOSPEL Lyrics Generation Audit Report
 
-Generated: 2026-03-29T06:25:40.378Z
+Generated: 2026-04-02T19:42:42.959Z
 Structure: intro-verse-chorus-bridge-outro
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -48,96 +48,96 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Intro]** (pattern: AA)
-  1. The light has come - to guide my way [way]
-  2. the baptism water - washed my past away [away]
+  1. Amazing - grace has found my soul [soul]
+  2. His word alone - can make me whole [whole]
 
 **[Verse 1]** (pattern: AABB)
-  1. the candles flicker gently in the chapel - after bright [bright]
-  2. a Sunday morning full of grace - and light [light]
-  3. the harvest play in the golden light - of harvest home [home]
-  4. we walk through shadowed valleys - but we never walk alone [alone]
+  1. the farmer shelter along the path - the pilgrims used to take [take]
+  2. the organ plays a chord - that makes the stained glass windows shake [shake]
+  3. I carry the cross daily but the burden is light - because He carries me also [also]
+  4. the altar call - reached me in the back row [row]
 
 **[Chorus]** (pattern: AABB)
-  1. the redemption of the darkness - into bright [bright]
-  2. the morning - breaks with golden light [light]
-  3. the Hammond B3 swelled and the bridge - became a stairway to His grace [grace]
-  4. the choir hummed the bridge and the whole - sanctuary became a womb of peace [peace]
+  1. the only promise is - you and me [me]
+  2. his love came - down and set me free [free]
+  3. we carry blessings - with us on our way [way]
+  4. the faithful lift their voices - when they pray [pray]
 
 **[Verse 2]** (pattern: AABB)
-  1. the miraculous deliverance - that carried me through [through]
-  2. everlasting mercy unconditional - and true [true]
-  3. a song of triumph - fills the air [air]
-  4. the presence - of the Lord is everywhere [everywhere]
+  1. the wind gather through generations - passing down the song [song]
+  2. the congregation singing - all day long [long]
+  3. the wind play between the hedgerows - fragrant in the spring [spring]
+  4. the redemption - of a generation undeserving [undeserving]
 
 **[Chorus]** (pattern: AABB)
-  1. the redemption of the darkness - into bright [bright]
-  2. the morning - breaks with golden light [light]
-  3. the Hammond B3 swelled and the bridge - became a stairway to His grace [grace]
-  4. the choir hummed the bridge and the whole - sanctuary became a womb of peace [peace]
+  1. the only promise is - you and me [me]
+  2. his love came - down and set me free [free]
+  3. we carry blessings - with us on our way [way]
+  4. the faithful lift their voices - when they pray [pray]
 
 **[Bridge]** (pattern: AABB)
-  1. salvation came - and gave me a choice [choice]
-  2. a unified - and beautiful rejoice [rejoice]
-  3. I lifted every worry - to the Lord [lord]
-  4. and every gospel bridge carries weight - because it carries truth of the Word [word]
+  1. delivered by His grace - every single day [day]
+  2. the baptism water - washed my past away [away]
+  3. the truth that carries - all of us along [along]
+  4. the deacon reads the scripture clear - and strong [strong]
 
 **[Final Chorus]** (pattern: AABB)
-  1. the redemption of the darkness - into bright [bright]
-  2. the morning - breaks with golden light [light]
-  3. the Hammond B3 swelled and the bridge - became a stairway to His grace [grace]
-  4. the choir hummed the bridge and the whole - sanctuary became a womb of peace [peace]
+  1. the only promise is - you and me [me]
+  2. his love came - down and set me free [free]
+  3. we carry blessings - with us on our way [way]
+  4. the faithful lift their voices - when they pray [pray]
 
 **[Outro]** (pattern: AA)
-  1. the prayer circle - holds a holy space [space]
-  2. I traded every burden - for His peace [peace]
+  1. I found the bridge on my knees - when standing seemed impossible to do [do]
+  2. I testify that the bridge was where - the breakthrough finally came through [through]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Intro]** (pattern: AB)
-  1. The light has come - to guide my way [way]
-  2. Amazing - grace has lost my soul [soul]
+  1. Amazing - grace has lost my soul [soul]
+  2. The light has come - to guide my way [way]
 
 **[Verse 1]** (pattern: ABAB)
-  1. the Sunday morning - sunshine breaks through every cloud of doubt [doubt]
-  2. the glorification - shining on my face [face]
-  3. we lift our hands in gratitude for what - it is all about [about]
-  4. i feel you near - in your divine embrace [embrace]
+  1. the harvest turn in the golden light - of harvest home [home]
+  2. the wind bloom between the hedgerows - fragrant in the spring [spring]
+  3. the hymnal pages thin as tissue hold words heavier - than mountains of stone [stone]
+  4. the unconditional devotion - ever serving [serving]
 
 **[Chorus]** (pattern: ABAB)
-  1. the congregation - sings bright shame [shame]
-  2. in every - trial we rejoice [rejoice]
-  3. the bridge between grace and redemption is - paved with Amazing in the name [name]
-  4. the congregation - lifts their voice [voice]
+  1. breakthrough in the merciful anthem [anthem]
+  2. the wind wander between the hedgerows - fragrant in the spring [spring]
+  3. I clap my hands because they were created to praise - and I will not withhold them [them]
+  4. and every amen was a bridge between the prayer - and the answer waiting [waiting]
 
 **[Verse 2]** (pattern: ABAB)
-  1. the candles flicker gently in the chapel - after dark [dark]
-  2. the harvest celebrate between the hedgerows - fragrant in the spring [spring]
-  3. a tiny flame - that starts a mighty spark [spark]
-  4. the drummer plays the praise break - and every foot starts stomping [stomping]
+  1. we carry blessings - with us on our way [way]
+  2. the closing prayer with heads - bowed low [low]
+  3. the trumpet sounds - on judgment day [day]
+  4. the river of salvation - starts to flow [flow]
 
 **[Chorus]** (pattern: ABAB)
-  1. the congregation - sings bright shame [shame]
-  2. in every - trial we rejoice [rejoice]
-  3. the bridge between grace and redemption is - paved with Amazing in the name [name]
-  4. the congregation - lifts their voice [voice]
+  1. breakthrough in the merciful anthem [anthem]
+  2. the wind wander between the hedgerows - fragrant in the spring [spring]
+  3. I clap my hands because they were created to praise - and I will not withhold them [them]
+  4. and every amen was a bridge between the prayer - and the answer waiting [waiting]
 
 **[Bridge]** (pattern: ABAB)
-  1. and every valley has a corresponding mountain - and the bridge between is praise [praise]
-  2. the ancient promise - still holds true [true]
-  3. I walked on water - when I fixed my gaze [gaze]
-  4. I surrender - all I am to you [you]
+  1. where broken hearts - and healing meet [meet]
+  2. delivered by His grace - every single day [day]
+  3. I lost forgiveness - at the mercy seat [seat]
+  4. I felt the chains - of bondage fall away [away]
 
 **[Final Chorus]** (pattern: ABAB)
-  1. the congregation - sings bright shame [shame]
-  2. in every - trial we rejoice [rejoice]
-  3. the bridge between grace and redemption is - paved with Amazing in the name [name]
-  4. the congregation - lifts their voice [voice]
+  1. breakthrough in the merciful anthem [anthem]
+  2. the wind wander between the hedgerows - fragrant in the spring [spring]
+  3. I clap my hands because they were created to praise - and I will not withhold them [them]
+  4. and every amen was a bridge between the prayer - and the answer waiting [waiting]
 
 **[Outro]** (pattern: AB)
-  1. glory shines - upon my face [face]
-  2. His gentle hand His - sovereign will [will]
+  1. I rose a new creation - on that day [day]
+  2. my faith is built - on solid ground [ground]
 
 ---
 
@@ -145,143 +145,143 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 **[Intro]** (pattern: AA)
   1. The light has come - to guide my way [way]
-  2. the darkness - has been swept away [away]
+  2. the baptism water - washed my past away [away]
 
 **[Verse 1]** (pattern: AAAA)
-  1. the wind ring through generations - passing down the song [song]
-  2. the tambourine sister keeps the rhythm - of heaven going steady strong [strong]
-  3. the congregation singing - all day long [long]
+  1. the wind return through generations - passing down the song [song]
+  2. the congregation singing - all day long [long]
+  3. the tambourine sister keeps the rhythm - of heaven going steady strong [strong]
   4. the truth that carries - all of us along [along]
 
 **[Chorus]** (pattern: AAAA)
-  1. I would deliver the whole - goal for you [you]
-  2. everlasting mercy - unconditional and true [true]
-  3. I testify that the bridge was - where the breakthrough finally came through [through]
-  4. I found the bridge on my knees - when standing seemed impossible to do [do]
+  1. even the vast salvation - reminds me of you [you]
+  2. I found the bridge on my knees - when standing seemed impossible to do [do]
+  3. the miraculous deliverance that - carried me through [through]
+  4. the ancient promise - still holds true [true]
 
 **[Verse 2]** (pattern: AAAA)
-  1. we lift our hands in gratitude for what - it is all about [about]
-  2. a testimony started where - the doubt gave out [out]
-  3. the humbled heart among - the faithful crowd [crowd]
-  4. the Sunday morning - sunshine breaks through every cloud of doubt [doubt]
+  1. his blessings - overflow forevermore [forevermore]
+  2. i praise his name forever more - and even more [more]
+  3. the organ rumbles - through the chapel floor [floor]
+  4. I worship in spirit and in truth - and the truth sets the melody free to soar [soar]
 
 **[Chorus]** (pattern: AAAA)
-  1. I would deliver the whole - goal for you [you]
-  2. everlasting mercy - unconditional and true [true]
-  3. I testify that the bridge was - where the breakthrough finally came through [through]
-  4. I found the bridge on my knees - when standing seemed impossible to do [do]
+  1. even the vast salvation - reminds me of you [you]
+  2. I found the bridge on my knees - when standing seemed impossible to do [do]
+  3. the miraculous deliverance that - carried me through [through]
+  4. the ancient promise - still holds true [true]
 
 **[Bridge]** (pattern: AAAA)
-  1. and every gospel bridge carries weight - because it carries truth of the Word [word]
-  2. I lifted every worry - to the Lord [lord]
-  3. I worship in spirit and in truth - and the truth sets the melody free to soar [soar]
-  4. another story - beyond the referred [referred]
+  1. a praise that nothing - ever can destroy [destroy]
+  2. I clapped my hands - and stomped my feet with joy [joy]
+  3. a girl a boy - the praise we all enjoy [enjoy]
+  4. we were dancing through the choirboy [choirboy]
 
 **[Final Chorus]** (pattern: AAAA)
-  1. I would deliver the whole - goal for you [you]
-  2. everlasting mercy - unconditional and true [true]
-  3. I testify that the bridge was - where the breakthrough finally came through [through]
-  4. I found the bridge on my knees - when standing seemed impossible to do [do]
+  1. even the vast salvation - reminds me of you [you]
+  2. I found the bridge on my knees - when standing seemed impossible to do [do]
+  3. the miraculous deliverance that - carried me through [through]
+  4. the ancient promise - still holds true [true]
 
 **[Outro]** (pattern: AA)
-  1. and nothing ever felt - quite the same [same]
-  2. the bridge between grace - and redemption is paved with Amazing in the name [name]
+  1. I sang until the anointing fell - and the bridge became holy ground [ground]
+  2. the church bells - ring a call to gather round [round]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Intro]** (pattern: XX)
-  1. The light has come - to guide my way [way]
-  2. Through every trial - I still believe [believe]
+  1. Through every trial - I still believe [believe]
+  2. The light has come - to guide my way [way]
 
 **[Verse 1]** (pattern: XXXX)
-  1. the farmer shelter beneath the thatched - roof warm against the cold [cold]
-  2. the Holy Spirit moving - every mile [mile]
-  3. the harvest play around the table - where the family gathers still [still]
-  4. the light of heaven casts - a fierce glow [glow]
+  1. the harvest flicker beside - the stone wall crumbling with age [age]
+  2. the harvest ring in the golden light - of harvest home [home]
+  3. the harvest ring through generations - passing down the song [song]
+  4. the narrow path - remains my choice [choice]
 
 **[Chorus]** (pattern: XXXX)
-  1. we gather on this - holy ground [ground]
-  2. the choir lifts a praise - of amazing sound [sound]
-  3. the ones who wandered - far are lost and found [found]
-  4. your children - come from all around [around]
+  1. we submit at the speed - of pain [pain]
+  2. the joy that follows - after all the rain [rain]
+  3. the altar - calls me once again [again]
+  4. I saw the light - that shattered every chain [chain]
 
 **[Verse 2]** (pattern: XXXX)
-  1. the organ swelled - and every burden lifted [lifted]
-  2. the wind draw past - the orchard heavy with ripe fruit [fruit]
-  3. the wind turn beside - the stone wall crumbling with age [age]
-  4. through stormy seas - He held me close [close]
+  1. His mercy covers - all my shame [shame]
+  2. the river gather - some things are meant to last forever more [more]
+  3. i dropped down - low upon my knees [knees]
+  4. the wind flicker through the valley - where our fathers walked [walked]
 
 **[Chorus]** (pattern: XXXX)
-  1. we gather on this - holy ground [ground]
-  2. the choir lifts a praise - of amazing sound [sound]
-  3. the ones who wandered - far are lost and found [found]
-  4. your children - come from all around [around]
+  1. we submit at the speed - of pain [pain]
+  2. the joy that follows - after all the rain [rain]
+  3. the altar - calls me once again [again]
+  4. I saw the light - that shattered every chain [chain]
 
 **[Bridge]** (pattern: XXXX)
-  1. the testimony flows - from deep within [within]
-  2. the altar call was the bridge between who - I was and who He made me [me]
-  3. I raised my hands - because the bridge demanded every part of my surrender [surrender]
-  4. the Sunday morning - light comes shining through [through]
+  1. His grace was guiding me - leading me home [home]
+  2. the sermon - echoed through my weary soul [soul]
+  3. delivered by His grace - every single day [day]
+  4. I bowed my head - and whispered out His name [name]
 
 **[Final Chorus]** (pattern: XXXX)
-  1. we gather on this - holy ground [ground]
-  2. the choir lifts a praise - of amazing sound [sound]
-  3. the ones who wandered - far are lost and found [found]
-  4. your children - come from all around [around]
+  1. we submit at the speed - of pain [pain]
+  2. the joy that follows - after all the rain [rain]
+  3. the altar - calls me once again [again]
+  4. I saw the light - that shattered every chain [chain]
 
 **[Outro]** (pattern: XX)
-  1. the steel guitar wept through the bridge - like a soul being washed anew [anew]
-  2. I found my healing in the bridge where medicine - and mercy intertwined [intertwined]
+  1. and nothing ever felt - quite the same [same]
+  2. the truth that carries - all of us along [along]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Intro]** (pattern: AA)
-  1. The light has come - to guide my way [way]
-  2. I felt the chains - of bondage fall away [away]
+  1. Amazing - grace has found my soul [soul]
+  2. you took the pieces - made me whole [whole]
 
 **[Verse 1]** (pattern: AABB)
-  1. the wind play along the path - the pilgrims used to take [take]
-  2. the organ plays a chord - that makes the stained glass windows shake [shake]
-  3. the stained glass filtered - light into forgiveness [forgiveness]
-  4. I walked through the valley - but I never walked alone in darkness [darkness]
+  1. a baptism beneath - the river flow [flow]
+  2. we give - because we reap the things we sow [sow]
+  3. I worship in spirit and in truth - and the truth sets the melody free to soar [soar]
+  4. the lord has opened up - the door [door]
 
 **[Chorus]** (pattern: AABB)
-  1. clap your hands and stomp - your feet for joy [joy]
-  2. a girl a boy the praise - we all enjoy [enjoy]
-  3. forever grateful - for your grace [grace]
-  4. his love surrounds me - giving perfect peace [peace]
+  1. breakthrough in the infinite role [role]
+  2. the spirit - moves through every soul [soul]
+  3. we open up our hearts - and ask for more [more]
+  4. your spirit shakes - me to the core [core]
 
 **[Verse 2]** (pattern: AABB)
-  1. the darkness - has been swept away [away]
-  2. his word is truth - and i will now obey [obey]
-  3. the humbled heart among - the faithful crowd [crowd]
-  4. the Sunday morning - sunshine breaks through every cloud of doubt [doubt]
+  1. the wind return through generations - passing down the song [song]
+  2. the congregation singing - all day long [long]
+  3. the chains have fallen - I am free [free]
+  4. the ushers greeting - everyone they see [see]
 
 **[Chorus]** (pattern: AABB)
-  1. clap your hands and stomp - your feet for joy [joy]
-  2. a girl a boy the praise - we all enjoy [enjoy]
-  3. forever grateful - for your grace [grace]
-  4. his love surrounds me - giving perfect peace [peace]
+  1. breakthrough in the infinite role [role]
+  2. the spirit - moves through every soul [soul]
+  3. we open up our hearts - and ask for more [more]
+  4. your spirit shakes - me to the core [core]
 
 **[Bridge]** (pattern: AABB)
-  1. I bowed my head - and whispered out His name [name]
-  2. His mercy covers - all my shame [shame]
-  3. the choir director pointed to heaven - and the bridge followed where faith led [led]
-  4. the anointing - oil upon my head [head]
+  1. the psalms of David echo - through my heart [heart]
+  2. the benediction - blesses as we part [part]
+  3. the church bells - ring a call to gather round [round]
+  4. the sweetest most - redemptive sound [sound]
 
 **[Final Chorus]** (pattern: AABB)
-  1. clap your hands and stomp - your feet for joy [joy]
-  2. a girl a boy the praise - we all enjoy [enjoy]
-  3. forever grateful - for your grace [grace]
-  4. his love surrounds me - giving perfect peace [peace]
+  1. breakthrough in the infinite role [role]
+  2. the spirit - moves through every soul [soul]
+  3. we open up our hearts - and ask for more [more]
+  4. your spirit shakes - me to the core [core]
 
 **[Outro]** (pattern: AA)
-  1. I surrender - all I am to you [you]
-  2. I found the bridge on my knees - when standing seemed impossible to do [do]
+  1. His word alone - can make me whole [whole]
+  2. the sermon - echoed through my weary soul [soul]
 
 ---
 

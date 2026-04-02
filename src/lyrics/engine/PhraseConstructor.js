@@ -773,8 +773,8 @@ function addCadenceBreak(line) {
     let bestIdx = -1;
     let bestScore = -Infinity;
 
-    // Allow position 1 when the first word is long (6+ chars) — "retaliation | is the only way"
-    const minIdx = (words[0].length >= 6) ? 1 : 2;
+    // Always require at least 2 words before the dash — avoids "TOO_EARLY" breaks
+    const minIdx = 2;
     for (let i = minIdx; i <= words.length - 2; i++) {
         const w = words[i].toLowerCase();
         const prev = words[i - 1].toLowerCase();
@@ -815,10 +815,17 @@ function addCadenceBreak(line) {
         if (articles.has(w)) score += 3;
         // Gerund before break = natural phrase end
         // "squad eating - that's a fact", "money flowing - make it rain", "buzzing - with a brand new deal"
-        if (prev.endsWith('ing') && !phrasalParticles.has(w) && !functionWords.has(w)) score += 3;
+        // Exclude non-gerund words ending in 'ing' (sing, ring, king, thing, bring, spring, string, swing, etc.)
+        const notGerund = new Set([
+            'sing', 'ring', 'king', 'thing', 'bring', 'spring', 'string', 'swing', 'sting',
+            'fling', 'cling', 'sling', 'wring', 'wing', 'ping', 'ding', 'bling', 'ming',
+            'anything', 'everything', 'nothing', 'something', 'wellspring', 'offspring',
+        ]);
+        const isGerund = prev.endsWith('ing') && prev.length >= 5 && !notGerund.has(prev);
+        if (isGerund && !phrasalParticles.has(w) && !functionWords.has(w)) score += 3;
         // Gerund + clause preposition is a very natural break: "buzzing - with a deal"
         // Strong bonus to overcome function-word/preposition penalties on the clause word
-        if (prev.endsWith('ing') && clausePrepositions.has(w)) score += 8;
+        if (isGerund && clausePrepositions.has(w)) score += 8;
         // Content word + clause preposition/conjunction = natural phrase boundary
         // "engineered my future - in a basement", "schooled the game - and never got a degree"
         if (prev.length >= 4 && !functionWords.has(prev) && !articles.has(prev) && !prepositions.has(prev) && !weakPrev.has(prev) && clausePrepositions.has(w)) score += 6;
@@ -836,7 +843,7 @@ function addCadenceBreak(line) {
         // Auxiliary verbs, pronouns, possessives before dash — NEVER dangle
         // "energy is -" or "everything i -" or "we -" are all wrong
         if (weakPrev.has(prev)) score -= 15;
-        // Any -ing word + phrasal particle = splits phrasal unit ("searching - for")
+        // Any -ing word + phrasal particle = splits phrasal unit ("searching - for", "sing - in")
         if (prev.endsWith('ing') && phrasalParticles.has(w)) score -= 12;
         // Adjective before noun — never split "golden|runway", "broken|promise", "heavy|crown"
         // Detect adjectives by common suffixes: -en, -al, -ful, -ous, -ive, -less, -ish, -ic, -ed (past participle as adj)
@@ -865,7 +872,7 @@ function addCadenceBreak(line) {
         // Avoid breaking before a conjunction near the end
         if (clauseStarters.has(w) && i >= words.length - 2) score -= 4;
         // Single-char words are poor break starters — but "I" is fine as subject
-        if (w.length <= 1 && w !== 'i') score -= 4;
+        if (w.length <= 1 && w !== 'i') score -= 10;
         // Compound phrase protection
         for (const [first, second] of compoundPairs) {
             if (prev === first && w === second) { score -= 15; break; }

@@ -473,7 +473,7 @@ export const GENRE_DEFINITIONS = {
         baseTempo: [100, 125],
         baseScales: ['Major', 'Dorian', 'Mixolydian'],
         subGenres: ['Happy', 'Sad', 'Dreamy', 'Nostalgic', 'Melancholic', 'Uplifting'],
-        drumPattern: 'four_on_floor',
+        drumPattern: 'indie_pop',
         melodyStyle: 'quirky',
         bassStyle: 'mellow',
         grooveStyle: 'indie',
@@ -499,7 +499,7 @@ export const GENRE_DEFINITIONS = {
         baseTempo: [110, 140],
         baseScales: ['Minor', 'Dorian', 'Mixolydian'],
         subGenres: ['Dark', 'Energetic', 'Sad', 'Aggressive', 'Nostalgic', 'Melancholic', 'Tense'],
-        drumPattern: 'four_on_floor',
+        drumPattern: 'indie_rock',
         melodyStyle: 'angular',
         bassStyle: 'driving',
         grooveStyle: 'driving',
@@ -511,7 +511,7 @@ export const GENRE_DEFINITIONS = {
         baseTempo: [90, 140],
         baseScales: ['Major', 'Lydian', 'Mixolydian', 'Dorian'],
         subGenres: ['Dark', 'Energetic', 'Mystical', 'Dreamy', 'Euphoric', 'Tense', 'Mysterious'],
-        drumPattern: 'four_on_floor',
+        drumPattern: 'indie_rock',
         melodyStyle: 'progressive',
         bassStyle: 'driving',
         grooveStyle: 'progressive',
@@ -523,7 +523,7 @@ export const GENRE_DEFINITIONS = {
         baseTempo: [130, 170],
         baseScales: ['Minor', 'Phrygian', 'Harmonic Minor', 'Locrian'],
         subGenres: ['Dark', 'Energetic', 'Aggressive', 'Tense'],
-        drumPattern: 'techno',
+        drumPattern: 'metal',
         melodyStyle: 'aggressive',
         bassStyle: 'heavy',
         grooveStyle: 'breakdown',
@@ -693,6 +693,34 @@ export const GENRE_DEFINITIONS = {
         grooveStyle: 'cinematic',
         chordComplexity: 'complex',
         typicalProgressionType: 'cinematic'
+    },
+
+    // Country
+    'Country': {
+        category: 'Country',
+        baseTempo: [100, 130],
+        baseScales: ['Major', 'Mixolydian', 'Pentatonic Major'],
+        subGenres: ['Happy', 'Sad', 'Energetic', 'Nostalgic', 'Uplifting', 'Melancholic'],
+        drumPattern: 'country',
+        melodyStyle: 'catchy',
+        bassStyle: 'walking',
+        grooveStyle: 'driving',
+        chordComplexity: 'simple',
+        typicalProgressionType: 'pop'
+    },
+
+    // Gospel
+    'Gospel': {
+        category: 'Gospel',
+        baseTempo: [80, 120],
+        baseScales: ['Major', 'Dorian', 'Mixolydian', 'Pentatonic Major'],
+        subGenres: ['Happy', 'Energetic', 'Uplifting', 'Mystical', 'Euphoric'],
+        drumPattern: 'gospel',
+        melodyStyle: 'soulful',
+        bassStyle: 'walking',
+        grooveStyle: 'groove',
+        chordComplexity: 'complex',
+        typicalProgressionType: 'gospel'
     }
 };
 

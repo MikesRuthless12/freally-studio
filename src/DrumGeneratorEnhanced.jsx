@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { getProPattern, getLanes } from './drumPatterns';
+import { getProPattern, getLanes, resetBeatContext } from './drumPatterns';
 import { determineComplexity } from './PatternEngine';
 import { getAllGenres, getSubGenresForGenre } from './GenreLibraryWithSubGenres';
 import { collectAudioFiles } from './randomFileUtils';
@@ -771,10 +771,10 @@ const DrumGeneratorEnhanced = React.forwardRef(({
     }, [drumStates, onSampleLoad]);
 
     // Helper: scale generated pattern durations to match the current grid resolution
-    // Hi-hats always use 1/16 resolution to preserve triplets and detail
+    // Hi-hats use 1/32 to preserve trap rolls and triplet detail
     const applyResolutionDuration = (lanes, drumId) => {
         const isHiHat = drumId === 'closedHat' || drumId === 'openHat';
-        const resolution = isHiHat ? 16 : globalResolution;
+        const resolution = isHiHat ? 32 : globalResolution;
         const stepSize = Math.max(1, Math.round(32 / resolution)); // e.g., 8 for 1/4, 4 for 1/8, 2 for 1/16
         if (stepSize <= 1) return lanes; // 1/32 = no scaling needed
 
@@ -812,6 +812,8 @@ const DrumGeneratorEnhanced = React.forwardRef(({
             const newState = { ...prev };
             const genre = globalGenre || 'TRAP';
             const mood = globalMood || 'Standard';
+
+            resetBeatContext(); // Ensure fresh coordinated context for this batch
 
             Object.keys(newState).forEach(drumId => {
                 if (lockedRows.has(drumId)) return;

@@ -304,14 +304,23 @@ pnpm install
 
 ---
 
-## 📄 License
-
-This project is for personal use and development.
-
----
-
 ## 🎉 Enjoy Making Music!
 
 **WavLoom Studio v2.0** - Professional Music Production in Your Browser 🎵
 
 For detailed feature documentation, see `FEATURES_IMPLEMENTED.md`
+
+---
+
+## 📄 License
+
+![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
+
+**All Rights Reserved.** Copyright (c) 2026 Mike Weaver. See [`LICENSE`](LICENSE)
+for the full terms.
+
+This repository is publicly visible for reference and review only. No license
+or permission is granted to use, copy, modify, distribute, or sell the code,
+in whole or in part, without the express prior written permission of the
+copyright holder. Third-party dependencies remain under their respective
+upstream licenses.

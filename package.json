@@ -2,6 +2,8 @@
   "name": "wavloom-studio",
   "private": true,
   "version": "0.0.1",
+  "license": "UNLICENSED",
+  "author": "Mike Weaver",
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",

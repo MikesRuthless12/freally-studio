@@ -7,3 +7,15 @@ Thumbs.db
 nul
 release/
 native/audio_capture/build/
+
+# Feature docs and build/implementation prompt specs — never tracked
+*FEATURES*.md
+*Features*.md
+*FEATURE*.md
+*Feature*.md
+*BUILD-PROMPTS*.md
+*Build-Prompts*.md
+*Implementation-Prompts*.md
+*Listener-Reaction-System-Prompts*.md
+Feature-Prompts/
+docs/BUILD-PROMPTS-GUIDE.md

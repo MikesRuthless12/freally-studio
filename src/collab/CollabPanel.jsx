@@ -24,7 +24,7 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
     const chatCooldownRef = useRef(null);
 
     const handleCopyLink = () => {
-        const link = createInviteLink(collab.room);
+        const link = createInviteLink(collab.room, collab.roomSecret);
         navigator.clipboard.writeText(link).then(() => {
             if (addToast) addToast('Room link copied! Share with collaborators.', 'success');
         }).catch(() => {
@@ -225,7 +225,8 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: peer.color, flexShrink: 0 }} />
                                     <span style={{ fontSize: '11px', fontWeight: 'bold', color: peer.color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {peer.profile?.email ? peer.profile.email.split('@')[0] : (peer.profile?.name || id.slice(-4))}
+                                        {(collab.peerDisplayNames && collab.peerDisplayNames[id])
+                                            || (peer.profile?.email ? peer.profile.email.split('@')[0] : (peer.profile?.name || id.slice(-4)))}
                                     </span>
                                     {renderLatencyIndicator(id)}
                                 </div>
@@ -425,7 +426,8 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
                 Object.entries(collab.peers).forEach(([id, peer]) => {
                     allUsers.push({
                         id,
-                        label: peer.profile?.email ? peer.profile.email.split('@')[0] : (peer.profile?.name || id.slice(-4)),
+                        label: (collab.peerDisplayNames && collab.peerDisplayNames[id])
+                            || (peer.profile?.email ? peer.profile.email.split('@')[0] : (peer.profile?.name || id.slice(-4))),
                         color: peer.color || acSec,
                         isTalking: collab.peerTalkingState[id] || false,
                         isMuted: collab.peerMuteState[id]?.audio || false,
@@ -561,6 +563,28 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
                             Hear Yourself
                         </label>
 
+                        {/* Recording broadcast consent — opt-in. Default off (safe). */}
+                        <label
+                            title="When recording, broadcast your microphone to peers. Off by default for privacy."
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                fontSize: '10px',
+                                color: isDark ? '#999' : '#666',
+                                userSelect: 'none'
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={!!collab.recordingBroadcastEnabled}
+                                onChange={(e) => collab.setRecordingBroadcastEnabled && collab.setRecordingBroadcastEnabled(e.target.checked)}
+                                style={{ accentColor: ac, cursor: 'pointer' }}
+                            />
+                            Broadcast mic to peers during recording
+                        </label>
+
                         {/* "You are muted" indicator for non-host */}
                         {collab.peerMuteState[collab.myId]?.audio && (
                             <div style={{
@@ -643,7 +667,7 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
                                                 color: nameColor,
                                                 fontSize: '11px'
                                             }}>
-                                                {msg.displayName}
+                                                {(collab.peerDisplayNames && collab.peerDisplayNames[msg.from]) || msg.displayName}
                                             </span>
                                             <span style={{ color: isDark ? '#444' : '#bbb', fontSize: '9px' }}>
                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -889,7 +913,7 @@ export function CollabPanel({ collab, theme, onClose, addToast, accentColors }) 
                         const defaultPerms = collab.DEFAULT_PERMISSIONS;
                         return Object.entries(collab.peers).map(([id, peer]) => {
                             const perms = { ...defaultPerms, ...collab.peerPermissions[id] };
-                            const shortName = peer.profile?.name || id.slice(-4);
+                            const shortName = (collab.peerDisplayNames && collab.peerDisplayNames[id]) || peer.profile?.name || id.slice(-4);
                             return (
                                 <div key={id} style={{ marginBottom: '10px' }}>
                                     <div style={{ fontSize: '10px', fontWeight: 'bold', color: peer.color || ac, marginBottom: '6px' }}>

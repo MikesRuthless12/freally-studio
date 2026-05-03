@@ -10,40 +10,63 @@ export class MIDIParser {
      * Parse MIDI file from ArrayBuffer
      */
     async parseMIDIFile(arrayBuffer) {
-        const dataView = new DataView(arrayBuffer);
-        let offset = 0;
-
-        // Parse header chunk
-        const header = this.parseHeader(dataView, offset);
-        offset += 14;
-
-        // Parse tracks
-        const tracks = [];
-        for (let i = 0; i < header.numTracks; i++) {
-            const track = this.parseTrack(dataView, offset);
-            tracks.push(track);
-            offset += track.length + 8;
-        }
-
-        // Extract tempo from first setTempo event across all tracks
-        let midiTempo = null;
-        for (const track of tracks) {
-            for (const ev of track.events) {
-                if (ev.type === 'setTempo') {
-                    midiTempo = ev.bpm;
-                    break;
-                }
+        try {
+            // Reject files larger than 10 MB (D1)
+            if (arrayBuffer && arrayBuffer.byteLength > 10 * 1024 * 1024) {
+                console.warn('[MIDIParser] Rejecting MIDI file > 10 MB');
+                return null;
             }
-            if (midiTempo) break;
-        }
 
-        return {
-            format: header.format,
-            numTracks: header.numTracks,
-            ticksPerBeat: header.ticksPerBeat,
-            tempo: midiTempo,
-            tracks
-        };
+            const dataView = new DataView(arrayBuffer);
+            let offset = 0;
+
+            // Parse header chunk
+            const header = this.parseHeader(dataView, offset);
+            offset += 14;
+
+            // Reject pathological track counts (D1)
+            if (header.numTracks > 256) {
+                console.warn('[MIDIParser] Rejecting MIDI with > 256 tracks');
+                return null;
+            }
+
+            // Parse tracks
+            const tracks = [];
+            for (let i = 0; i < header.numTracks; i++) {
+                if (offset + 8 > dataView.byteLength) break;
+                const track = this.parseTrack(dataView, offset);
+                tracks.push(track);
+                offset += track.length + 8;
+            }
+
+            // Extract tempo from first setTempo event across all tracks
+            let midiTempo = null;
+            for (const track of tracks) {
+                for (const ev of track.events) {
+                    if (ev.type === 'setTempo') {
+                        midiTempo = ev.bpm;
+                        break;
+                    }
+                }
+                if (midiTempo) break;
+            }
+
+            return {
+                format: header.format,
+                numTracks: header.numTracks,
+                ticksPerBeat: header.ticksPerBeat,
+                tempo: midiTempo,
+                tracks
+            };
+        } catch (err) {
+            // D1: Don't crash the renderer on malformed MIDI files
+            if (err instanceof RangeError) {
+                console.warn('[MIDIParser] RangeError parsing MIDI file:', err.message);
+                return null;
+            }
+            console.warn('[MIDIParser] Failed to parse MIDI file:', err);
+            return null;
+        }
     }
 
     /**
@@ -91,15 +114,19 @@ export class MIDIParser {
         const length = dataView.getUint32(offset + 4);
         const events = [];
         let eventOffset = offset + 8;
-        const trackEnd = offset + 8 + length;
+        // D1: Clamp trackEnd to actual buffer size to prevent OOB reads
+        const trackEnd = Math.min(offset + 8 + length, dataView.byteLength);
         let currentTick = 0;
         let runningStatus = 0;
 
-        while (eventOffset < trackEnd) {
+        while (eventOffset < trackEnd && eventOffset < dataView.byteLength) {
             // Read delta time
             const deltaTime = this.readVariableLength(dataView, eventOffset);
             eventOffset += deltaTime.length;
             currentTick += deltaTime.value;
+
+            // Bounds check before reading status byte
+            if (eventOffset >= trackEnd || eventOffset >= dataView.byteLength) break;
 
             // Read event
             let statusByte = dataView.getUint8(eventOffset);
@@ -107,6 +134,12 @@ export class MIDIParser {
             // Handle running status
             if (statusByte < 0x80) {
                 statusByte = runningStatus;
+                // D1: Fail-safe — if running status is also 0, advance one byte
+                // and continue rather than spinning forever on a malformed stream.
+                if (statusByte === 0) {
+                    eventOffset += 1;
+                    continue;
+                }
             } else {
                 eventOffset++;
                 runningStatus = statusByte;
@@ -117,6 +150,7 @@ export class MIDIParser {
 
             if (eventType === 0x90) {
                 // Note On
+                if (eventOffset + 1 >= trackEnd || eventOffset + 1 >= dataView.byteLength) break;
                 const note = dataView.getUint8(eventOffset);
                 const velocity = dataView.getUint8(eventOffset + 1);
                 eventOffset += 2;
@@ -130,6 +164,7 @@ export class MIDIParser {
                 });
             } else if (eventType === 0x80) {
                 // Note Off
+                if (eventOffset + 1 >= trackEnd || eventOffset + 1 >= dataView.byteLength) break;
                 const note = dataView.getUint8(eventOffset);
                 const velocity = dataView.getUint8(eventOffset + 1);
                 eventOffset += 2;
@@ -143,22 +178,27 @@ export class MIDIParser {
                 });
             } else if (eventType === 0xB0) {
                 // Control Change
+                if (eventOffset + 1 >= trackEnd || eventOffset + 1 >= dataView.byteLength) break;
                 eventOffset += 2;
             } else if (eventType === 0xC0) {
                 // Program Change
+                if (eventOffset >= trackEnd || eventOffset >= dataView.byteLength) break;
                 eventOffset += 1;
             } else if (eventType === 0xE0) {
                 // Pitch Bend
+                if (eventOffset + 1 >= trackEnd || eventOffset + 1 >= dataView.byteLength) break;
                 eventOffset += 2;
             } else if (statusByte === 0xFF) {
                 // Meta Event
+                if (eventOffset >= trackEnd || eventOffset >= dataView.byteLength) break;
                 const metaType = dataView.getUint8(eventOffset);
                 eventOffset++;
                 const metaLength = this.readVariableLength(dataView, eventOffset);
                 eventOffset += metaLength.length;
 
                 // Extract tempo from Set Tempo meta event (0x51)
-                if (metaType === 0x51 && metaLength.value === 3) {
+                if (metaType === 0x51 && metaLength.value === 3 &&
+                    eventOffset + 2 < trackEnd && eventOffset + 2 < dataView.byteLength) {
                     const usPerBeat = (dataView.getUint8(eventOffset) << 16) |
                                       (dataView.getUint8(eventOffset + 1) << 8) |
                                        dataView.getUint8(eventOffset + 2);
@@ -174,7 +214,10 @@ export class MIDIParser {
             } else if (statusByte === 0xF0 || statusByte === 0xF7) {
                 // SysEx
                 const sysexLength = this.readVariableLength(dataView, eventOffset);
-                eventOffset += sysexLength.length + sysexLength.value;
+                // D1: Bounds-check sysex length before jumping
+                const nextOffset = eventOffset + sysexLength.length + sysexLength.value;
+                if (nextOffset > trackEnd || nextOffset > dataView.byteLength) break;
+                eventOffset = nextOffset;
             }
         }
 
@@ -190,6 +233,13 @@ export class MIDIParser {
         let byte;
 
         do {
+            // D1: Cap VLQ at 4 bytes per MIDI spec
+            if (length >= 4) {
+                throw new Error('Invalid VLQ in MIDI file');
+            }
+            if (offset + length >= dataView.byteLength) {
+                throw new Error('Invalid VLQ in MIDI file');
+            }
             byte = dataView.getUint8(offset + length);
             value = (value << 7) | (byte & 0x7F);
             length++;

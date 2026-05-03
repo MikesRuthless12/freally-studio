@@ -31,6 +31,15 @@ const METER_FPS = 10;
 const METER_INTERVAL = Math.round(1000 / METER_FPS);
 const TRACK_IDS = ['drums', 'chords', 'melody', 'bass'];
 
+// B5: PIN lifecycle constants.
+const PIN_GENERATION_TTL_MS = 5 * 60 * 1000;   // expire if no JOIN within 5 min of QR generation.
+const PIN_IDLE_TTL_MS = 10 * 60 * 1000;        // expire after 10 min idle (no clients connected).
+
+// SECURITY NOTE (B6): MobileLink uses the public PeerJS broker. Peer IDs are
+// visible to that broker's operators. The PIN keeps unauthorized clients from
+// joining a known session ID, but anyone observing signaling can still see
+// connection metadata.
+
 /**
  * Generate a random 8-char hex session ID.
  * @returns {string}
@@ -39,6 +48,32 @@ function generateSessionId() {
     const arr = new Uint8Array(4);
     crypto.getRandomValues(arr);
     return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * B5: Generate a 6-digit PIN using crypto.getRandomValues (rejection sampling
+ * to avoid modulo bias).
+ * @returns {string}
+ */
+function generatePin() {
+    // Use a 32-bit random; reject values that would bias the [0, 999999] range.
+    const max = 4294967296; // 2^32
+    const limit = max - (max % 1000000);
+    const arr = new Uint32Array(1);
+    let v;
+    do {
+        crypto.getRandomValues(arr);
+        v = arr[0];
+    } while (v >= limit);
+    return (v % 1000000).toString().padStart(6, '0');
+}
+
+function constantTimeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    if (a.length !== b.length) return false;
+    let r = 0;
+    for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return r === 0;
 }
 
 export class MobileLinkEngine {
@@ -84,6 +119,75 @@ export class MobileLinkEngine {
 
         /** @type {number|null} */
         this._reconnectTimeout = null;
+
+        // B5: PIN state.
+        /** @type {string} */
+        this._pin = '';
+        /** @type {number} ms since epoch when PIN was generated. */
+        this._pinGeneratedAt = 0;
+        /** @type {number|null} timeout handle for the "no JOIN within 5 min" expiry. */
+        this._pinJoinDeadlineTimeout = null;
+        /** @type {number|null} timeout handle for the "idle 10 min" expiry. */
+        this._pinIdleTimeout = null;
+
+        // B6: optional broker-notice callback. Set via setBrokerNoticeHandler().
+        this._brokerNoticeHandler = null;
+    }
+
+    /**
+     * B6: register a one-shot callback that is invoked with a broker warning
+     * string. The notice is fired immediately if the engine is already active.
+     * @param {Function} cb (notice: string) => void
+     */
+    setBrokerNoticeHandler(cb) {
+        this._brokerNoticeHandler = cb;
+        if (cb && this._active) {
+            try {
+                cb('WavLoom MobileLink uses the public PeerJS broker. Session metadata may be visible to that broker. Use a private signaling server for sensitive sessions.');
+            } catch (_) {}
+        }
+    }
+
+    /**
+     * B5: get the current PIN (6-digit). Empty string when inactive.
+     * @returns {string}
+     */
+    get pin() {
+        return this._pin;
+    }
+
+    /** B5: clear PIN-expiry timers. */
+    _clearPinTimers() {
+        if (this._pinJoinDeadlineTimeout) {
+            clearTimeout(this._pinJoinDeadlineTimeout);
+            this._pinJoinDeadlineTimeout = null;
+        }
+        if (this._pinIdleTimeout) {
+            clearTimeout(this._pinIdleTimeout);
+            this._pinIdleTimeout = null;
+        }
+    }
+
+    /** B5: schedule the "no client in 5 min" expiry. */
+    _armJoinDeadline() {
+        if (this._pinJoinDeadlineTimeout) clearTimeout(this._pinJoinDeadlineTimeout);
+        this._pinJoinDeadlineTimeout = setTimeout(() => {
+            if (this._active && this._clients.size === 0) {
+                console.warn('[MobileLink] PIN expired (no client joined within 5 min).');
+                this.deactivate();
+            }
+        }, PIN_GENERATION_TTL_MS);
+    }
+
+    /** B5: arm/reset the idle expiry (no clients for 10 min). */
+    _armIdleExpiry() {
+        if (this._pinIdleTimeout) clearTimeout(this._pinIdleTimeout);
+        this._pinIdleTimeout = setTimeout(() => {
+            if (this._active && this._clients.size === 0) {
+                console.warn('[MobileLink] Session idle 10 min — expiring.');
+                this.deactivate();
+            }
+        }, PIN_IDLE_TTL_MS);
     }
 
     // ─── Lifecycle ─────────────────────────────────
@@ -100,6 +204,9 @@ export class MobileLinkEngine {
 
         return new Promise((resolve, reject) => {
             this._sessionId = 'wl-ml-' + generateSessionId();
+            // B5: generate PIN at session creation.
+            this._pin = generatePin();
+            this._pinGeneratedAt = Date.now();
 
             try {
                 this._peer = new Peer(this._sessionId);
@@ -113,10 +220,20 @@ export class MobileLinkEngine {
                 this._active = true;
                 this._retryCount = 0;
 
-                // Build session URL from current origin
+                // B5: include PIN in the QR payload (URL hash → never sent to server logs).
                 const origin = window.location.origin;
                 const basePath = window.location.pathname.replace(/\/[^/]*$/, '');
-                this.sessionUrl = `${origin}${basePath}/mobile-app/?s=${this._sessionId}`;
+                this.sessionUrl = `${origin}${basePath}/mobile-app/?s=${this._sessionId}#pin=${this._pin}`;
+
+                // B5: arm the "no JOIN in 5 min" deadline.
+                this._armJoinDeadline();
+
+                // B6: surface broker notice once.
+                if (this._brokerNoticeHandler) {
+                    try {
+                        this._brokerNoticeHandler('WavLoom MobileLink uses the public PeerJS broker. Session metadata may be visible to that broker. Use a private signaling server for sensitive sessions.');
+                    } catch (_) {}
+                }
 
                 // Start audio tap
                 this._audioStream = this._sampler.connectMobileStreamDest();
@@ -133,8 +250,15 @@ export class MobileLinkEngine {
             });
 
             this._peer.on('call', (call) => {
-                // Mobile clients don't send audio to us — just answer with empty
-                call.answer();
+                // B5/B8: only answer calls from clients we've already authenticated.
+                // Mobile clients don't send audio to us, but inbound calls before
+                // PIN auth must be rejected.
+                const c = this._clients.get(call.peer);
+                if (c && c.authed) {
+                    try { call.answer(); } catch (_) {}
+                } else {
+                    try { call.close(); } catch (_) {}
+                }
             });
 
             this._peer.on('disconnected', () => {
@@ -162,6 +286,11 @@ export class MobileLinkEngine {
     deactivate() {
         if (!this._active) return;
         this._active = false;
+
+        // B5: clear PIN + timers.
+        this._clearPinTimers();
+        this._pin = '';
+        this._pinGeneratedAt = 0;
 
         this._stopMetering();
 
@@ -224,17 +353,9 @@ export class MobileLinkEngine {
                 return;
             }
 
-            // Store client
-            this._clients.set(peerId, { conn, call: null, deviceInfo: null });
-
-            // Send audio stream via media call
-            if (this._audioStream) {
-                const call = this._peer.call(peerId, this._audioStream, {
-                    metadata: { type: 'mobile-audio' },
-                });
-                const client = this._clients.get(peerId);
-                if (client) client.call = call;
-            }
+            // B5: store client as UNAUTHENTICATED. Audio + state are withheld
+            // until a JOIN with the correct PIN is received.
+            this._clients.set(peerId, { conn, call: null, deviceInfo: null, authed: false });
 
             // Listen for data messages
             conn.on('data', (raw) => {
@@ -256,7 +377,17 @@ export class MobileLinkEngine {
                 this._removeClient(peerId);
             });
 
-            this._notifyStateListeners();
+            // B5: drop the connection if it never authenticates within 30s.
+            setTimeout(() => {
+                const c = this._clients.get(peerId);
+                if (c && !c.authed) {
+                    console.warn('[MobileLink] Auth timeout — closing', peerId);
+                    try { c.conn.close(); } catch (_) {}
+                    this._removeClient(peerId);
+                }
+            }, 30000);
+
+            // Don't notify state listeners until authed.
         });
     }
 
@@ -266,13 +397,49 @@ export class MobileLinkEngine {
      * @param {Object} msg
      */
     _handleClientMessage(peerId, msg) {
+        const client = this._clients.get(peerId);
+        if (!client) return;
+
+        // B5: drop pre-auth messages other than JOIN/DISCONNECT.
+        if (!client.authed && msg.type !== MOBILE_MSG.JOIN && msg.type !== MOBILE_MSG.DISCONNECT) {
+            console.warn('[MobileLink] dropping pre-auth', msg.type, 'from', peerId);
+            return;
+        }
+
         switch (msg.type) {
             case MOBILE_MSG.JOIN: {
-                // Store device info from JOIN
-                const client = this._clients.get(peerId);
-                if (client) {
-                    client.deviceInfo = msg.deviceInfo || { name: 'Mobile Device' };
+                // B5: validate PIN.
+                const ok = this._pin && constantTimeEqual(String(msg.pin || ''), this._pin);
+                if (!ok) {
+                    console.warn('[MobileLink] JOIN with bad/missing PIN from', peerId);
+                    try {
+                        client.conn.send(JSON.stringify({
+                            type: MOBILE_MSG.REJECTED,
+                            reason: 'bad_pin',
+                        }));
+                    } catch (_) {}
+                    setTimeout(() => { try { client.conn.close(); } catch (_) {} }, 100);
+                    return;
                 }
+                client.authed = true;
+                client.deviceInfo = msg.deviceInfo || { name: 'Mobile Device' };
+
+                // First successful JOIN within the deadline cancels the "no-join" timer
+                // and arms the idle expiry instead.
+                if (this._pinJoinDeadlineTimeout) {
+                    clearTimeout(this._pinJoinDeadlineTimeout);
+                    this._pinJoinDeadlineTimeout = null;
+                }
+                this._armIdleExpiry();
+
+                // Send audio stream via media call now that the client is authed.
+                if (this._audioStream && this._peer) {
+                    const call = this._peer.call(peerId, this._audioStream, {
+                        metadata: { type: 'mobile-audio' },
+                    });
+                    client.call = call;
+                }
+
                 // Respond with HELLO (full state dump will be sent by the app via broadcastState)
                 this._sendToClient(peerId, {
                     type: MOBILE_MSG.HELLO,
@@ -323,6 +490,8 @@ export class MobileLinkEngine {
         // When the last client disconnects, restore desktop speakers
         if (this._clients.size === 0) {
             this._sampler.muteDesktopOutput(false);
+            // B5: re-arm idle expiry so a stale session eventually self-terminates.
+            if (this._active) this._armIdleExpiry();
         }
 
         this._notifyStateListeners();
@@ -405,7 +574,8 @@ export class MobileLinkEngine {
      */
     _broadcast(msg) {
         const json = JSON.stringify(msg);
-        for (const [peerId] of this._clients) {
+        for (const [peerId, client] of this._clients) {
+            if (!client.authed) continue; // B5: only send to authenticated clients.
             this._sendRaw(peerId, json);
         }
     }
@@ -495,6 +665,8 @@ export class MobileLinkEngine {
     getState() {
         const clients = [];
         for (const [peerId, client] of this._clients) {
+            // Only report authenticated clients (B5).
+            if (!client.authed) continue;
             clients.push({
                 peerId,
                 deviceInfo: client.deviceInfo || { name: 'Mobile Device' },
@@ -503,7 +675,8 @@ export class MobileLinkEngine {
         return {
             isActive: this._active,
             sessionUrl: this.sessionUrl,
-            connectedCount: this._clients.size,
+            pin: this._pin,
+            connectedCount: clients.length,
             clients,
         };
     }
@@ -513,9 +686,11 @@ export class MobileLinkEngine {
         return this._active;
     }
 
-    /** @returns {number} */
+    /** @returns {number} count of authenticated mobile clients. */
     get connectedCount() {
-        return this._clients.size;
+        let n = 0;
+        for (const [, c] of this._clients) if (c.authed) n++;
+        return n;
     }
 }
 

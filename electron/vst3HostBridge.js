@@ -6,10 +6,37 @@
  */
 
 const path = require('path');
-const { app } = require('electron');
+const { app, BrowserWindow } = require('electron');
 
 let vst3Host = null;
 let loaded = false;
+
+// SECURITY: paths returned by the latest vst3Scanner.scan() — only plugins
+// from this allowlist may be loaded by loadPlugin (A6).
+const allowedPluginPaths = new Set();
+
+/** Mark a list of plugin paths as safe to load. */
+function setAllowedPluginPaths(paths) {
+    allowedPluginPaths.clear();
+    if (Array.isArray(paths)) {
+        for (const p of paths) {
+            if (typeof p === 'string' && p) {
+                try { allowedPluginPaths.add(path.resolve(p)); } catch (_) {}
+            }
+        }
+    }
+}
+
+/** Reject IPC events that did not come from the main window's main frame (A5). */
+function requireMainFrame(event) {
+    try {
+        const wins = BrowserWindow.getAllWindows();
+        const main = wins.find(w => !w.isDestroyed());
+        return !!(main && event && event.senderFrame === main.webContents.mainFrame);
+    } catch (_) {
+        return false;
+    }
+}
 
 /**
  * Attempt to load the native VST3 host addon.
@@ -61,9 +88,20 @@ function getAddon() {
  */
 function registerIPC(ipcMain) {
     // Load plugin
-    ipcMain.handle('vst3host:loadPlugin', async (_event, pluginPath, uid) => {
+    ipcMain.handle('vst3host:loadPlugin', async (event, pluginPath, uid) => {
+        if (!requireMainFrame(event)) return { error: 'forbidden' };
         if (!vst3Host || !vst3Host.isAvailable()) {
             return { error: 'VST3 native addon not available' };
+        }
+        // SECURITY (A6): only plugins discovered by the most recent
+        // vst3Scanner.scan() are loadable.
+        if (typeof pluginPath !== 'string' || !pluginPath) {
+            return { error: 'Invalid plugin path' };
+        }
+        const resolved = path.resolve(pluginPath);
+        if (!allowedPluginPaths.has(resolved)) {
+            console.warn('[VST3Host] loadPlugin rejected — not in allowlist:', resolved);
+            return { error: 'Plugin path not in allowlist' };
         }
         try {
             const result = vst3Host.loadPlugin(pluginPath, uid || '');
@@ -74,7 +112,8 @@ function registerIPC(ipcMain) {
     });
 
     // Unload plugin
-    ipcMain.handle('vst3host:unloadPlugin', (_event, instanceId) => {
+    ipcMain.handle('vst3host:unloadPlugin', (event, instanceId) => {
+        if (!requireMainFrame(event)) return false;
         if (!vst3Host) return false;
         try {
             return vst3Host.unloadPlugin(instanceId);
@@ -92,7 +131,8 @@ function registerIPC(ipcMain) {
     let _pbRoundTripDone = false; // one-time base64 round-trip verification
     const _testToneCounts = {}; // per-instance test tone block counter
 
-    ipcMain.handle('vst3host:processBlock', (_event, instanceId, inputBuffer, numFrames, numInCh, numOutCh) => {
+    ipcMain.handle('vst3host:processBlock', (event, instanceId, inputBuffer, numFrames, numInCh, numOutCh) => {
+        if (!requireMainFrame(event)) return null;
         if (!vst3Host) return null;
         try {
             // TEST TONE: First 5 blocks per instance — inject 440Hz sine wave
@@ -177,73 +217,86 @@ function registerIPC(ipcMain) {
     });
 
     // MIDI events
-    ipcMain.handle('vst3host:noteOn', (_event, instanceId, ch, note, vel) => {
+    ipcMain.handle('vst3host:noteOn', (event, instanceId, ch, note, vel) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.sendNoteOn(instanceId, ch, note, vel); } catch (_) {}
     });
 
-    ipcMain.handle('vst3host:noteOff', (_event, instanceId, ch, note, vel) => {
+    ipcMain.handle('vst3host:noteOff', (event, instanceId, ch, note, vel) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.sendNoteOff(instanceId, ch, note, vel); } catch (_) {}
     });
 
-    ipcMain.handle('vst3host:sendCC', (_event, instanceId, ch, cc, val) => {
+    ipcMain.handle('vst3host:sendCC', (event, instanceId, ch, cc, val) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.sendCC(instanceId, ch, cc, val); } catch (_) {}
     });
 
     // Parameters
-    ipcMain.handle('vst3host:setParameter', (_event, instanceId, paramId, value) => {
+    ipcMain.handle('vst3host:setParameter', (event, instanceId, paramId, value) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.setParameter(instanceId, paramId, value); } catch (_) {}
     });
 
-    ipcMain.handle('vst3host:getParameter', (_event, instanceId, paramId) => {
+    ipcMain.handle('vst3host:getParameter', (event, instanceId, paramId) => {
+        if (!requireMainFrame(event)) return 0;
         if (!vst3Host) return 0;
         try { return vst3Host.getParameter(instanceId, paramId); } catch (_) { return 0; }
     });
 
-    ipcMain.handle('vst3host:getParameterList', (_event, instanceId) => {
+    ipcMain.handle('vst3host:getParameterList', (event, instanceId) => {
+        if (!requireMainFrame(event)) return [];
         if (!vst3Host) return [];
         try { return vst3Host.getParameterList(instanceId); } catch (_) { return []; }
     });
 
     // State (presets)
-    ipcMain.handle('vst3host:getPluginState', (_event, instanceId) => {
+    ipcMain.handle('vst3host:getPluginState', (event, instanceId) => {
+        if (!requireMainFrame(event)) return null;
         if (!vst3Host) return null;
         try { return vst3Host.getPluginState(instanceId); } catch (_) { return null; }
     });
 
-    ipcMain.handle('vst3host:setPluginState', (_event, instanceId, stateData) => {
+    ipcMain.handle('vst3host:setPluginState', (event, instanceId, stateData) => {
+        if (!requireMainFrame(event)) return false;
         if (!vst3Host) return false;
         try { return vst3Host.setPluginState(instanceId, stateData); } catch (_) { return false; }
     });
 
     // Audio settings
-    ipcMain.handle('vst3host:setSampleRate', (_event, rate) => {
+    ipcMain.handle('vst3host:setSampleRate', (event, rate) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.setSampleRate(rate); } catch (_) {}
     });
 
-    ipcMain.handle('vst3host:setBlockSize', (_event, size) => {
+    ipcMain.handle('vst3host:setBlockSize', (event, size) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.setBlockSize(size); } catch (_) {}
     });
 
     // Transport
-    ipcMain.handle('vst3host:setTransportState', (_event, state) => {
+    ipcMain.handle('vst3host:setTransportState', (event, state) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.setTransportState(state); } catch (_) {}
     });
 
     // Cleanup
-    ipcMain.handle('vst3host:unloadAll', () => {
+    ipcMain.handle('vst3host:unloadAll', (event) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.unloadAll(); } catch (_) {}
     });
 
     // Editor (plugin GUI window)
-    ipcMain.handle('vst3host:openEditor', (_event, instanceId) => {
+    ipcMain.handle('vst3host:openEditor', (event, instanceId) => {
+        if (!requireMainFrame(event)) return { success: false, error: 'forbidden' };
         if (!vst3Host || !vst3Host.isAvailable()) {
             return { success: false, error: 'VST3 native addon not available' };
         }
@@ -254,20 +307,23 @@ function registerIPC(ipcMain) {
         }
     });
 
-    ipcMain.handle('vst3host:closeEditor', (_event, instanceId) => {
+    ipcMain.handle('vst3host:closeEditor', (event, instanceId) => {
+        if (!requireMainFrame(event)) return;
         if (!vst3Host) return;
         try { vst3Host.closeEditor(instanceId); } catch (_) {}
     });
 
-    ipcMain.handle('vst3host:isEditorOpen', (_event, instanceId) => {
+    ipcMain.handle('vst3host:isEditorOpen', (event, instanceId) => {
+        if (!requireMainFrame(event)) return false;
         if (!vst3Host) return false;
         try { return vst3Host.isEditorOpen(instanceId); } catch (_) { return false; }
     });
 
     // Check availability
-    ipcMain.handle('vst3host:isAvailable', () => {
+    ipcMain.handle('vst3host:isAvailable', (event) => {
+        if (!requireMainFrame(event)) return false;
         return !!(vst3Host && vst3Host.isAvailable());
     });
 }
 
-module.exports = { loadNativeAddon, getAddon, registerIPC };
+module.exports = { loadNativeAddon, getAddon, registerIPC, setAllowedPluginPaths };

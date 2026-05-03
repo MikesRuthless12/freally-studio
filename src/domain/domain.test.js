@@ -7,11 +7,14 @@ import { GENRES_WITH_SUBGENRES, GENRE_DEFINITIONS, GENRE_CATEGORIES } from './ge
 import { getScalesForContext, getProgressionTypeForGenre } from './domainHelpers';
 import { romanToDegreeIndex } from '../chordGeneration';
 
-// Known FAMILY_MAP keys from drumPatterns.js
+// Known FAMILY_MAP keys from drumPatterns.js (FAMILY_MAP + INDIE/METAL/COUNTRY variants).
+// Verified by:
+//   grep "drumPattern:" src/domain/genres.js | sort -u  →  these 24 keys.
 const KNOWN_DRUM_PATTERNS = [
     'trap', 'drill', 'boom_bap', 'lofi', 'four_on_floor', 'trance',
     'retro', 'techno', 'dubstep', 'dnb', 'future_bass', 'reggae',
-    'reggaeton', 'afrobeat', 'latin', 'jazz', 'funk', 'rnb', 'orchestral'
+    'reggaeton', 'afrobeat', 'latin', 'jazz', 'funk', 'rnb', 'orchestral',
+    'indie_pop', 'indie_rock', 'metal', 'country', 'gospel'
 ];
 
 // ---- NOTE_NAMES ----

@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Content-Security-Policy: baseline policy matching the header injected
+         by Electron's session.webRequest in packaged builds. Allows local
+         scripts/styles, Google Fonts, the PeerJS signaling servers, and
+         Google OAuth endpoints. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.peerjs.com https://*.peerjs.com https://0.peerjs.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com data: blob:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; worker-src 'self' blob:; child-src 'self' blob:;">
     <title>WavLoom Studio</title>
     <meta name="description" content="Browser-based DAW with AI-powered pattern generation" />
     <meta name="theme-color" content="#0a0a0f" />
@@ -10,7 +15,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
-    <!-- Professional DAW fonts: DM Sans (UI) + JetBrains Mono (readouts) -->
+    <!-- Professional DAW fonts: DM Sans (UI) + JetBrains Mono (readouts).
+         NOTE (E6): Sub-Resource Integrity (SRI) hashes are recommended for
+         third-party stylesheets but Google Fonts rotates the served CSS
+         frequently (browser-specific font subsets), which would break the
+         hash on every refresh and prevent fonts from loading. We deliberately
+         omit integrity= here; the connection is HTTPS to a trusted Google
+         endpoint and CSP restricts style-src/font-src to googleapis.com. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" />

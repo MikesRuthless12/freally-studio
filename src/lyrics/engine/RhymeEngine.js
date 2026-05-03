@@ -1333,14 +1333,17 @@ export function findRhymes(word, count = 5, rng) {
         }
     }
 
-    // If no family found, try phonetic ending match
+    // If no family found, fall back to the family keyed by the word's suffix.
+    // BUGFIX: Previously this scanned ALL families for any word ending in the suffix,
+    // which conflated /oʊ/ ('ow' family: row, show, low) with /aʊ/ ('own' family: bow,
+    // plow, allow) — they spell -ow but don't rhyme. Restricting to the keyed family
+    // keeps each pronunciation isolated.
     if (candidates.size === 0) {
         const ending = getPhoneticEnding(w);
-        for (const [, words] of Object.entries(activeFamilies)) {
-            for (const rw of words) {
-                if (rw !== w && rw.endsWith(ending)) {
-                    candidates.add(rw);
-                }
+        const familyWords = activeFamilies[ending];
+        if (familyWords) {
+            for (const rw of familyWords) {
+                if (rw !== w) candidates.add(rw);
             }
         }
     }

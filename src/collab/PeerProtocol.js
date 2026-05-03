@@ -1,4 +1,5 @@
 export const MSG = {
+    AUTH: 'AUTH',
     JOIN: 'JOIN',
     JOIN_ACK: 'JOIN_ACK',
     LEAVE: 'LEAVE',
@@ -9,6 +10,7 @@ export const MSG = {
     AUDIO_SYNC: 'AUDIO_SYNC',
     MOUSE_MOVE: 'MOUSE_MOVE',
     HOST_SYNC: 'HOST_SYNC',
+    PROFILE_UPDATE: 'PROFILE_UPDATE',
     PING: 'PING',
     PONG: 'PONG',
     CHAT: 'CHAT',

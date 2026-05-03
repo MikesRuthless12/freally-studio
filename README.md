@@ -304,11 +304,40 @@ pnpm install
 
 ---
 
+## 🛡️ Quality, Security & Stability
+
+WavLoom Studio went through a comprehensive security + correctness audit pass
+on **2026-05-02**, hardening the desktop (Electron) shell, the P2P
+collaboration layer, file-import paths, and the lyrics generation engine.
+Highlights:
+
+- **Electron IPC hardening.** Strict CSP, allowlisted `fs:*` paths, scheme
+  allowlist on `shell.openExternal`, `setWindowOpenHandler` + `will-navigate`
+  denials, `requireMainFrame` sender validation, VST3 plugin path allowlist,
+  and native bounds checks on the audio plugin host.
+- **Authenticated collaboration.** Cryptographically random room/peer IDs,
+  URL-fragment room secret, host-signed privileged messages, schema
+  validation + size caps + per-peer rate limits on the data channel,
+  PIN-protected mobile-link sessions with TTL.
+- **Robust file parsing.** MIDI parser bounds + RangeError guards, ZIP
+  load entry/size caps, manifest path allowlist, drag-drop magic-byte
+  checks, and SVG color sanitization in arrangement templates.
+- **Audio engine + lyrics fixes.** Tempo input clamp, drum solo-key
+  consistency, AudioEngine timer cleanup on dispose, rhyme-engine
+  heteronym isolation, and **100% dash-placement accuracy** in the
+  lyrics caesura audit (was ~98%).
+
+Full breakdown in [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+Test status: **844 / 844 passing** across 33 test files.
+
+---
+
 ## 🎉 Enjoy Making Music!
 
 **WavLoom Studio v2.0** - Professional Music Production in Your Browser 🎵
 
 For detailed feature documentation, see `FEATURES_IMPLEMENTED.md`
+For change history, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ---
 

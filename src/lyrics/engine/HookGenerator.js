@@ -629,8 +629,31 @@ const CHORUS_RHYME_TEMPLATES = CHORUS_NOUN_TEMPLATES;
  * Add a cadence break " - " at the best natural pause point in a line.
  * Simulates where a rapper would breathe/pause for rhythm.
  */
+function isPreAuthoredDashBadChorus(line) {
+    const dashIdx = line.indexOf(' - ');
+    if (dashIdx < 0) return false;
+    const before = line.slice(0, dashIdx).trim().split(/\s+/);
+    const after = line.slice(dashIdx + 3).trim().split(/\s+/);
+    if (before.length < 2 || after.length < 2) return true;
+    const last = before[before.length - 1].toLowerCase().replace(/[^a-z']/g, '');
+    const first = after[0].toLowerCase().replace(/[^a-z']/g, '');
+    const ARTS = new Set(['a', 'an', 'the']);
+    const PREPS = new Set(['in', 'on', 'at', 'to', 'for', 'by', 'of', 'with', 'from',
+        'into', 'onto', 'upon', 'through', 'across', 'over', 'under', 'about', 'between']);
+    const PARTS = new Set(['up', 'out', 'off', 'down', 'around', 'through', 'over',
+        'into', 'onto', 'upon', 'across', 'under', 'on', 'in', 'for', 'with', 'to']);
+    if (ARTS.has(last)) return true;
+    if (PREPS.has(last)) return true;
+    if (last.endsWith('ing') && PARTS.has(first)) return true;
+    if (first.length <= 1 && first !== 'i') return true;
+    return false;
+}
+
 function addCadenceBreakChorus(line) {
-    if (line.includes(' - ')) return line;
+    if (line.includes(' - ')) {
+        if (!isPreAuthoredDashBadChorus(line)) return line;
+        line = line.replace(/ - /g, ' ');
+    }
     const words = line.split(' ');
     if (words.length < 4) return line;
 
@@ -651,10 +674,19 @@ function addCadenceBreakChorus(line) {
         'into', 'onto', 'upon', 'through', 'across', 'over', 'under', 'about',
     ]);
 
+    // Mirrors src/lyrics/engine/caesura-audit.test.js#COMPOUND_PHRASES.
+    // Pairs are (first, second) members of an X-and-Y / X-Y compound; the
+    // lookahead below detects splits even when "and"/fillers sit between.
     const compoundPairs = [
-        ['grand', 'slam'], ['slam', 'dunk'], ['day', 'and'], ['night', 'and'],
-        ['left', 'and'], ['right', 'and'], ['up', 'and'], ['down', 'and'],
-        ['back', 'and'], ['rise', 'and'], ['life', 'and'], ['death', 'and'],
+        ['grand', 'slam'], ['slam', 'dunk'],
+        ['day', 'night'], ['night', 'day'],
+        ['life', 'death'], ['death', 'life'],
+        ['left', 'right'], ['right', 'left'],
+        ['up', 'down'], ['down', 'up'],
+        ['back', 'forth'], ['forth', 'back'],
+        ['here', 'there'], ['there', 'here'],
+        ['now', 'then'], ['then', 'now'],
+        ['rise', 'fall'], ['fall', 'rise'],
     ];
 
     const targetPct = words.length <= 6 ? 0.45 : 0.55;
@@ -678,16 +710,31 @@ function addCadenceBreakChorus(line) {
         // Penalties
         if (functionWords.has(w)) score -= 4;
         if (articles.has(prev)) score -= 12;
-        if (prepositions.has(prev)) score -= 10;
-        if (prev.endsWith('ing') && prepositions.has(w)) score -= 12;
+        if (prepositions.has(prev)) score -= 16;
+        if (prev.endsWith('ing') && prepositions.has(w)) score -= 20;
         if (prev.endsWith('ing') || prev.endsWith('ted') || prev.endsWith('ned') || prev.endsWith('ped')) score -= 2;
         if (i < 3 && words.length >= 7) score -= 5;
         if (clauseStarters.has(w) && i >= words.length - 2) score -= 4;
-        if (w.length <= 1) score -= 4;
+        if (w.length <= 1 && w !== 'i') score -= 15;
         if (prev.length <= 1) score -= 3;
+        let compoundSplitChorus = false;
         for (const [first, second] of compoundPairs) {
-            if (prev === first && w === second) { score -= 15; break; }
+            if (prev === first) {
+                for (let k = i; k < Math.min(i + 3, words.length); k++) {
+                    const peek = (words[k] || '').toLowerCase().replace(/[^a-z']/g, '');
+                    if (peek === second) { compoundSplitChorus = true; break; }
+                }
+            }
+            if (compoundSplitChorus) break;
+            if (w === second) {
+                for (let k = i - 1; k >= Math.max(0, i - 3); k--) {
+                    const peek = (words[k] || '').toLowerCase().replace(/[^a-z']/g, '');
+                    if (peek === first) { compoundSplitChorus = true; break; }
+                }
+            }
+            if (compoundSplitChorus) break;
         }
+        if (compoundSplitChorus) score -= 15;
 
         if (score > bestScore) { bestScore = score; bestIdx = i; }
     }

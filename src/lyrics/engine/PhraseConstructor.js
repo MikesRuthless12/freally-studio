@@ -660,8 +660,36 @@ function countAvailableRhymesInPool(endWord, phrasePool, usedPhrases) {
  * @param {string} line
  * @returns {string}
  */
+// Bad-dash detection: if a pre-authored " - " falls in a position the audit
+// rules would flag (article/preposition before, verb-ing + phrasal particle,
+// single-char start, too-early, too-late), strip it so the scoring loop below
+// can choose a better position (or leave the line dashless).
+function isPreAuthoredDashBad(line) {
+    const dashIdx = line.indexOf(' - ');
+    if (dashIdx < 0) return false;
+    const before = line.slice(0, dashIdx).trim().split(/\s+/);
+    const after = line.slice(dashIdx + 3).trim().split(/\s+/);
+    if (before.length < 2 || after.length < 2) return true;
+    const last = before[before.length - 1].toLowerCase().replace(/[^a-z']/g, '');
+    const first = after[0].toLowerCase().replace(/[^a-z']/g, '');
+    const ARTICLES_LOCAL = new Set(['a', 'an', 'the']);
+    const PREPS_LOCAL = new Set(['in', 'on', 'at', 'to', 'for', 'by', 'of', 'with', 'from',
+        'into', 'onto', 'upon', 'through', 'across', 'over', 'under', 'about', 'between']);
+    const PARTICLES_LOCAL = new Set(['up', 'out', 'off', 'down', 'around', 'through', 'over',
+        'into', 'onto', 'upon', 'across', 'under', 'on', 'in', 'for', 'with', 'to']);
+    if (ARTICLES_LOCAL.has(last)) return true;
+    if (PREPS_LOCAL.has(last)) return true;
+    if (last.endsWith('ing') && PARTICLES_LOCAL.has(first)) return true;
+    if (first.length <= 1 && first !== 'i') return true;
+    return false;
+}
+
 function addCadenceBreak(line) {
-    if (line.includes(' - ')) return line; // already has a break
+    if (line.includes(' - ')) {
+        // Re-evaluate pre-authored dashes; if bad, strip and re-position below.
+        if (!isPreAuthoredDashBad(line)) return line;
+        line = line.replace(/ - /g, ' ');
+    }
     const words = line.split(' ');
     if (words.length < 4) return line; // too short for a meaningful break
 
@@ -730,10 +758,18 @@ function addCadenceBreak(line) {
         'and', 'but', 'or', 'nor', 'yet', 'than',
     ]);
 
-    // Common compound phrases that must never be split
+    // Common compound phrases that must never be split.
+    // Mirrors src/lyrics/engine/caesura-audit.test.js#COMPOUND_PHRASES (with extras).
     const compoundPairs = [
         ['grand', 'slam'], ['slam', 'dunk'],
-        ['day', 'night'], ['life', 'death'], ['left', 'right'], ['rise', 'fall'],
+        ['day', 'night'], ['night', 'day'],
+        ['life', 'death'], ['death', 'life'],
+        ['left', 'right'], ['right', 'left'],
+        ['up', 'down'], ['down', 'up'],
+        ['back', 'forth'], ['forth', 'back'],
+        ['here', 'there'], ['there', 'here'],
+        ['now', 'then'], ['then', 'now'],
+        ['rise', 'fall'], ['fall', 'rise'],
         ['concrete', 'jungle'], ['rat', 'race'], ['cold', 'world'],
         ['real', 'talk'], ['trap', 'house'], ['big', 'picture'],
         ['front', 'line'], ['finish', 'line'], ['bottom', 'line'],
@@ -838,13 +874,18 @@ function addCadenceBreak(line) {
         if (prepositions.has(w)) score -= 3;
         // Articles before the dash — NEVER break "the|noun" or "a|noun"
         if (articles.has(prev)) score -= 15;
-        // Preposition before the dash — NEVER break "in|the X" or "of|the Y"
-        if (prepositions.has(prev)) score -= 12;
+        // Preposition before the dash — NEVER break "in|the X" or "of|the Y".
+        // Bumped from -12 to -16 so the bonus stack on the next-half clause-starter
+        // (+5 clauseStarter + +4 conjunction) cannot overcome it. Otherwise the
+        // engine produced "...box me in - but I..." and similar.
+        if (prepositions.has(prev)) score -= 16;
         // Auxiliary verbs, pronouns, possessives before dash — NEVER dangle
         // "energy is -" or "everything i -" or "we -" are all wrong
         if (weakPrev.has(prev)) score -= 15;
-        // Any -ing word + phrasal particle = splits phrasal unit ("searching - for", "sing - in")
-        if (prev.endsWith('ing') && phrasalParticles.has(w)) score -= 12;
+        // Any -ing word + preposition splits a phrasal unit ("searching - for", "pounding - with",
+        // "sleeping - in", "looking - for", "feeling - of"). Penalty must dominate over the
+        // +8/+6 gerund-bonus pair below so these breaks are rejected by the quality gate.
+        if (prev.endsWith('ing') && (phrasalParticles.has(w) || prepositions.has(w))) score -= 20;
         // Adjective before noun — never split "golden|runway", "broken|promise", "heavy|crown"
         // Detect adjectives by common suffixes: -en, -al, -ful, -ous, -ive, -less, -ish, -ic, -ed (past participle as adj)
         // Long -ed words (8+ chars) like "surrendered", "revolutionized" are verbs, not adjectives
@@ -871,12 +912,32 @@ function addCadenceBreak(line) {
         if (i < 3 && words.length >= 6 && !clauseIntroducers.has(w)) score -= 5;
         // Avoid breaking before a conjunction near the end
         if (clauseStarters.has(w) && i >= words.length - 2) score -= 4;
-        // Single-char words are poor break starters — but "I" is fine as subject
-        if (w.length <= 1 && w !== 'i') score -= 10;
-        // Compound phrase protection
+        // Single-char words are poor break starters — but "I" is fine as subject.
+        // Bumped from -10 to -15 so a bare article like "a" / "an" can't sneak past
+        // the quality gate after the +3 article bonus and the +1.5 long-prev bonus
+        // ("trapped inside - a memory" type cases).
+        if (w.length <= 1 && w !== 'i') score -= 15;
+        // Compound phrase protection — also catches splits with conjunctions/fillers
+        // between members (e.g. "left - and right" splits the "left and right" compound).
+        // Look ahead up to 3 words past the dash for the partner; same in reverse.
+        let compoundSplit = false;
         for (const [first, second] of compoundPairs) {
-            if (prev === first && w === second) { score -= 15; break; }
+            if (prev === first) {
+                for (let k = i; k < Math.min(i + 3, words.length); k++) {
+                    const peek = (words[k] || '').toLowerCase().replace(/[^a-z']/g, '');
+                    if (peek === second) { compoundSplit = true; break; }
+                }
+            }
+            if (compoundSplit) break;
+            if (w === second) {
+                for (let k = i - 1; k >= Math.max(0, i - 3); k--) {
+                    const peek = (words[k] || '').toLowerCase().replace(/[^a-z']/g, '');
+                    if (peek === first) { compoundSplit = true; break; }
+                }
+            }
+            if (compoundSplit) break;
         }
+        if (compoundSplit) score -= 15;
 
         // Tie-breaking: prefer position closer to target; equal distance → prefer later
         if (score > bestScore ||

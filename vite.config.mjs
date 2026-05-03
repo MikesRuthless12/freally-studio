@@ -83,6 +83,11 @@ export default defineConfig(({ mode }) => {
             })] : [])
         ],
         server: {
+            // host: '0.0.0.0' is intentional — the dev server must be
+            // reachable on the LAN so the mobile-link companion PWA can
+            // connect from a phone on the same network during development.
+            // This setting only affects `vite dev`; production/Electron
+            // builds never serve over the network.
             host: '0.0.0.0',
             port: 5173,
             strictPort: false,

@@ -161,7 +161,23 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
                     if (mFolder.files && mFolder.files.length > 0) {
                         for (const fileName of mFolder.files) {
                             const filePath = `/${folderPath}/${fileName}`;
-                            const encodedPath = `/${folderPath}/${encodeURIComponent(fileName)}`;
+                            // D6: Per-segment encode + reject '..' / empty segments
+                            const segments = `${folderPath}/${fileName}`.split('/');
+                            let unsafe = false;
+                            const encodedSegs = [];
+                            for (const seg of segments) {
+                                if (seg === '' || seg === '..' || seg === '.') {
+                                    unsafe = true;
+                                    break;
+                                }
+                                encodedSegs.push(encodeURIComponent(seg));
+                            }
+                            if (unsafe) {
+                                console.warn(`[Factory] Rejecting unsafe path: ${filePath}`);
+                                loadedCount++;
+                                continue;
+                            }
+                            const encodedPath = '/' + encodedSegs.join('/');
                             setFactoryLoadProgress(prev => ({
                                 ...prev,
                                 loaded: loadedCount,

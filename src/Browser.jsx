@@ -957,6 +957,24 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
 
             let loaded = 0;
 
+            // D6: Build a fetchable URL by encoding each path segment.
+            // Reject empty or '..' segments.
+            const buildSafeUrl = (path) => {
+                if (typeof path !== 'string') return null;
+                const segments = path.split('/');
+                const encoded = [];
+                for (const seg of segments) {
+                    if (seg === '') {
+                        // Allow leading empty (from leading '/') only at index 0
+                        encoded.push('');
+                        continue;
+                    }
+                    if (seg === '..' || seg === '.') return null;
+                    encoded.push(encodeURIComponent(seg));
+                }
+                return encoded.join('/');
+            };
+
             // Build folder tree with metadata only (audio decoded lazily on first use)
             const buildTree = (manifestFolders, basePath) => {
                 const result = [];
@@ -965,13 +983,18 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                     const files = [];
                     for (const fileName of (folder.files || [])) {
                         const filePath = `${folderPath}/${fileName}`;
+                        const safeUrl = buildSafeUrl(filePath);
+                        if (!safeUrl) {
+                            console.warn('[Factory] Rejecting unsafe path:', filePath);
+                            continue;
+                        }
                         files.push({
                             name: fileName,
                             path: filePath,
                             kind: 'file',
                             type: 'audio',
                             audioBuffer: null, // decoded lazily on first click/use
-                            _audioUrl: filePath,
+                            _audioUrl: safeUrl,
                             isFactory: true
                         });
                         loaded++;

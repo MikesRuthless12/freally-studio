@@ -1,11 +1,76 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { TransportClock } = require('./transportClock');
 const { VST3Scanner } = require('./vst3Scanner');
-const { loadNativeAddon, getAddon, registerIPC: registerVST3HostIPC } = require('./vst3HostBridge');
+const { loadNativeAddon, getAddon, registerIPC: registerVST3HostIPC, setAllowedPluginPaths } = require('./vst3HostBridge');
 const { loadNativeAddon: loadAudioCaptureAddon, registerIPC: registerAudioCaptureIPC } = require('./audioCaptureBridge');
+
+// --- Security helpers ---
+
+// Set of paths the user explicitly chose via dialog, plus default safe roots.
+// Used by assertSafePath() to reject IPC fs:* requests for arbitrary paths.
+const userChosenPaths = new Set();
+
+function getSafeRoots() {
+    const roots = [];
+    try { roots.push(app.getPath('userData')); } catch (_) {}
+    try { roots.push(app.getPath('documents')); } catch (_) {}
+    try { roots.push(app.getPath('music')); } catch (_) {}
+    try { roots.push(app.getPath('downloads')); } catch (_) {}
+    try { roots.push(app.getPath('desktop')); } catch (_) {}
+    try { roots.push(app.getPath('temp')); } catch (_) {}
+    try { roots.push(app.getAppPath()); } catch (_) {}
+    return roots.filter(Boolean).map(p => path.resolve(p));
+}
+
+/**
+ * Validate that a filesystem path is inside an allowed root.
+ * Throws an Error if the path is unsafe. Returns the resolved path on success.
+ */
+function assertSafePath(p) {
+    if (typeof p !== 'string' || !p) {
+        throw new Error('Invalid path: must be a non-empty string');
+    }
+    if (p.includes('\0')) {
+        throw new Error('Invalid path: contains null byte');
+    }
+    const resolved = path.resolve(p);
+    // Reject traversal attempts in the original (pre-resolve) string
+    if (p.split(/[\\/]/).includes('..')) {
+        throw new Error('Invalid path: traversal not allowed');
+    }
+    const roots = getSafeRoots();
+    for (const root of roots) {
+        if (resolved === root || resolved.startsWith(root + path.sep)) {
+            return resolved;
+        }
+    }
+    for (const chosen of userChosenPaths) {
+        if (resolved === chosen || resolved.startsWith(chosen + path.sep)) {
+            return resolved;
+        }
+    }
+    throw new Error('Path not allowed: ' + resolved);
+}
+
+/**
+ * Verify an IPC event came from the main window's main frame.
+ * Mitigates the case where a compromised <iframe> or sub-frame could
+ * invoke privileged IPC handlers.
+ */
+function requireMainFrame(event) {
+    try {
+        return !!(mainWindow && !mainWindow.isDestroyed() &&
+            event && event.senderFrame === mainWindow.webContents.mainFrame);
+    } catch (_) {
+        return false;
+    }
+}
+
+// Content-Security-Policy applied to all packaged-app responses (A3).
+const CSP_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.peerjs.com https://*.peerjs.com https://0.peerjs.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com data: blob:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; worker-src 'self' blob:; child-src 'self' blob:;";
 
 // Suppress EPIPE errors on stdout/stderr (harmless — occurs when pipe closes during shutdown)
 process.stdout?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });
@@ -47,13 +112,18 @@ if (process.defaultApp) {
     app.setAsDefaultProtocolClient('wavloom');
 }
 
-// Extract room param from a wavloom:// URL
+// Extract room param from a wavloom:// URL.
+// Validates the room id against /^[A-Za-z0-9_-]{1,64}$/ to prevent
+// injection of arbitrary strings via the deep-link channel.
+const ROOM_ID_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
 function extractRoomFromUrl(url) {
     if (!url || !url.startsWith('wavloom://')) return null;
     try {
         // wavloom://join?room=abc123 → abc123
         const parsed = new URL(url.replace('wavloom://', 'https://wavloom/'));
-        return parsed.searchParams.get('room') || null;
+        const room = parsed.searchParams.get('room');
+        if (!room || !ROOM_ID_REGEX.test(room)) return null;
+        return room;
     } catch { return null; }
 }
 
@@ -109,7 +179,10 @@ app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess,WebRt
 // cancellation from being applied at the engine level.
 app.commandLine.appendSwitch('disable-audio-input-processing');
 
-// Allow self-signed certs from Vite's dev HTTPS server in dev mode
+// Allow self-signed certs from Vite's dev HTTPS server in dev mode.
+// SECURITY: This is DEV-ONLY and gated by !app.isPackaged. The flag is never
+// applied in production builds, so packaged installations always perform
+// full certificate validation for any HTTPS resource they load.
 if (!app.isPackaged) {
     app.commandLine.appendSwitch('ignore-certificate-errors');
 }
@@ -144,7 +217,11 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: false,
+            // sandbox:true plus contextIsolation:true gives the renderer a
+            // Chromium-sandboxed process with no Node primitives — only what
+            // the preload exposes via contextBridge. Our preload only uses
+            // require('electron'), which is permitted under sandbox.
+            sandbox: true,
             webSecurity: true,
         },
     });
@@ -183,8 +260,16 @@ function createWindow() {
     });
 
     // SharedArrayBuffer is enabled via command-line flag (line 10).
-    // No COOP/COEP headers needed — removing them avoids blocking
-    // Google Identity Services iframes and auth popups.
+    // SECURITY TRADE-OFF: We deliberately do NOT set strict
+    // Cross-Origin-Opener-Policy / Cross-Origin-Embedder-Policy headers here.
+    // Strict COOP/COEP would give us cross-origin isolation (full SAB
+    // protection against Spectre-style cross-origin reads) but breaks Google
+    // Identity Services popups (postMessage between auth popup and main window
+    // requires same-origin-allow-popups COOP) and several legitimate
+    // third-party iframes used by the auth flow. The Chromium SAB flag above
+    // re-enables SharedArrayBuffer without strict isolation; this is
+    // acceptable for a packaged Electron app where the renderer only loads
+    // local content + a small allowlist enforced by CSP (connect-src).
 
     // Show window once ready to avoid white flash
     mainWindow.once('ready-to-show', () => {
@@ -197,6 +282,31 @@ function createWindow() {
     } else {
         mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
     }
+
+    // SECURITY (A4): Open all https:// links in the user's external browser
+    // and deny everything else. Prevents the renderer from spawning new
+    // Electron windows pointing at arbitrary URLs.
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        try {
+            if (typeof url === 'string' && url.startsWith('https://')) {
+                shell.openExternal(url);
+            }
+        } catch (_) { /* ignore */ }
+        return { action: 'deny' };
+    });
+
+    // SECURITY (A4): Block top-level navigation to remote origins. The app
+    // only ever needs to navigate within localhost (dev) or file:// (prod);
+    // any other http(s) navigation is treated as hostile and cancelled.
+    mainWindow.webContents.on('will-navigate', (event, navUrl) => {
+        try {
+            const u = new URL(navUrl);
+            const allowed = ['localhost', '127.0.0.1'];
+            if (!allowed.includes(u.hostname) && navUrl.startsWith('http')) {
+                event.preventDefault();
+            }
+        } catch (_) { /* ignore unparseable URLs */ }
+    });
 
     // Forward renderer console messages to terminal for debugging
     mainWindow.webContents.on('console-message', (_event, level, message) => {
@@ -281,45 +391,62 @@ ipcMain.on('window:maximize', () => {
 ipcMain.on('window:close', () => mainWindow?.close());
 ipcMain.handle('window:isMaximized', () => mainWindow?.isMaximized() ?? false);
 
-// File system dialogs
-ipcMain.handle('fs:showOpenDialog', async (_event, options) => {
+// File system dialogs — record any user-chosen paths so subsequent fs:*
+// calls against them are accepted by assertSafePath().
+ipcMain.handle('fs:showOpenDialog', async (event, options) => {
+    if (!requireMainFrame(event)) return { canceled: true, filePaths: [] };
     const result = await dialog.showOpenDialog(mainWindow, options);
+    if (result && Array.isArray(result.filePaths)) {
+        for (const fp of result.filePaths) {
+            try { userChosenPaths.add(path.resolve(fp)); } catch (_) {}
+        }
+    }
     return result;
 });
 
-ipcMain.handle('fs:showSaveDialog', async (_event, options) => {
+ipcMain.handle('fs:showSaveDialog', async (event, options) => {
+    if (!requireMainFrame(event)) return { canceled: true };
     const result = await dialog.showSaveDialog(mainWindow, options);
+    if (result && result.filePath) {
+        try { userChosenPaths.add(path.resolve(path.dirname(result.filePath))); } catch (_) {}
+    }
     return result;
 });
 
-// File system operations
-ipcMain.handle('fs:readFile', async (_event, filePath) => {
+// File system operations — every path is validated by assertSafePath().
+ipcMain.handle('fs:readFile', async (event, filePath) => {
+    if (!requireMainFrame(event)) return { data: null, error: 'forbidden' };
     try {
-        const data = await fs.promises.readFile(filePath);
+        const safe = assertSafePath(filePath);
+        const data = await fs.promises.readFile(safe);
         return { data: data.buffer, error: null };
     } catch (err) {
         return { data: null, error: err.message };
     }
 });
 
-ipcMain.handle('fs:writeFile', async (_event, filePath, data) => {
+ipcMain.handle('fs:writeFile', async (event, filePath, data) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
     try {
-        await fs.promises.writeFile(filePath, Buffer.from(data));
+        const safe = assertSafePath(filePath);
+        await fs.promises.writeFile(safe, Buffer.from(data));
         return { error: null };
     } catch (err) {
         return { error: err.message };
     }
 });
 
-ipcMain.handle('fs:readDir', async (_event, dirPath) => {
+ipcMain.handle('fs:readDir', async (event, dirPath) => {
+    if (!requireMainFrame(event)) return { entries: [], error: 'forbidden' };
     try {
-        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        const safe = assertSafePath(dirPath);
+        const entries = await fs.promises.readdir(safe, { withFileTypes: true });
         return {
             entries: entries.map(e => ({
                 name: e.name,
                 isDirectory: e.isDirectory(),
                 isFile: e.isFile(),
-                path: path.join(dirPath, e.name),
+                path: path.join(safe, e.name),
             })),
             error: null,
         };
@@ -328,9 +455,11 @@ ipcMain.handle('fs:readDir', async (_event, dirPath) => {
     }
 });
 
-ipcMain.handle('fs:stat', async (_event, filePath) => {
+ipcMain.handle('fs:stat', async (event, filePath) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
     try {
-        const stat = await fs.promises.stat(filePath);
+        const safe = assertSafePath(filePath);
+        const stat = await fs.promises.stat(safe);
         return {
             size: stat.size,
             isDirectory: stat.isDirectory(),
@@ -343,18 +472,22 @@ ipcMain.handle('fs:stat', async (_event, filePath) => {
     }
 });
 
-ipcMain.handle('fs:exists', async (_event, filePath) => {
+ipcMain.handle('fs:exists', async (event, filePath) => {
+    if (!requireMainFrame(event)) return false;
     try {
-        await fs.promises.access(filePath);
+        const safe = assertSafePath(filePath);
+        await fs.promises.access(safe);
         return true;
     } catch {
         return false;
     }
 });
 
-ipcMain.handle('fs:mkdir', async (_event, dirPath, options) => {
+ipcMain.handle('fs:mkdir', async (event, dirPath, options) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
     try {
-        await fs.promises.mkdir(dirPath, { recursive: options?.recursive ?? true });
+        const safe = assertSafePath(dirPath);
+        await fs.promises.mkdir(safe, { recursive: options?.recursive ?? true });
         return { error: null };
     } catch (err) {
         return { error: err.message };
@@ -394,13 +527,15 @@ ipcMain.handle('folders:load', async () => {
     }
 });
 
-ipcMain.handle('folders:scan', async (_event, dirPath) => {
+ipcMain.handle('folders:scan', async (event, dirPath) => {
+    if (!requireMainFrame(event)) return { files: [], error: 'forbidden' };
     try {
-        // Block root drives
-        const normalized = dirPath.replace(/\\/g, '/').replace(/\/+$/, '');
+        // Block root drives and validate path is in an allowed root.
+        const normalized = (typeof dirPath === 'string' ? dirPath : '').replace(/\\/g, '/').replace(/\/+$/, '');
         if (/^[A-Za-z]:$/.test(normalized) || normalized === '' || normalized === '/') {
             return { files: [], error: 'Cannot scan root drives' };
         }
+        const safeRoot = assertSafePath(dirPath);
         const results = [];
         const scanDir = async (dir, prefix) => {
             const entries = await fs.promises.readdir(dir, { withFileTypes: true });
@@ -416,21 +551,45 @@ ipcMain.handle('folders:scan', async (_event, dirPath) => {
                 }
             }
         };
-        await scanDir(dirPath, '');
+        await scanDir(safeRoot, '');
         return { files: results, error: null };
     } catch (err) {
         return { files: [], error: err.message };
     }
 });
 
-// Folder watching — notify renderer when files change in watched directories
+// Folder watching — notify renderer when files change in watched directories.
+// SECURITY (A10): Cap simultaneous watchers at 16 to prevent resource
+// exhaustion, reject system roots, and validate path against allowed roots.
 const activeWatchers = new Map(); // path → FSWatcher
+const MAX_WATCHERS = 16;
 
-ipcMain.handle('folders:watch', (_event, dirPath) => {
-    if (activeWatchers.has(dirPath)) return { error: null }; // Already watching
+function isSystemRoot(p) {
+    if (typeof p !== 'string') return true;
+    const norm = p.replace(/\\/g, '/').replace(/\/+$/, '');
+    if (norm === '' || norm === '/') return true;
+    if (/^[A-Za-z]:$/.test(norm)) return true;          // C:
+    if (/^[A-Za-z]:[\\/]?$/.test(p)) return true;       // C:\ or C:/
+    return false;
+}
+
+ipcMain.handle('folders:watch', (event, dirPath) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
+    if (isSystemRoot(dirPath)) {
+        console.warn('[folders:watch] rejected system root:', dirPath);
+        return { error: 'Cannot watch system root' };
+    }
+    let safe;
+    try { safe = assertSafePath(dirPath); }
+    catch (err) { return { error: err.message }; }
+    if (activeWatchers.has(safe)) return { error: null }; // Already watching
+    if (activeWatchers.size >= MAX_WATCHERS) {
+        console.warn(`[folders:watch] rejected — already watching ${activeWatchers.size}/${MAX_WATCHERS}`);
+        return { error: 'Watcher limit reached' };
+    }
     try {
         let debounce = null;
-        const watcher = fs.watch(dirPath, { recursive: true }, (eventType, filename) => {
+        const watcher = fs.watch(safe, { recursive: true }, (eventType, filename) => {
             if (!filename) return;
             // Only care about audio/midi files
             if (!/\.(wav|mp3|ogg|flac|aiff|aif|mid|midi)$/i.test(filename)) return;
@@ -438,21 +597,25 @@ ipcMain.handle('folders:watch', (_event, dirPath) => {
             clearTimeout(debounce);
             debounce = setTimeout(() => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('folders:changed', { dirPath, eventType, filename });
+                    mainWindow.webContents.send('folders:changed', { dirPath: safe, eventType, filename });
                 }
             }, 500);
         });
-        activeWatchers.set(dirPath, watcher);
+        activeWatchers.set(safe, watcher);
         return { error: null };
     } catch (err) {
         return { error: err.message };
     }
 });
 
-ipcMain.handle('folders:unwatch', (_event, dirPath) => {
-    const watcher = activeWatchers.get(dirPath);
+ipcMain.handle('folders:unwatch', (event, dirPath) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
+    let key = dirPath;
+    try { key = path.resolve(dirPath); } catch (_) {}
+    const watcher = activeWatchers.get(key) || activeWatchers.get(dirPath);
     if (watcher) {
         watcher.close();
+        activeWatchers.delete(key);
         activeWatchers.delete(dirPath);
     }
     return { error: null };
@@ -465,12 +628,37 @@ app.on('will-quit', () => {
 });
 
 // Shell operations
-ipcMain.handle('shell:openExternal', async (_event, url) => {
-    await shell.openExternal(url);
+// SECURITY (A1): Only allow http(s) and mailto: URLs through shell.openExternal.
+// Any other scheme (file:, javascript:, vbscript:, custom protocols, etc.) is
+// rejected to prevent the renderer from launching arbitrary system handlers.
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
+ipcMain.handle('shell:openExternal', async (event, url) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
+    if (typeof url !== 'string' || !url) return { error: 'Invalid URL' };
+    let parsed;
+    try { parsed = new URL(url); }
+    catch { return { error: 'Invalid URL' }; }
+    if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {
+        console.warn('[shell:openExternal] rejected scheme:', parsed.protocol);
+        return { error: 'Protocol not allowed' };
+    }
+    try {
+        await shell.openExternal(url);
+        return { error: null };
+    } catch (err) {
+        return { error: err.message || String(err) };
+    }
 });
 
-ipcMain.handle('shell:showItemInFolder', async (_event, filePath) => {
-    shell.showItemInFolder(filePath);
+ipcMain.handle('shell:showItemInFolder', async (event, filePath) => {
+    if (!requireMainFrame(event)) return { error: 'forbidden' };
+    try {
+        const safe = assertSafePath(filePath);
+        shell.showItemInFolder(safe);
+        return { error: null };
+    } catch (err) {
+        return { error: err.message };
+    }
 });
 
 // App info
@@ -538,6 +726,11 @@ ipcMain.handle('vst3:scan', async (_event, forceRescan) => {
 
     try {
         const plugins = await vst3Scanner.scan(forceRescan === true);
+        // SECURITY (A6): tell vst3HostBridge which plugin paths are loadable.
+        try {
+            const paths = (plugins || []).map(p => p && p.path).filter(Boolean);
+            setAllowedPluginPaths(paths);
+        } catch (_) {}
         return { plugins, error: null };
     } catch (err) {
         return { plugins: [], error: err.message };
@@ -546,7 +739,16 @@ ipcMain.handle('vst3:scan', async (_event, forceRescan) => {
 
 ipcMain.handle('vst3:getCache', () => {
     if (!vst3Scanner) return null;
-    return vst3Scanner.loadCache();
+    const cache = vst3Scanner.loadCache();
+    // Also seed the plugin allowlist from the persisted cache so previously
+    // scanned plugins remain loadable without a fresh scan on each launch.
+    try {
+        if (cache && Array.isArray(cache.plugins)) {
+            const paths = cache.plugins.map(p => p && p.path).filter(Boolean);
+            setAllowedPluginPaths(paths);
+        }
+    } catch (_) {}
+    return cache;
 });
 
 ipcMain.handle('vst3:clearCache', () => {
@@ -570,7 +772,8 @@ ipcMain.handle('vst3:setCustomPaths', (_event, paths) => {
     vst3Scanner.clearCache();
 });
 
-ipcMain.handle('vst3:browseForFolder', async () => {
+ipcMain.handle('vst3:browseForFolder', async (event) => {
+    if (!requireMainFrame(event)) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory'],
         title: 'Select VST3 Plugin Folder',
@@ -578,12 +781,26 @@ ipcMain.handle('vst3:browseForFolder', async () => {
     if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
         return null;
     }
+    // Track user-chosen path so subsequent fs:* calls against it pass assertSafePath.
+    try { userChosenPaths.add(path.resolve(result.filePaths[0])); } catch (_) {}
     return result.filePaths[0];
 });
 
 // ---- App lifecycle ----
 
 app.whenReady().then(() => {
+    // SECURITY (A3): Inject Content-Security-Policy on every response in
+    // packaged builds. In dev we leave headers untouched so Vite's HMR and
+    // basicSsl behave normally; the CSP <meta> tag in index.html still
+    // provides a baseline policy.
+    if (app.isPackaged) {
+        session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+            const headers = { ...(details.responseHeaders || {}) };
+            headers['Content-Security-Policy'] = [CSP_VALUE];
+            callback({ responseHeaders: headers });
+        });
+    }
+
     // Initialize VST3 scanner with user data path
     vst3Scanner = new VST3Scanner(app.getPath('userData'));
 

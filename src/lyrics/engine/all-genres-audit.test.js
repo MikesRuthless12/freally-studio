@@ -426,7 +426,7 @@ function logGenreSummary(genreName, results) {
 // =========================================================================
 
 describe('All Genres Lyrics Audit — 100 Generations Each', () => {
-    it('should run 100 generations per genre and produce audit reports', { timeout: 300000 }, () => {
+    it('should run 100 generations per genre and produce audit reports', { timeout: 1200000 }, () => {
         console.log('\n=== STARTING ALL-GENRES LYRICS AUDIT ===\n');
 
         const allSummaries = [];

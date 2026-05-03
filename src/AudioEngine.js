@@ -593,6 +593,12 @@ class AudioEngine {
         this.stop();
         this.stopGranularScrape(true);
 
+        // F3: Cancel pending idle-suspend so it can't fire on a disposed instance.
+        if (this._idleSuspendTimer) {
+            clearTimeout(this._idleSuspendTimer);
+            this._idleSuspendTimer = null;
+        }
+
         // Disconnect master bus
         if (this.masterBus) {
             try { this.masterBus.disconnect(); } catch (_) {}

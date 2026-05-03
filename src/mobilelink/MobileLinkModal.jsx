@@ -30,6 +30,7 @@ export default function MobileLinkModal({
     onDisconnectClient,
     desktopMuted,
     onToggleDesktopMute,
+    pin,
     isDark,
     ac,
     hexToRgba,
@@ -151,6 +152,40 @@ export default function MobileLinkModal({
                                 {t('mobileLink.scanQR')}
                             </div>
                         </div>
+
+                        {/* PIN — manual fallback if QR scan does not auto-detect */}
+                        {pin && (
+                            <div style={{
+                                marginBottom: '16px',
+                                padding: '10px 12px',
+                                background: isDark ? '#0d0d12' : '#f5f5f5',
+                                border: `1px solid ${border}`,
+                                borderRadius: '8px',
+                                textAlign: 'center',
+                            }}>
+                                <div style={{
+                                    fontSize: '11px',
+                                    color: mutedText,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    marginBottom: '4px',
+                                }}>
+                                    PIN
+                                </div>
+                                <div style={{
+                                    fontSize: '26px',
+                                    fontWeight: 700,
+                                    fontFamily: 'monospace',
+                                    letterSpacing: '4px',
+                                    color: textColor,
+                                }}>
+                                    {pin}
+                                </div>
+                                <div style={{ fontSize: '11px', color: mutedText, marginTop: '4px' }}>
+                                    Enter on mobile if not auto-detected
+                                </div>
+                            </div>
+                        )}
 
                         {/* Session URL */}
                         <div style={{ marginBottom: '16px' }}>

@@ -1367,7 +1367,17 @@ const WavLoomAppComplete = () => {
     // Global settings (synced across all generators)
     const [globalKey, setGlobalKey] = useState('C');
     const [globalScale, setGlobalScale] = useState('Minor');
-    const [globalTempo, setGlobalTempo] = useState(140);
+    const [globalTempo, _setGlobalTempoRaw] = useState(140);
+    // F1: Clamp every tempo write to [20, 300] and reject non-finite values so
+    // downstream `60 / globalTempo` math can never produce Infinity/NaN.
+    const setGlobalTempo = useCallback((v) => {
+        _setGlobalTempoRaw(prev => {
+            const raw = typeof v === 'function' ? v(prev) : v;
+            const n = Number(raw);
+            if (!Number.isFinite(n)) return prev;
+            return Math.max(20, Math.min(300, Math.round(n)));
+        });
+    }, []);
     const tapTimesRef = useRef([]);          // Tap tempo: last 4 tap timestamps
     const tapBtnRef = useRef(null);          // Tap button DOM ref for flash effect
     const [isEditingBpm, setIsEditingBpm] = useState(false); // Inline BPM text input
@@ -1947,8 +1957,40 @@ const WavLoomAppComplete = () => {
     const { toasts, addToast, removeToast } = useToast();
     const isAuthenticated = !!(collab.userProfile.name && collab.userProfile.name.trim());
 
+    // Broker notice banner (collab + mobile-link share the same surface).
+    const [brokerNoticeDismissed, setBrokerNoticeDismissed] = useState(false);
+    const visibleBrokerNotice = (!brokerNoticeDismissed && (collab.brokerNotice || mobileLink.brokerNotice)) || null;
+
+    // B8: register screen-share consent prompt. Voice calls auto-accept; only
+    // screen-share calls reach this callback.
+    useEffect(() => {
+        if (!collab.setIncomingCallConsent) return;
+        collab.setIncomingCallConsent((peerId, kind) => {
+            try {
+                const peer = collab.peers?.[peerId];
+                const authoritative = collab.peerDisplayNames?.[peerId];
+                const peerName = authoritative || peer?.profile?.name || `Peer ${String(peerId).slice(0, 6)}`;
+                const action = kind === 'screen' ? 'share their screen' : 'start a call';
+                return Promise.resolve(window.confirm(`${peerName} wants to ${action}. Allow?`));
+            } catch (_) {
+                return Promise.resolve(false);
+            }
+        });
+        return () => { try { collab.setIncomingCallConsent(null); } catch (_) {} };
+    }, [collab.setIncomingCallConsent, collab.peers, collab.peerDisplayNames]);
+
     // Apply settings on mount
     useEffect(() => { applyTooltipSetting(appSettings.showTooltips); }, []);
+
+    // Strip secret fragment from URL after collab hook captured it on init,
+    // so the secret never appears in dev-tools URLs, history, or screen shares.
+    useEffect(() => {
+        try {
+            if (window.location.hash && /(?:^|&|#)s=/.test(window.location.hash)) {
+                window.history.replaceState({}, '', window.location.pathname + window.location.search);
+            }
+        } catch (_) { /* ignore */ }
+    }, []);
 
     // Handle deep-link collab invites (wavloom://join?room=xxx)
     useEffect(() => {
@@ -2784,7 +2826,11 @@ const WavLoomAppComplete = () => {
             if (currentStep === lastStep) return;
             const isMuted = globalMutes.has('drums');
             const anySoloed = globalSolos.size > 0;
-            const isSoloed = globalSolos.has('drums');
+            // F2: per-drum solos use `drums_<drumId>` keys; treat any drums_* key as soloing the drums track.
+            let isSoloed = globalSolos.has('drums');
+            if (!isSoloed && anySoloed) {
+                for (const key of globalSolos) { if (typeof key === 'string' && key.startsWith('drums_')) { isSoloed = true; break; } }
+            }
             const shouldPlay = anySoloed ? isSoloed : !isMuted;
             if (!shouldPlay) { drumClipLastStepRef.current = currentStep; return; }
             const basePitch = 24; // octave 1: (1+1)*12
@@ -6973,6 +7019,45 @@ const WavLoomAppComplete = () => {
             fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
             overflow: 'hidden'
         }}>
+            {/* Broker notice banner — appears once per session when PeerJS broker
+                connects. Surfaces the privacy implication of using a 3rd-party broker. */}
+            {visibleBrokerNotice && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 11000,
+                    padding: '8px 14px',
+                    background: isDark ? 'rgba(234,179,8,0.12)' : 'rgba(234,179,8,0.18)',
+                    borderBottom: '1px solid rgba(234,179,8,0.5)',
+                    color: isDark ? '#fde68a' : '#7c5b00',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                }}>
+                    <span style={{ flex: 1, lineHeight: 1.4 }}>
+                        Note: Real-time collaboration uses the public PeerJS broker — IPs and metadata may be visible to a 3rd party.
+                    </span>
+                    <button
+                        onClick={() => setBrokerNoticeDismissed(true)}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid rgba(234,179,8,0.5)',
+                            color: 'inherit',
+                            padding: '3px 10px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                        }}
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            )}
             {/* Left Sidebar Area — Record Mode (base layer) + File Explorer (overlay layer) */}
             <div style={{
                 width: isRecordMode
@@ -9790,6 +9875,7 @@ const WavLoomAppComplete = () => {
                 onDisconnectClient={mobileLink.disconnectClient}
                 desktopMuted={mobileLink.desktopMuted}
                 onToggleDesktopMute={() => mobileLink.setDesktopMuted(!mobileLink.desktopMuted)}
+                pin={mobileLink.pin}
                 isDark={isDark}
                 ac={ac}
                 hexToRgba={hexToRgba}

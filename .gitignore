@@ -1,11 +1,18 @@
 node_modules/
 dist/
 .env
+.env.local
+.env.*.local
 *.log
+npm-debug.log*
 .DS_Store
 Thumbs.db
 nul
 release/
+coverage/
+*.tsbuildinfo
+.vscode/
+.idea/
 native/audio_capture/build/
 
 # Feature docs and build/implementation prompt specs — never tracked
@@ -19,3 +26,21 @@ native/audio_capture/build/
 *Listener-Reaction-System-Prompts*.md
 Feature-Prompts/
 docs/BUILD-PROMPTS-GUIDE.md
+
+# One-off dev/maintenance scripts, audit reports, and scratch files
+_apply_edit.js
+_patch_i18n.js
+_fast_lang_audit.mjs
+_expand_data_part1.json
+temp-fix-deficits.js
+fix_backticks.py
+fix_fallbacks.py
+update_accents.py
+assemble_es.js
+gen-part1.js
+dedup-all-locales.js
+check-uniqueness.js
+check-caesura-all.js
+*-audit-report.md
+test-write.txt
+New Text Document.txt

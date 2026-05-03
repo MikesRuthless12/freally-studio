@@ -188,7 +188,8 @@ describe('audioCaptureBridge IPC registration', () => {
         // The IPC handler receives deviceId, normalizes it, and calls startCapture
         expect(bridgeSrc).toContain('startCapture');
         // Handler signature contains deviceId, sampleRate, channels
-        expect(bridgeSrc).toMatch(/_event,\s*deviceId,\s*sampleRate,\s*channels/);
+        // Matches both "(_event, ..." (legacy) and "(event, ..." (post sender-frame validation).
+        expect(bridgeSrc).toMatch(/_?event,\s*deviceId,\s*sampleRate,\s*channels/);
     });
 
     it('stopCapture IPC handler encodes result as base64', () => {

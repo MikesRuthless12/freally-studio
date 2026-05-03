@@ -1153,7 +1153,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                 const crossfadeDelay = currentCtx.currentTime + 0.5; // after 500ms crossfade
                 Object.keys(drumStatesRef.current).forEach(drumId => {
                     const drum = drumStatesRef.current[drumId];
-                    const isGlobalSoloed = globalSolos?.has(`drums_${drumId} `);
+                    const isGlobalSoloed = globalSolos?.has(`drums_${drumId}`);
                     const shouldPlay = drum.powered && (isAnythingSoloed ? isGlobalSoloed : !drum.mute);
                     if (!shouldPlay) return;
                     Object.values(drum.lanes).forEach(lane => {
@@ -1193,7 +1193,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                 const triggerStep = step % totalSteps;
                 Object.keys(drumStatesRef.current).forEach(drumId => {
                     const drum = drumStatesRef.current[drumId];
-                    const isGlobalSoloed = globalSolos?.has(`drums_${drumId} `);
+                    const isGlobalSoloed = globalSolos?.has(`drums_${drumId}`);
                     const shouldPlay = drum.powered && (isAnythingSoloed ? isGlobalSoloed : !drum.mute);
 
                     if (shouldPlay) {
@@ -1252,9 +1252,9 @@ const DrumGeneratorEnhanced = React.forwardRef(({
     }, []);
 
     const toggleSolo = useCallback((drumId, e) => {
-        const isCurrentlySoloed = globalSolos?.has(`drums_${drumId} `);
+        const isCurrentlySoloed = globalSolos?.has(`drums_${drumId}`);
         if (updateGlobalSolo) {
-            updateGlobalSolo(`drums_${drumId} `, !isCurrentlySoloed, e.ctrlKey);
+            updateGlobalSolo(`drums_${drumId}`, !isCurrentlySoloed, e.ctrlKey);
         }
     }, [globalSolos, updateGlobalSolo]);
 
@@ -1987,14 +1987,14 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                             style={{
                                                 width: '24px',
                                                 height: '24px',
-                                                background: globalSolos?.has(`drums_${drum.id} `) ? acSec : (isDark ? '#1a1a1f' : '#eee'),
+                                                background: globalSolos?.has(`drums_${drum.id}`) ? acSec : (isDark ? '#1a1a1f' : '#eee'),
                                                 border: 'none',
                                                 borderRadius: '4px',
-                                                color: globalSolos?.has(`drums_${drum.id} `) ? '#fff' : (isDark ? '#555' : '#888'),
+                                                color: globalSolos?.has(`drums_${drum.id}`) ? '#fff' : (isDark ? '#555' : '#888'),
                                                 fontSize: '10px',
                                                 fontWeight: '900',
                                                 cursor: 'pointer',
-                                                boxShadow: globalSolos?.has(`drums_${drum.id} `) ? `0 0 10px ${acSec}` : 'none',
+                                                boxShadow: globalSolos?.has(`drums_${drum.id}`) ? `0 0 10px ${acSec}` : 'none',
                                                 transition: 'all 0.1s'
                                             }}
                                             title={t('drums.soloMulti')}

@@ -2,9 +2,108 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "../i18n/I18nContext";
 import { PeerManager } from "./PeerManager";
 import { MSG } from "./PeerProtocol";
-import { getOrCreateRoom } from "./Room";
+import { getOrCreateRoom, cryptoRandomId } from "./Room";
 import { defaultOwners } from "./DelegationStore";
 import { VoiceChatEngine } from "./VoiceChatEngine";
+
+// ─── Schema validation helpers (B4) ─────────────────────────────────
+const KNOWN_TABS = new Set([
+    'drums', 'chords', 'melody', 'bass', 'lyrics', 'lyricEngine', 'browser',
+    'mixer', 'arrange', 'drumSynth', 'instSynth'
+]);
+const ALLOWED_PERMISSION_KEYS = new Set([
+    'canEditDrums', 'canEditChords', 'canEditMelody', 'canEditBass',
+    'canEditLyrics', 'canEditLyricEngine', 'canEditBrowser',
+    'canEditMixer', 'canEditArrange', 'canEditDrumSynth', 'canEditInstSynth',
+    'canChangeTempo', 'canExport'
+]);
+const ALLOWED_PROFILE_KEYS = new Set(['displayName', 'name', 'color', 'avatarUrl', 'email']);
+
+function validIncomingMessage(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (typeof data.type !== 'string' || data.type.length === 0 || data.type.length >= 64) return false;
+    return true;
+}
+
+function isFiniteInRange(n, lo, hi) {
+    return typeof n === 'number' && Number.isFinite(n) && n >= lo && n <= hi;
+}
+
+function validateByType(data) {
+    switch (data.type) {
+        case MSG.MOUSE_MOVE:
+            if (!isFiniteInRange(data.x, 0, 100000)) return false;
+            if (!isFiniteInRange(data.y, 0, 100000)) return false;
+            if (data.name != null && (typeof data.name !== 'string' || data.name.length > 64)) return false;
+            return true;
+        case MSG.CHAT:
+            if (typeof data.text !== 'string' || data.text.length > 2000) return false;
+            return true;
+        case MSG.PROFILE_UPDATE:
+        case MSG.HOST_SYNC: {
+            const p = data.profile;
+            if (!p || typeof p !== 'object') return false;
+            for (const k of Object.keys(p)) {
+                if (!ALLOWED_PROFILE_KEYS.has(k)) return false;
+            }
+            const dn = p.displayName ?? p.name;
+            if (dn != null && (typeof dn !== 'string' || dn.length > 64)) return false;
+            return true;
+        }
+        case MSG.PERMISSIONS_UPDATE: {
+            const perms = data.permissions;
+            if (!perms || typeof perms !== 'object') return false;
+            // Outer keys are peer IDs; inner keys must be in allowed list.
+            for (const peerId of Object.keys(perms)) {
+                const inner = perms[peerId];
+                if (!inner || typeof inner !== 'object') return false;
+                for (const k of Object.keys(inner)) {
+                    if (!ALLOWED_PERMISSION_KEYS.has(k)) return false;
+                }
+            }
+            return true;
+        }
+        case MSG.TAB_ASSIGN: {
+            const payload = data.payload;
+            if (!payload || typeof payload !== 'object') return false;
+            for (const k of Object.keys(payload)) {
+                if (!KNOWN_TABS.has(k)) return false;
+            }
+            return true;
+        }
+        case MSG.SAMPLE_DATA: {
+            if (typeof data.totalNotes === 'number' && data.totalNotes > 200) return false;
+            const buf = data.wavData instanceof ArrayBuffer
+                ? data.wavData
+                : (data.wavData?.buffer || null);
+            if (buf && buf.byteLength > 5_000_000) return false;
+            return true;
+        }
+        case MSG.LIBRARY_MANIFEST: {
+            const insts = data.manifest?.instruments;
+            if (!Array.isArray(insts)) return false;
+            if (insts.length > 256) return false;
+            return true;
+        }
+        case MSG.TAB_CHANGE: {
+            if (data.tab != null && !KNOWN_TABS.has(data.tab)) return false;
+            return true;
+        }
+        default:
+            return true;
+    }
+}
+
+// Privileged messages must originate from the host.
+const PRIVILEGED_TYPES = new Set([
+    MSG.TAB_ASSIGN,
+    MSG.PERMISSIONS_UPDATE,
+    MSG.PEER_MUTE,
+    MSG.HOST_DISCONNECT,
+    MSG.FREE_FOR_ALL
+]);
+
+const PENDING_SAMPLE_REQUEST_CAP = 64;
 
 /** Encode an AudioBuffer to a WAV ArrayBuffer (16-bit PCM) for peer transfer */
 function audioBufferToWavBuffer(audioBuffer) {
@@ -129,6 +228,39 @@ export function useCollaboration() {
     const myScreenRef = useRef(null);
     const isHost = !window.location.search.includes('room=');
 
+    // --- Security state ---
+    // B1: room shared secret. Host generates; joiners receive via the URL fragment.
+    const [roomSecret, setRoomSecretState] = useState(() => {
+        if (isHost) return cryptoRandomId(16); // 32 hex chars
+        // Joiners read secret from URL hash (#s=...) — never sent to server logs.
+        try {
+            const hash = (window.location.hash || '').replace(/^#/, '');
+            const params = new URLSearchParams(hash);
+            return params.get('s') || '';
+        } catch (_) { return ''; }
+    });
+    const roomSecretRef = useRef(roomSecret);
+    useEffect(() => { roomSecretRef.current = roomSecret; }, [roomSecret]);
+
+    // B3: track the host peer ID. Host knows its own; joiners learn from JOIN_ACK.
+    const hostPeerIdRef = useRef(null);
+
+    // B6: broker-notice surface for consumers.
+    const [brokerNotice, setBrokerNotice] = useState(null);
+
+    // B9: recording-broadcast consent flag.
+    const [recordingBroadcastEnabled, setRecordingBroadcastEnabledState] = useState(false);
+    const recordingBroadcastEnabledRef = useRef(false);
+    useEffect(() => { recordingBroadcastEnabledRef.current = recordingBroadcastEnabled; }, [recordingBroadcastEnabled]);
+
+    // B10: authoritative display names, set only at JOIN.
+    const [peerDisplayNames, setPeerDisplayNames] = useState({});
+    const peerDisplayNamesRef = useRef({});
+    useEffect(() => { peerDisplayNamesRef.current = peerDisplayNames; }, [peerDisplayNames]);
+
+    // B8: optional incoming-call consent callback (set by consumer).
+    const incomingCallConsentRef = useRef(null);
+
     // Sync followingPeer to ref (avoids stale closure in handleData)
     useEffect(() => { followingPeerRef.current = followingPeer; }, [followingPeer]);
 
@@ -153,14 +285,74 @@ export function useCollaboration() {
     };
 
     const handleData = (from, data) => {
+        // B4: validate every inbound message before dispatching.
+        if (!validIncomingMessage(data)) {
+            console.warn('[Collab] dropping malformed message from', from);
+            return;
+        }
+        if (!validateByType(data)) {
+            console.warn('[Collab] dropping invalid', data.type, 'from', from);
+            return;
+        }
+        // B3: privileged messages must come from the host.
+        if (PRIVILEGED_TYPES.has(data.type)) {
+            const host = hostPeerIdRef.current;
+            if (!host || from !== host) {
+                console.warn('[Collab] rejected privileged', data.type, 'from non-host', from);
+                return;
+            }
+        }
+        try {
+            return _dispatchData(from, data);
+        } catch (e) {
+            console.error('[Collab] handler error for', data.type, e);
+        }
+    };
+
+    /**
+     * B10: derive the authoritative display name for a peer ID.
+     * Peers cannot override mid-session; only the JOIN-time name is trusted.
+     */
+    const _resolveDisplayName = (peerId, fallback) => {
+        return peerDisplayNamesRef.current[peerId] || fallback || `Guest-${(peerId || '').slice(0, 4)}`;
+    };
+
+    /**
+     * B10: register a peer's authoritative display name. Conflicts get "(2)", "(3)", ...
+     */
+    const _setAuthoritativeName = (peerId, requested) => {
+        const want = (requested || '').toString().trim().slice(0, 64) || `Guest-${(peerId || '').slice(0, 4)}`;
+        setPeerDisplayNames(prev => {
+            // If already set, do not override.
+            if (prev[peerId]) return prev;
+            const used = new Set(Object.values(prev));
+            let candidate = want;
+            let n = 2;
+            while (used.has(candidate)) {
+                candidate = `${want} (${n++})`;
+            }
+            return { ...prev, [peerId]: candidate };
+        });
+    };
+
+    const _dispatchData = (from, data) => {
         switch (data.type) {
-            case MSG.JOIN:
-                setPeers(p => ({ ...p, [data.id]: { profile: data.profile || { name: 'Guest' }, color: getPeerColor(data.id) } }));
+            case MSG.JOIN: {
+                // B10: lock in display name from JOIN only.
+                const requested = data.profile?.displayName || data.profile?.name;
+                _setAuthoritativeName(data.id, requested);
+                // B3: if host hasn't been identified yet and we are a joiner,
+                // the first peer we see is the host (the one we connected to).
+                if (!isHost && !hostPeerIdRef.current) {
+                    hostPeerIdRef.current = data.id;
+                }
+                setPeers(p => ({ ...p, [data.id]: { profile: data.profile || { name: `Guest-${(data.id || '').slice(0, 4)}` }, color: getPeerColor(data.id) } }));
                 peerRef.current.connect(data.id);
                 peerRef.current.broadcast({
                     type: MSG.JOIN_ACK,
                     id: myIdRef.current,
-                    profile: userProfile
+                    profile: userProfile,
+                    hostPeerId: isHost ? myIdRef.current : hostPeerIdRef.current
                 });
                 // Send library manifest to new peer after connection stabilises
                 setTimeout(() => {
@@ -180,9 +372,17 @@ export function useCollaboration() {
                     }
                 }, 2000);
                 break;
+            }
 
-            case MSG.JOIN_ACK:
-                setPeers(p => ({ ...p, [data.id]: { profile: data.profile || { name: 'Peer' }, color: getPeerColor(data.id) } }));
+            case MSG.JOIN_ACK: {
+                // B10: lock JOIN-time display name.
+                const requested = data.profile?.displayName || data.profile?.name;
+                _setAuthoritativeName(data.id, requested);
+                // B3: if a hostPeerId was advertised, accept it (only on first JOIN_ACK).
+                if (!hostPeerIdRef.current && data.hostPeerId) {
+                    hostPeerIdRef.current = data.hostPeerId;
+                }
+                setPeers(p => ({ ...p, [data.id]: { profile: data.profile || { name: `Guest-${(data.id || '').slice(0, 4)}` }, color: getPeerColor(data.id) } }));
                 peerRef.current.connect(data.id);
                 // Send our library manifest to new peer
                 setTimeout(() => {
@@ -198,6 +398,7 @@ export function useCollaboration() {
                     }
                 }, 2000);
                 break;
+            }
 
             case MSG.LEAVE:
                 setPeers(p => {
@@ -269,6 +470,11 @@ export function useCollaboration() {
                 setMousePositions({});
                 setPeers({});
                 setIsCollapsed(true);
+                // B7: dispose mic so tracks stop.
+                try { voiceEngineRef.current?.dispose?.(); } catch (_) {}
+                voiceEngineRef.current = null;
+                voiceStreamRef.current = null;
+                setVoiceInitialized(false);
                 // Trigger re-init by clearing profile (useEffect cleanup will destroy peer)
                 setUserProfile({ name: '', email: '' });
                 break;
@@ -296,7 +502,8 @@ export function useCollaboration() {
                     [from]: {
                         x: data.x,
                         y: data.y,
-                        name: data.name || (peers[from]?.profile?.name) || 'Peer',
+                        // B10: authoritative name from the JOIN-time map; ignore mid-session overrides.
+                        name: _resolveDisplayName(from, peers[from]?.profile?.name),
                         color: getPeerColor(from)
                     }
                 }));
@@ -338,10 +545,12 @@ export function useCollaboration() {
             // --- Chat ---
             case MSG.CHAT:
                 setChatMessages(prev => {
+                    // B10: ignore the displayName claimed in the message; use the JOIN-time name.
+                    const authoritativeName = _resolveDisplayName(from, data.displayName);
                     const next = [...prev, {
                         id: data.timestamp + '-' + from,
                         from: data.from,
-                        displayName: data.displayName,
+                        displayName: authoritativeName,
                         text: data.text,
                         timestamp: data.timestamp
                     }];
@@ -439,6 +648,15 @@ export function useCollaboration() {
                         addToastRef.current('Host unmuted you', 'success');
                     }
                 }
+                // B7: when our mic is muted by host, dispose the engine so the OS
+                // mic indicator goes away and tracks actually stop.
+                if (data.peerId === myIdRef.current && data.muteAudio) {
+                    try { voiceEngineRef.current?.dispose?.(); } catch (_) {}
+                    voiceEngineRef.current = null;
+                    voiceStreamRef.current = null;
+                    setVoiceInitialized(false);
+                    setLocalTalking(false);
+                }
                 // Apply audio mute to remote gain node if targeting a peer we have audio from
                 if (remoteAudioNodes.current[data.peerId]?.gain) {
                     remoteAudioNodes.current[data.peerId].gain.gain.value =
@@ -506,10 +724,17 @@ export function useCollaboration() {
 
                 // Track pending requests
                 if (!pendingSampleRequests.current[key]) {
+                    // B12: cap pending requests; evict oldest when full.
+                    const keys = Object.keys(pendingSampleRequests.current);
+                    if (keys.length >= PENDING_SAMPLE_REQUEST_CAP) {
+                        // Evict the oldest (insertion order via Object.keys)
+                        const oldest = keys[0];
+                        delete pendingSampleRequests.current[oldest];
+                    }
                     pendingSampleRequests.current[key] = {
                         notes: [],
                         received: 0,
-                        total: data.totalNotes || 1,
+                        total: Math.min(data.totalNotes || 1, 200),
                         name: data.instrumentName || instId
                     };
                     setSharedLibraryStatus('syncing');
@@ -641,9 +866,14 @@ export function useCollaboration() {
     };
 
     useEffect(() => {
-        const id = `${room}-${Math.random().toString(36).slice(2, 6)}`;
+        // B2: cryptographically secure peer-ID suffix (was Math.random).
+        const id = `${room}-${cryptoRandomId(4)}`;
         myIdRef.current = id;
         setMyId(id);
+        // B3: host knows its own peer ID immediately.
+        if (isHost) {
+            hostPeerIdRef.current = id;
+        }
 
         const handleOpen = (id) => {
             peerRef.current.broadcast({ type: MSG.JOIN, id, profile: userProfile });
@@ -659,7 +889,21 @@ export function useCollaboration() {
                 setIsCollapsed(true);
             }
         };
-        peerRef.current = new PeerManager(id, handleData, handleStream, handleOpen, handleVoiceStream, handleRecordingStream, handlePeerError);
+        peerRef.current = new PeerManager(
+            id, handleData, handleStream, handleOpen, handleVoiceStream, handleRecordingStream, handlePeerError,
+            {
+                roomSecret: roomSecretRef.current,
+                onBrokerNotice: (msg) => setBrokerNotice(msg),
+                onIncomingCall: (peerId, kind) => {
+                    // B8: defer to consumer-set callback if provided.
+                    const cb = incomingCallConsentRef.current;
+                    if (cb) {
+                        try { return Promise.resolve(cb(peerId, kind)); } catch (_) { return Promise.resolve(false); }
+                    }
+                    return Promise.resolve(false); // default reject
+                }
+            }
+        );
 
         let mouseThrottleTimer = null;
         const handleGlobalMouseMove = (e) => {
@@ -951,9 +1195,10 @@ export function useCollaboration() {
     // --- Chat ---
     const sendChatMessage = useCallback((text) => {
         if (!text.trim() || !peerRef.current) return;
-        const displayName = userProfile.email
-            ? userProfile.email.split('@')[0]
-            : userProfile.name;
+        // B11: never default to email local-part. Use display name or Guest-XXXX.
+        const displayName = (userProfile.name && userProfile.name.trim())
+            ? userProfile.name.trim()
+            : `Guest-${(myIdRef.current || '').slice(0, 4)}`;
         const msg = {
             type: MSG.CHAT,
             from: myIdRef.current,
@@ -1004,9 +1249,10 @@ export function useCollaboration() {
         if (!peerRef.current) return;
         const owner = tabOwners[tab];
         if (!owner) return;
-        const displayName = userProfile.email
-            ? userProfile.email.split('@')[0]
-            : userProfile.name;
+        // B11: never default to email local-part. Use display name or Guest-XXXX.
+        const displayName = (userProfile.name && userProfile.name.trim())
+            ? userProfile.name.trim()
+            : `Guest-${(myIdRef.current || '').slice(0, 4)}`;
         if (peerRef.current.connections[owner]?.open) {
             peerRef.current.connections[owner].send({
                 type: MSG.ACCESS_REQUEST,
@@ -1172,9 +1418,10 @@ export function useCollaboration() {
     // --- Save Notification ---
     const broadcastSaveNotification = useCallback(() => {
         if (!peerRef.current) return;
-        const displayName = userProfile.email
-            ? userProfile.email.split('@')[0]
-            : userProfile.name;
+        // B11: never default to email local-part.
+        const displayName = (userProfile.name && userProfile.name.trim())
+            ? userProfile.name.trim()
+            : `Guest-${(myIdRef.current || '').slice(0, 4)}`;
         peerRef.current.broadcast({
             type: MSG.SAVE_NOTIFICATION,
             from: myIdRef.current,
@@ -1423,8 +1670,8 @@ export function useCollaboration() {
             if (peerRef.current) peerRef.current.broadcast({ type: MSG.PTT_STATE, talking: false });
         }
 
-        // Route mic recording audio to all connected peers so they can hear what's being recorded
-        if (micStream && peerRef.current) {
+        // B9: only broadcast recording mic audio to peers if explicit consent flag is on.
+        if (recordingBroadcastEnabledRef.current && micStream && peerRef.current) {
             try {
                 const ctx = samplerRefCollab.current?.audioContext;
                 if (ctx) {
@@ -1444,6 +1691,8 @@ export function useCollaboration() {
             } catch (e) {
                 console.warn('[Collab] Failed to start recording monitor:', e);
             }
+        } else if (micStream) {
+            console.log('[Collab] Recording started locally; broadcast disabled (set recordingBroadcastEnabled=true to share).');
         }
     }, []);
 
@@ -1569,6 +1818,26 @@ export function useCollaboration() {
         isRecordingActive,
         startRecordingMonitor,
         stopRecordingMonitor,
+        // B9: consent flag + setter for recording mic broadcast.
+        recordingBroadcastEnabled,
+        setRecordingBroadcastEnabled: (v) => setRecordingBroadcastEnabledState(!!v),
+
+        // B1: room secret (used to build invite link & authenticate peers).
+        roomSecret,
+        setRoomSecret: (s) => {
+            setRoomSecretState(s || '');
+            if (peerRef.current) peerRef.current.setRoomSecret(s || '');
+        },
+
+        // B6: broker notice surface.
+        brokerNotice,
+
+        // B8: register a callback the consumer uses to prompt for screen-share consent.
+        // signature: (peerId, kind) => boolean | Promise<boolean>
+        setIncomingCallConsent: (cb) => { incomingCallConsentRef.current = cb || null; },
+
+        // B10: authoritative display names map (read-only consumers).
+        peerDisplayNames,
 
         // Color helper
         myColor: getPeerColor(myIdRef.current || ''),

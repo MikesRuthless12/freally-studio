@@ -249,37 +249,162 @@ export class ProjectManager {
     }
 
     /**
+     * D5: Validate manifest schema. Ensures plain object, clamps numeric DSP fields,
+     * caps string lengths, and drops dangerous shapes. Returns sanitized manifest.
+     */
+    _validateManifest(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+            throw new Error('Invalid project manifest: not an object');
+        }
+
+        const STR_MAX = 1024;
+        const clampStr = (s) => (typeof s === 'string' ? s.slice(0, STR_MAX) : s);
+        const clampNum = (v, lo, hi, fallback) => {
+            if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
+            return Math.min(hi, Math.max(lo, v));
+        };
+
+        // Sanitize globalSettings (BPM/key/scale/genre/mood/etc.)
+        const gs = (raw.globalSettings && typeof raw.globalSettings === 'object' && !Array.isArray(raw.globalSettings))
+            ? { ...raw.globalSettings } : {};
+        if ('tempo' in gs) gs.tempo = clampNum(gs.tempo, 20, 999, 120);
+        if ('bars' in gs) gs.bars = clampNum(gs.bars, 1, 1024, 4);
+        if ('octaves' in gs) gs.octaves = clampNum(gs.octaves, 1, 10, 4);
+        if ('resolution' in gs) gs.resolution = clampNum(gs.resolution, 1, 64, 16);
+        if (typeof gs.key === 'string') gs.key = clampStr(gs.key);
+        if (typeof gs.scale === 'string') gs.scale = clampStr(gs.scale);
+        if (typeof gs.genre === 'string') gs.genre = clampStr(gs.genre);
+        if (typeof gs.mood === 'string') gs.mood = clampStr(gs.mood);
+        raw.globalSettings = gs;
+
+        // Sanitize drumParams (numeric DSP fields used by setDrumParam)
+        if (raw.drumParams && typeof raw.drumParams === 'object' && !Array.isArray(raw.drumParams)) {
+            const dp = {};
+            for (const [drumId, params] of Object.entries(raw.drumParams)) {
+                if (typeof drumId !== 'string' || drumId.length > STR_MAX) continue;
+                if (!params || typeof params !== 'object' || Array.isArray(params)) continue;
+                const sanitized = {};
+                for (const [k, v] of Object.entries(params)) {
+                    if (typeof k !== 'string' || k.length > STR_MAX) continue;
+                    if (typeof v === 'number' && Number.isFinite(v)) {
+                        // Generic safe clamp for any numeric DSP field
+                        sanitized[k] = clampNum(v, -100000, 100000, 0);
+                    } else if (typeof v === 'string') {
+                        sanitized[k] = clampStr(v);
+                    } else if (typeof v === 'boolean') {
+                        sanitized[k] = v;
+                    }
+                }
+                dp[drumId] = sanitized;
+            }
+            raw.drumParams = dp;
+        } else if (raw.drumParams !== undefined) {
+            raw.drumParams = {};
+        }
+
+        // Sanitize mixer numeric fields (volume, pan, gain)
+        if (raw.mixer && typeof raw.mixer === 'object' && !Array.isArray(raw.mixer)) {
+            for (const trackKey of Object.keys(raw.mixer)) {
+                const tr = raw.mixer[trackKey];
+                if (!tr || typeof tr !== 'object' || Array.isArray(tr)) continue;
+                if ('volume' in tr) tr.volume = clampNum(tr.volume, 0, 4, 1);
+                if ('pan' in tr) tr.pan = clampNum(tr.pan, -1, 1, 0);
+                if ('gain' in tr) tr.gain = clampNum(tr.gain, 0, 4, 1);
+            }
+        }
+
+        // Cap top-level numeric / string fields
+        if ('timelineBars' in raw) raw.timelineBars = clampNum(raw.timelineBars, 1, 4096, 48);
+        if (typeof raw.projectName === 'string') raw.projectName = clampStr(raw.projectName);
+        if (typeof raw.version === 'string') raw.version = clampStr(raw.version);
+
+        // sampleMap, instrumentMeta: ensure plain objects
+        if (raw.sampleMap && (typeof raw.sampleMap !== 'object' || Array.isArray(raw.sampleMap))) {
+            raw.sampleMap = {};
+        }
+        if (raw.instrumentMeta && (typeof raw.instrumentMeta !== 'object' || Array.isArray(raw.instrumentMeta))) {
+            raw.instrumentMeta = {};
+        }
+
+        return raw;
+    }
+
+    /**
      * Load Project from .wlz
      */
     async loadProject(file) {
+        // D2: File size cap (200 MB)
+        if (file && typeof file.size === 'number' && file.size > 200 * 1024 * 1024) {
+            throw new Error('Project file too large (> 200 MB)');
+        }
+
         const zip = await JSZip.loadAsync(file);
 
+        // D2: Entry count + total uncompressed size caps
+        const entryNames = Object.keys(zip.files);
+        if (entryNames.length > 1024) {
+            throw new Error('Project archive has too many entries (> 1024)');
+        }
+        let totalUncompressed = 0;
+        for (const name of entryNames) {
+            const ent = zip.files[name];
+            if (ent && ent._data && typeof ent._data.uncompressedSize === 'number') {
+                totalUncompressed += ent._data.uncompressedSize;
+            }
+        }
+        if (totalUncompressed > 1024 * 1024 * 1024) {
+            throw new Error('Project archive uncompressed size exceeds 1 GB');
+        }
+
         // 1. Read Manifest
-        const manifestStr = await zip.file("project.json").async("string");
-        const manifest = JSON.parse(manifestStr);
+        const manifestFile = zip.file("project.json");
+        if (!manifestFile) throw new Error('Project archive missing project.json');
+        const manifestStr = await manifestFile.async("string");
+        let manifest = JSON.parse(manifestStr);
+
+        // D5: Validate manifest is a plain object and sanitize known fields
+        manifest = this._validateManifest(manifest);
+
+        // D2: Path allowlist for any zip entries referenced by manifest
+        const safePathRe = /^(samples|midi|audio-clips|vocal)\/[A-Za-z0-9._\-\/ ]+$/;
+        const isSafePath = (p) => typeof p === 'string'
+            && p.length <= 1024
+            && !p.includes('..')
+            && safePathRe.test(p);
 
         // 2. Load Samples
         // We need to fetch blobs from zip and decode them
-        const sampleMap = manifest.sampleMap;
+        const sampleMap = manifest.sampleMap || {};
 
-        // Clear current sampler? Or just overwrite?
+        // D2: Move clearAll() to AFTER manifest validation succeeds
         this.sampler.clearAll();
 
         for (const [instrumentId, noteMap] of Object.entries(sampleMap)) {
             const samples = [];
 
             for (const [note, path] of Object.entries(noteMap)) {
-                // Extract file from zip
-                const fileData = await zip.file(path).async("arraybuffer");
-
-                // Decode
-                const audioBuffer = await this.sampler.audioContext.decodeAudioData(fileData);
-
-                samples.push({
-                    note: parseInt(note),
-                    buffer: audioBuffer,
-                    name: instrumentId // Simple name
-                });
+                // D2: Validate path against allowlist
+                if (!isSafePath(path)) {
+                    console.warn(`[ProjectManager] Rejecting unsafe sample path: ${path}`);
+                    continue;
+                }
+                const sampleFile = zip.file(path);
+                if (!sampleFile) {
+                    console.warn(`[ProjectManager] Sample missing in archive: ${path}`);
+                    continue;
+                }
+                // D2: Per-sample try/catch — one bad file shouldn't abort the load
+                try {
+                    const fileData = await sampleFile.async("arraybuffer");
+                    const audioBuffer = await this.sampler.audioContext.decodeAudioData(fileData);
+                    samples.push({
+                        note: parseInt(note),
+                        buffer: audioBuffer,
+                        name: instrumentId // Simple name
+                    });
+                } catch (e) {
+                    console.warn(`[ProjectManager] Failed to decode sample ${path}:`, e);
+                }
             }
 
             // Fetch display name if saved
@@ -308,6 +433,11 @@ export class ProjectManager {
                 const clips = [];
                 for (const clipMeta of trackMeta.clips) {
                     try {
+                        // D2: Validate path
+                        if (!isSafePath(clipMeta.path)) {
+                            console.warn(`[ProjectManager] Rejecting unsafe clip path: ${clipMeta.path}`);
+                            continue;
+                        }
                         const clipFile = zip.file(clipMeta.path);
                         if (!clipFile) continue;
                         const arrayBuf = await clipFile.async("arraybuffer");
@@ -336,10 +466,14 @@ export class ProjectManager {
             // Load vocal engine params
             if (vs.statePath) {
                 try {
-                    const stateFile = zip.file(vs.statePath);
-                    if (stateFile) {
-                        const stateStr = await stateFile.async("string");
-                        manifest.vocalState.engineData = JSON.parse(stateStr);
+                    if (!isSafePath(vs.statePath)) {
+                        console.warn(`[ProjectManager] Rejecting unsafe vocal state path: ${vs.statePath}`);
+                    } else {
+                        const stateFile = zip.file(vs.statePath);
+                        if (stateFile) {
+                            const stateStr = await stateFile.async("string");
+                            manifest.vocalState.engineData = JSON.parse(stateStr);
+                        }
                     }
                 } catch (e) {
                     console.warn('[ProjectManager] Failed to load vocal state:', e);
@@ -348,11 +482,15 @@ export class ProjectManager {
             // Load vocal audio buffer
             if (vs.hasAudio && vs.audioPath) {
                 try {
-                    const audioFile = zip.file(vs.audioPath);
-                    if (audioFile) {
-                        const arrayBuf = await audioFile.async("arraybuffer");
-                        const audioBuffer = await this.sampler.audioContext.decodeAudioData(arrayBuf);
-                        manifest.vocalState.audioBuffer = audioBuffer;
+                    if (!isSafePath(vs.audioPath)) {
+                        console.warn(`[ProjectManager] Rejecting unsafe vocal audio path: ${vs.audioPath}`);
+                    } else {
+                        const audioFile = zip.file(vs.audioPath);
+                        if (audioFile) {
+                            const arrayBuf = await audioFile.async("arraybuffer");
+                            const audioBuffer = await this.sampler.audioContext.decodeAudioData(arrayBuf);
+                            manifest.vocalState.audioBuffer = audioBuffer;
+                        }
                     }
                 } catch (e) {
                     console.warn('[ProjectManager] Failed to load vocal audio:', e);

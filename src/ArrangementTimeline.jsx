@@ -61,6 +61,16 @@ const ROW_HEIGHT_COLLAPSED = 26;
 const ROW_HEIGHT_ZOOMED = 220;
 const DRUM_ROW_HEIGHT = 24;
 
+// D3: Whitelist colors interpolated into raw SVG markup.
+// Returns input only if it's a valid hex (#rgb..#rrggbbaa) or rgb()/rgba(); otherwise '#888888'.
+const SAFE_COLOR_HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
+const SAFE_COLOR_RGB_RE = /^rgba?\([\d.,\s]+\)$/;
+function sanitizeColor(c) {
+    if (typeof c !== 'string') return '#888888';
+    if (SAFE_COLOR_HEX_RE.test(c) || SAFE_COLOR_RGB_RE.test(c)) return c;
+    return '#888888';
+}
+
 function formatTime(seconds) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
@@ -161,7 +171,7 @@ function PatternPreviewStrip({
                         const x = (step / totalSteps) * 100;
                         const y = ((di + 0.1) / totalDrums) * 100;
                         const h = Math.max(2, (0.8 / totalDrums) * 100);
-                        const dc = DRUM_ELEMENTS.find(d => d.id === drumId)?.color || color;
+                        const dc = sanitizeColor(DRUM_ELEMENTS.find(d => d.id === drumId)?.color || color);
                         rects += `<rect x="${x}%" y="${y}%" width="0.8%" height="${h}%" fill="${dc}" opacity="0.85" rx="0.3"/>`;
                     }
                 }
@@ -184,7 +194,7 @@ function PatternPreviewStrip({
                 const w = Math.max(0.5, (Math.min(n.duration, totalSteps - n.time) / totalSteps) * 100);
                 const y = ((maxNote - n.note) / range) * 100;
                 const h = Math.max(3, 100 / range);
-                rects += `<rect x="${x}%" y="${y}%" width="${w}%" height="${h}%" fill="${color}" opacity="${n.velocity || 0.7}" rx="0.5"/>`;
+                rects += `<rect x="${x}%" y="${y}%" width="${w}%" height="${h}%" fill="${sanitizeColor(color)}" opacity="${n.velocity || 0.7}" rx="0.5"/>`;
             });
             return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="none">${rects}</svg>`;
         }
@@ -5152,7 +5162,7 @@ export default function ArrangementTimeline({
                                                                                 }
                                                                                 pts.push(mx);
                                                                             }
-                                                                            const color = row.color || '#4dabf7';
+                                                                            const color = sanitizeColor(row.color || '#4dabf7');
                                                                             const rects = pts.map((p, i) => {
                                                                                 const bh = Math.max(0.5, p * 45);
                                                                                 return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="${color}" opacity="0.7" rx="0.3"/>`;
@@ -5254,9 +5264,10 @@ export default function ArrangementTimeline({
                                                                                     }
                                                                                     pts.push(mx);
                                                                                 }
+                                                                                const _safeClipColor = sanitizeColor(clipColor);
                                                                                 const rects = pts.map((p, i) => {
                                                                                     const bh = Math.max(0.5, p * 45);
-                                                                                    return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="${clipColor}" opacity="0.7" rx="0.3"/>`;
+                                                                                    return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="${_safeClipColor}" opacity="0.7" rx="0.3"/>`;
                                                                                 }).join('');
                                                                                 waveSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
                                                                             } catch (ex) { /* ignore */ }
@@ -6111,10 +6122,11 @@ export default function ArrangementTimeline({
                                                                         const mMin = mNotes.length > 0 ? Math.min(...mNotes.map(n => n.note)) : 60;
                                                                         const mMax = mNotes.length > 0 ? Math.max(...mNotes.map(n => n.note)) : 72;
                                                                         const mRange = Math.max(1, mMax - mMin + 1);
+                                                                        const _safeMClipColor = sanitizeColor(clipColor);
                                                                         const mRects = mNotes.map(n => {
                                                                             if (n.time >= mSteps) return '';
                                                                             const w = Math.min(Math.max(1, n.duration || 2), mSteps - n.time);
-                                                                            return `<rect x="${n.time}" y="${mMax - n.note}" width="${w}" height="0.8" fill="${clipColor}" opacity="0.7"/>`;
+                                                                            return `<rect x="${n.time}" y="${mMax - n.note}" width="${w}" height="0.8" fill="${_safeMClipColor}" opacity="0.7"/>`;
                                                                         }).join('');
                                                                         const mSvg = `<svg viewBox="0 0 ${mSteps} ${mRange}" preserveAspectRatio="none" style="width:100%;height:100%">${mRects}</svg>`;
                                                                         {
@@ -6783,10 +6795,11 @@ export default function ArrangementTimeline({
                                                                         const nMin = cNotes.length > 0 ? Math.min(...cNotes.map(n => n.note)) : 60;
                                                                         const nMax = cNotes.length > 0 ? Math.max(...cNotes.map(n => n.note)) : 72;
                                                                         const nRange = Math.max(1, nMax - nMin + 1);
+                                                                        const _safeCC = sanitizeColor(cc);
                                                                         const svgRects = cNotes.map(n => {
                                                                             if (n.time >= cSteps) return '';
                                                                             const w = Math.min(Math.max(1, n.duration || 2), cSteps - n.time);
-                                                                            return `<rect x="${n.time}" y="${nMax - n.note}" width="${w}" height="0.8" fill="${cc}" opacity="0.7"/>`;
+                                                                            return `<rect x="${n.time}" y="${nMax - n.note}" width="${w}" height="0.8" fill="${_safeCC}" opacity="0.7"/>`;
                                                                         }).join('');
                                                                         const pSvg = `<svg viewBox="0 0 ${cSteps} ${nRange}" preserveAspectRatio="none" style="width:100%;height:100%">${svgRects}</svg>`;
                                                                         {
@@ -7060,12 +7073,13 @@ export default function ArrangementTimeline({
                                                                         if (laneData && laneData.lanes) {
                                                                             const dlLanes = Object.values(laneData.lanes);
                                                                             const dlLaneCount = dlLanes.length || 1;
+                                                                            const _safeDlCC = sanitizeColor(cc);
                                                                             const dRects = dlLanes.flatMap((lane, li) =>
                                                                                 (lane.pattern || []).map((hit, si) => {
                                                                                     if (!hit || si >= clipSteps) return '';
                                                                                     const dur = Math.max(1, lane.duration?.[si] || 1);
                                                                                     const w = Math.min(dur, clipSteps - si);
-                                                                                    return `<rect x="${si}" y="${li}" width="${w}" height="0.85" fill="${cc}" opacity="0.7" rx="0.2"/>`;
+                                                                                    return `<rect x="${si}" y="${li}" width="${w}" height="0.85" fill="${_safeDlCC}" opacity="0.7" rx="0.2"/>`;
                                                                                 })
                                                                             ).join('');
                                                                             dlSvg = `<svg viewBox="0 0 ${clipSteps} ${dlLaneCount}" preserveAspectRatio="none" style="width:100%;height:100%">${dRects}</svg>`;

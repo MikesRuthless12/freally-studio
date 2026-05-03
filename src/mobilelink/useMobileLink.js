@@ -26,6 +26,9 @@ export function useMobileLink(samplerEngine) {
     const [connectedCount, setConnectedCount] = useState(0);
     const [clients, setClients] = useState([]);
     const [desktopMuted, setDesktopMutedState] = useState(false);
+    const [pin, setPin] = useState('');
+    const [brokerNotice, setBrokerNotice] = useState(null);
+    const brokerNoticeHandlerRef = useRef(null);
     const commandHandlerRef = useRef(null);
 
     // Create engine once
@@ -41,6 +44,8 @@ export function useMobileLink(samplerEngine) {
             setSessionUrl(state.sessionUrl);
             setConnectedCount(state.connectedCount);
             setClients(state.clients);
+            // Pin can change when activate() is called — reflect it in React state.
+            setPin(engine.pin || '');
 
             // When all clients disconnect, the engine auto-unmutes desktop —
             // sync the React state to match.
@@ -48,6 +53,16 @@ export function useMobileLink(samplerEngine) {
                 setDesktopMutedState(false);
             }
         });
+
+        // Wire broker-notice handler if engine exposes one.
+        if (typeof engine.setBrokerNoticeHandler === 'function') {
+            engine.setBrokerNoticeHandler((msg) => {
+                setBrokerNotice(msg);
+                if (brokerNoticeHandlerRef.current) {
+                    try { brokerNoticeHandlerRef.current(msg); } catch (_) {}
+                }
+            });
+        }
 
         // Register command handler proxy
         engine.onCommand((cmd) => {
@@ -103,12 +118,18 @@ export function useMobileLink(samplerEngine) {
         commandHandlerRef.current = handler;
     }, []);
 
+    const setBrokerNoticeHandler = useCallback((handler) => {
+        brokerNoticeHandlerRef.current = handler || null;
+    }, []);
+
     return {
         isActive,
         sessionUrl,
         connectedCount,
         clients,
         desktopMuted,
+        pin,
+        brokerNotice,
         activate,
         deactivate,
         broadcastState,
@@ -116,6 +137,7 @@ export function useMobileLink(samplerEngine) {
         disconnectClient,
         setCommandHandler,
         setDesktopMuted,
+        setBrokerNoticeHandler,
     };
 }
 

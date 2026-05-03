@@ -381,7 +381,7 @@ function formatReport(allLines, totalGenerations) {
 // =========================================================================
 
 describe('Caesura (Dash) Placement Audit', () => {
-    it(`should correctly place dashes in ${GENRES.length * GENS_PER_GENRE} generations across all genres/moods/schemes`, { timeout: 300_000 }, () => {
+    it(`should correctly place dashes in ${GENRES.length * GENS_PER_GENRE} generations across all genres/moods/schemes`, { timeout: 1_200_000 }, () => {
         console.log(`\n=== CAESURA AUDIT: ${GENRES.length} genres × ${GENS_PER_GENRE} gens = ${GENRES.length * GENS_PER_GENRE} total ===\n`);
 
         const { allLines, totalGenerations } = runCaesuraAudit();

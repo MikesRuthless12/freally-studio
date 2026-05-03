@@ -6,10 +6,21 @@
  */
 
 const path = require('path');
-const { app } = require('electron');
+const { app, BrowserWindow } = require('electron');
 
 let audioCapture = null;
 let loaded = false;
+
+/** Reject IPC events that did not come from the main window's main frame (A5). */
+function requireMainFrame(event) {
+    try {
+        const wins = BrowserWindow.getAllWindows();
+        const main = wins.find(w => !w.isDestroyed());
+        return !!(main && event && event.senderFrame === main.webContents.mainFrame);
+    } catch (_) {
+        return false;
+    }
+}
 
 // Keep references to ring buffer views to prevent GC while native addon holds pointers
 let ringStateView = null;
@@ -65,12 +76,14 @@ function getAddon() {
  */
 function registerIPC(ipcMain) {
     // Check availability
-    ipcMain.handle('audio-capture:isAvailable', () => {
+    ipcMain.handle('audio-capture:isAvailable', (event) => {
+        if (!requireMainFrame(event)) return false;
         return !!audioCapture;
     });
 
     // List input devices
-    ipcMain.handle('audio-capture:list-devices', () => {
+    ipcMain.handle('audio-capture:list-devices', (event) => {
+        if (!requireMainFrame(event)) return { devices: [], error: 'forbidden' };
         if (!audioCapture) {
             return { devices: [], error: 'Audio capture native addon not available' };
         }
@@ -84,7 +97,8 @@ function registerIPC(ipcMain) {
 
     // Start capture — stores requested params so stop can return actual format
     let captureParams = { sampleRate: 48000, channels: 1 };
-    ipcMain.handle('audio-capture:start', (_event, deviceId, sampleRate, channels) => {
+    ipcMain.handle('audio-capture:start', (event, deviceId, sampleRate, channels) => {
+        if (!requireMainFrame(event)) return { error: 'forbidden' };
         if (!audioCapture) {
             return { error: 'Audio capture native addon not available' };
         }
@@ -103,7 +117,8 @@ function registerIPC(ipcMain) {
 
     // Stop capture — returns captured buffer as base64 (Float32Array doesn't survive contextBridge)
     // Also returns the actual channel count so the renderer can downmix if needed.
-    ipcMain.handle('audio-capture:stop', () => {
+    ipcMain.handle('audio-capture:stop', (event) => {
+        if (!requireMainFrame(event)) return { buffer: null, error: 'forbidden' };
         if (!audioCapture) {
             return { buffer: null, error: 'Audio capture native addon not available' };
         }
@@ -138,7 +153,8 @@ function registerIPC(ipcMain) {
     });
 
     // Get current RMS level for VU meter
-    ipcMain.handle('audio-capture:level', () => {
+    ipcMain.handle('audio-capture:level', (event) => {
+        if (!requireMainFrame(event)) return 0;
         if (!audioCapture) return 0;
         try {
             return audioCapture.getLevel();
@@ -148,7 +164,8 @@ function registerIPC(ipcMain) {
     });
 
     // Check if currently capturing
-    ipcMain.handle('audio-capture:isCapturing', () => {
+    ipcMain.handle('audio-capture:isCapturing', (event) => {
+        if (!requireMainFrame(event)) return false;
         if (!audioCapture) return false;
         try {
             return audioCapture.isCapturing();
@@ -162,7 +179,8 @@ function registerIPC(ipcMain) {
     // The native capture thread writes to the shared memory; the renderer's
     // AudioWorklet reads from it via Atomics.
     ipcMain.handle('audio-capture:attach-ring-buffer',
-        (_event, stateView, dataView, capacity, channels, sampleRate) => {
+        (event, stateView, dataView, capacity, channels, sampleRate) => {
+            if (!requireMainFrame(event)) return { error: 'forbidden' };
             if (!audioCapture) {
                 return { error: 'Audio capture native addon not available' };
             }
@@ -183,7 +201,8 @@ function registerIPC(ipcMain) {
         });
 
     // Detach the ring buffer
-    ipcMain.handle('audio-capture:detach-ring-buffer', () => {
+    ipcMain.handle('audio-capture:detach-ring-buffer', (event) => {
+        if (!requireMainFrame(event)) return;
         if (!audioCapture) return;
         try {
             audioCapture.detachRingBuffer();

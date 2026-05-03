@@ -187,6 +187,24 @@ Napi::Value ProcessBlock(const Napi::CallbackInfo& info) {
     int32_t numInCh = info[3].As<Napi::Number>().Int32Value();
     int32_t numOutCh = info[4].As<Napi::Number>().Int32Value();
 
+    // SECURITY (A7): bounds-check all caller-supplied counts before any
+    // allocation or pointer arithmetic. Block sizes above 8192 frames are
+    // not used by Web Audio (typical 128-1024) and channel counts above 32
+    // exceed any realistic plugin layout — reject these to avoid huge
+    // allocations and to make the deinterleave length checks below sound.
+    if (numFrames < 0 || numFrames > 8192) {
+        Napi::Error::New(env, "numFrames out of range [0, 8192]").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    if (numInCh < 0 || numInCh > 32) {
+        Napi::Error::New(env, "numInCh out of range [0, 32]").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    if (numOutCh < 0 || numOutCh > 32) {
+        Napi::Error::New(env, "numOutCh out of range [0, 32]").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+
     auto* plugin = VST3Host::instance().getPlugin(instanceId);
     if (!plugin) {
         return env.Null();
@@ -194,9 +212,23 @@ Napi::Value ProcessBlock(const Napi::CallbackInfo& info) {
 
     // Get input data
     float* inputData = nullptr;
+    size_t inputLen = 0;
     if (info[1].IsTypedArray()) {
         auto inputArray = info[1].As<Napi::Float32Array>();
         inputData = inputArray.Data();
+        inputLen = inputArray.ElementLength();
+    }
+
+    // SECURITY (A7): verify the input typed array is large enough for the
+    // requested deinterleave (numFrames * numInCh samples). If it is too
+    // small, reading inputData[0..numFrames*numInCh) would read past the
+    // backing ArrayBuffer.
+    if (inputData && numInCh > 0) {
+        const size_t needed = static_cast<size_t>(numFrames) * static_cast<size_t>(numInCh);
+        if (inputLen < needed) {
+            Napi::Error::New(env, "input typed array too small for numFrames*numInCh").ThrowAsJavaScriptException();
+            return env.Undefined();
+        }
     }
 
     // Deinterleave input

@@ -1,6 +1,6 @@
 # INDIE Lyrics Generation Audit Report
 
-Generated: 2026-04-02T19:38:15.273Z
+Generated: 2026-05-02T22:48:55.300Z
 Structure: intro-verse-chorus-bridge-outro
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 1150 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 3 |
+| Total quality issues | 1 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -34,10 +34,10 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | happy | 336 | 138 | 0 | 100.0% | 0 |
 | sad | 308 | 124 | 0 | 100.0% | 0 |
 | romantic | 308 | 126 | 0 | 100.0% | 0 |
-| aggressive | 308 | 118 | 0 | 100.0% | 0 |
+| aggressive | 308 | 118 | 0 | 100.0% | 1 |
 | dreamy | 308 | 138 | 0 | 100.0% | 0 |
 | dark | 308 | 124 | 0 | 100.0% | 0 |
-| epic | 308 | 126 | 0 | 100.0% | 3 |
+| epic | 308 | 126 | 0 | 100.0% | 0 |
 | hopeful | 308 | 118 | 0 | 100.0% | 0 |
 | melancholic | 308 | 138 | 0 | 100.0% | 0 |
 
@@ -45,13 +45,11 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 3 |
+| WEAK_ENDING | 1 |
 
-## Weak Ending Examples (3 total, showing up to 25)
+## Weak Ending Examples (1 total, showing up to 25)
 
-- Gen#34 [epic/ABAB] Chorus: `the deep negative I was - meant to be` — WEAK_ENDING: ends with "be"
-- Gen#34 [epic/ABAB] Chorus: `the deep negative I was - meant to be` — WEAK_ENDING: ends with "be"
-- Gen#34 [epic/ABAB] Final Chorus: `the deep negative I was - meant to be` — WEAK_ENDING: ends with "be"
+- Gen#76 [aggressive/freeform] Verse 2: `Mitski's washing machine heart - still tumbles on` — WEAK_ENDING: ends with "on"
 
 ---
 
@@ -61,47 +59,47 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 **[Intro]** (pattern: AA)
   1. The autumn leaves - are turning gold [gold]
-  2. the bitter lessons - and the truth be told [told]
+  2. we grew apart - as we grew old [old]
 
 **[Verse 1]** (pattern: AABB)
-  1. i drift in the amber - glow of afternoon [afternoon]
-  2. the record store on Bleecker Street is closing - after June [june]
-  3. the philosophical kaleidoscope - of yesterday [yesterday]
-  4. the farmers market - on a Saturday [saturday]
+  1. a cup of tea - and rainy days [days]
+  2. found in Translation - whispered in the Tokyo haze [haze]
+  3. i drift in the amber - glow of afternoon [afternoon]
+  4. the record needle dropping - way too soon [soon]
 
 **[Chorus]** (pattern: AABB)
-  1. we were - something bittersweet [bittersweet]
-  2. I archived our text messages in a folder - labeled things I can't delete [delete]
-  3. the windowpane - reflects the grey [grey]
-  4. the morning fog - won't lift today [today]
+  1. the venue is - bittersweet the crowd is cold [cold]
+  2. the photographs are - slowly growing old [old]
+  3. a coffee - stain across the paperback [paperback]
+  4. looking back but - never going back [back]
 
 **[Verse 2]** (pattern: AABB)
-  1. boygenius made the supergroup - feel like home [home]
-  2. the subway hums - a melancholic drone [drone]
-  3. the vintage radio - plays our song [song]
-  4. I count the days - since you were gone [gone]
+  1. the park bench dedication - to a name [name]
+  2. the world keeps turning - but it is not the same [same]
+  3. I left a note in the suggestion - box at the coffee shop for you [you]
+  4. a corkboard full of plans - that never flew [flew]
 
 **[Chorus]** (pattern: AABB)
-  1. we were - something bittersweet [bittersweet]
-  2. I archived our text messages in a folder - labeled things I can't delete [delete]
-  3. the windowpane - reflects the grey [grey]
-  4. the morning fog - won't lift today [today]
+  1. the venue is - bittersweet the crowd is cold [cold]
+  2. the photographs are - slowly growing old [old]
+  3. a coffee - stain across the paperback [paperback]
+  4. looking back but - never going back [back]
 
 **[Bridge]** (pattern: AABB)
-  1. somewhere between irony - and sincerity I found my voice at last [last]
-  2. I trace your outline - on the glass [glass]
-  3. I found your notebook - underneath the bed [bed]
-  4. I traded production value for emotional value - and came out ahead [ahead]
+  1. a happy accident a brighter day [day]
+  2. I navigated through the labyrinth - of yesterday [yesterday]
+  3. and every lo-fi hiss was proof - that we were actually here [here]
+  4. and yours was always - first to appear [appear]
 
 **[Final Chorus]** (pattern: AABB)
-  1. we were - something bittersweet [bittersweet]
-  2. I archived our text messages in a folder - labeled things I can't delete [delete]
-  3. the windowpane - reflects the grey [grey]
-  4. the morning fog - won't lift today [today]
+  1. the venue is - bittersweet the crowd is cold [cold]
+  2. the photographs are - slowly growing old [old]
+  3. a coffee - stain across the paperback [paperback]
+  4. looking back but - never going back [back]
 
 **[Outro]** (pattern: AA)
-  1. I keep the ticket - stubs inside a jar [jar]
-  2. the experimental sounds - grew more familiar [familiar]
+  1. and I realized the journey was the destination - wearing a disguise [disguise]
+  2. I catalogued the clouds by shape - and size [size]
 
 ---
 
@@ -109,47 +107,47 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 **[Intro]** (pattern: AB)
   1. The autumn leaves - are turning gold [gold]
-  2. welcome - to the liminal light [light]
+  2. welcome to the offbeat observatory [observatory]
 
 **[Verse 1]** (pattern: ABAB)
-  1. the leaves are spinning - falling down [down]
-  2. the rain linger between the lines - of what was never said [said]
-  3. the quiet streets - of this old town [town]
-  4. the conversations circling - round in my head [head]
+  1. the black-and-white subtitled - world felt right [right]
+  2. the conversations circling - round in my head [head]
+  3. the radiator hisses - through the night [night]
+  4. the rain reflect between the lines - of what was never said [said]
 
 **[Chorus]** (pattern: ABAB)
-  1. the way your sight - reflects my brownstone [brownstone]
-  2. this melancholic - beauty is my revelation [revelation]
-  3. the terrarium is - getting overgrown [overgrown]
-  4. this sentimental - solitude my consolation [consolation]
+  1. where did - all the collectors go [go]
+  2. I watch the seasons - slip away [away]
+  3. a faded band - tee from a long-gone show [show]
+  4. I hallucinated - constellations in the grey [grey]
 
 **[Verse 2]** (pattern: ABAB)
-  1. introspective mornings in a coffee-stained cafe [cafe]
-  2. the introspective journey - to a distant star [star]
+  1. I watched the autumn - colours drift away [away]
+  2. the shadows dance - but nothing feels quite right [right]
   3. the philosophical kaleidoscope - of yesterday [yesterday]
-  4. a matchbox model - of a childhood car [car]
+  4. the contemplated silence - of the observatory night [night]
 
 **[Chorus]** (pattern: ABAB)
-  1. the way your sight - reflects my brownstone [brownstone]
-  2. this melancholic - beauty is my revelation [revelation]
-  3. the terrarium is - getting overgrown [overgrown]
-  4. this sentimental - solitude my consolation [consolation]
+  1. where did - all the collectors go [go]
+  2. I watch the seasons - slip away [away]
+  3. a faded band - tee from a long-gone show [show]
+  4. I hallucinated - constellations in the grey [grey]
 
 **[Bridge]** (pattern: ABAB)
-  1. the vintage filter isn't hiding anything - it's revealing the mood [mood]
-  2. through introspection came - the realization slow [slow]
-  3. the sentimental wilderness - of solitude [solitude]
-  4. the kaleidoscope of autumn told me - where to go [go]
+  1. the imperfection in the recording is what makes - it sound like home [home]
+  2. a beautiful - and complicated fact [fact]
+  3. the terrarium - is getting overgrown [overgrown]
+  4. I follow roads - that never circle back [back]
 
 **[Final Chorus]** (pattern: ABAB)
-  1. the way your sight - reflects my brownstone [brownstone]
-  2. this melancholic - beauty is my revelation [revelation]
-  3. the terrarium is - getting overgrown [overgrown]
-  4. this sentimental - solitude my consolation [consolation]
+  1. where did - all the collectors go [go]
+  2. I watch the seasons - slip away [away]
+  3. a faded band - tee from a long-gone show [show]
+  4. I hallucinated - constellations in the grey [grey]
 
 **[Outro]** (pattern: AB)
-  1. the houseplant on the window - is still alive [alive]
-  2. the terrarium - is getting overgrown [overgrown]
+  1. a monument to passion - and to will [will]
+  2. the melancholic beauty - told a different story [story]
 
 ---
 
@@ -157,95 +155,95 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 **[Intro]** (pattern: AA)
   1. The autumn leaves - are turning gold [gold]
-  2. we were dancing through the household [household]
+  2. the bedtime fairy - stories told [told]
 
 **[Verse 1]** (pattern: AAAA)
-  1. the vintage typewriter keys - stick on the letters of your name [name]
-  2. the world keeps turning - but it is not the same [same]
-  3. the b-side of a half-forgotten flame [flame]
-  4. somewhere underneath - the dame [dame]
+  1. i wonder sometimes - if you'd see me dead [dead]
+  2. the rain wander between the lines - of what was never said [said]
+  3. the philosophical debates - inside my head [head]
+  4. the conversations circling - round in my head [head]
 
 **[Chorus]** (pattern: AAAA)
-  1. the coffee stains - on letters from a friend [friend]
-  2. the masks we wear - when we pretend [pretend]
-  3. the broken clocks - that we could never mend [mend]
-  4. the open mic was - silent in the end [end]
+  1. bicycle rides - through pale glaze [glaze]
+  2. and the secondhand finds are the ones - that fit the best always [always]
+  3. Lost in Translation - whispered in the Tokyo haze [haze]
+  4. we summoned - the craze [craze]
 
 **[Verse 2]** (pattern: AAAA)
-  1. I catalogued every freckle - on your arm [arm]
-  2. the window condensation - drawings are my most honest art form [form]
-  3. The vinyl crackles soft - and warm [warm]
-  4. a quiet kind of shelter - from the ordinary storm [storm]
+  1. the echo from the last long-distance call [call]
+  2. a hand-drawn poster - taped up on the wall [wall]
+  3. I listened for the echo - down the hall [hall]
+  4. the philosophical surrender - to the waterfall [waterfall]
 
 **[Chorus]** (pattern: AAAA)
-  1. the coffee stains - on letters from a friend [friend]
-  2. the masks we wear - when we pretend [pretend]
-  3. the broken clocks - that we could never mend [mend]
-  4. the open mic was - silent in the end [end]
+  1. bicycle rides - through pale glaze [glaze]
+  2. and the secondhand finds are the ones - that fit the best always [always]
+  3. Lost in Translation - whispered in the Tokyo haze [haze]
+  4. we summoned - the craze [craze]
 
 **[Bridge]** (pattern: AAAA)
-  1. a monument to passion - and to will [will]
-  2. the manuscript is sitting - unfinished still [still]
-  3. the philosophical question - on the windowsill [windowsill]
-  4. we made - it through the chill [chill]
+  1. I wrote a poem - on a napkin in the cafe [cafe]
+  2. I chose the uncomfortable - truth over the comfortable cliche [cliche]
+  3. and the bookmark falls out on the page - I needed to reread today [today]
+  4. the words dissolved - before the end of day [day]
 
 **[Final Chorus]** (pattern: AAAA)
-  1. the coffee stains - on letters from a friend [friend]
-  2. the masks we wear - when we pretend [pretend]
-  3. the broken clocks - that we could never mend [mend]
-  4. the open mic was - silent in the end [end]
+  1. bicycle rides - through pale glaze [glaze]
+  2. and the secondhand finds are the ones - that fit the best always [always]
+  3. Lost in Translation - whispered in the Tokyo haze [haze]
+  4. we summoned - the craze [craze]
 
 **[Outro]** (pattern: AA)
-  1. the imperfection in the recording is what makes - it sound like home [home]
-  2. a tiny world - surviving on its own [own]
+  1. and yours was always - first to appear [appear]
+  2. I alphabetized - every single fear [fear]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Intro]** (pattern: XX)
-  1. I whispered - to the evening sky [sky]
-  2. The coffee's cold - the record skips [skips]
+  1. The autumn leaves - are turning gold [gold]
+  2. I whispered - to the evening sky [sky]
 
 **[Verse 1]** (pattern: XXXX)
-  1. the analog watch runs three minutes slow - and I call it intentional [intentional]
-  2. I left a note in the suggestion - box at the coffee shop for you [you]
-  3. the philosophical kaleidoscope of near - and far [far]
-  4. the vinyl crackled - and the afternoon stood still [still]
+  1. Thom Yorke's creep - was every outcast's hymn [hymn]
+  2. i scream along the margins - of a love letter [letter]
+  3. the rain fade through the static - of an old cassette [cassette]
+  4. the sentimental constellation - watching over me [me]
 
 **[Chorus]** (pattern: XXXX)
-  1. the experimental love I - found in you [you]
-  2. I took the long way through the park - and found a bench with our view [view]
-  3. I contemplated everything - ephemeral and true [true]
-  4. I painted my - apartment midnight blue [blue]
+  1. the record skips - and letting go [go]
+  2. polaroid memories - fading slow [slow]
+  3. the nostalgic constellation with its - gentle glow [glow]
+  4. skinny love Bon Iver - whispers through the snow [snow]
 
 **[Verse 2]** (pattern: XXXX)
-  1. i scream past the record store - that closed last spring [spring]
-  2. i curate like a page - torn from a forgotten book [book]
-  3. i ponder beneath the flickering - of fairy lights [lights]
-  4. i wander through the kind - of beauty others miss [miss]
+  1. the experimental silence - of the ephemeral night [night]
+  2. i reflect between the lines - of what was never said [said]
+  3. the nostalgic deterioration - of the polaroid [polaroid]
+  4. I circle back to feeling - this again [again]
 
 **[Chorus]** (pattern: XXXX)
-  1. the experimental love I - found in you [you]
-  2. I took the long way through the park - and found a bench with our view [view]
-  3. I contemplated everything - ephemeral and true [true]
-  4. I painted my - apartment midnight blue [blue]
+  1. the record skips - and letting go [go]
+  2. polaroid memories - fading slow [slow]
+  3. the nostalgic constellation with its - gentle glow [glow]
+  4. skinny love Bon Iver - whispers through the snow [snow]
 
 **[Bridge]** (pattern: XXXX)
-  1. I stared out of the train - window for hours [hours]
-  2. I found profundity in the imperfect - take we almost erased [erased]
-  3. I built a universe - inside a bedroom with a borrowed amplifier [amplifier]
-  4. I illustrated every hesitation - in the margin [margin]
+  1. I wrote a poem - on a napkin in the cafe [cafe]
+  2. I wrote the chorus - on a grocery list [list]
+  3. somewhere between irony - and sincerity I found my voice at last [last]
+  4. and the rain on the window is the percussion - of contemplation [contemplation]
 
 **[Final Chorus]** (pattern: XXXX)
-  1. the experimental love I - found in you [you]
-  2. I took the long way through the park - and found a bench with our view [view]
-  3. I contemplated everything - ephemeral and true [true]
-  4. I painted my - apartment midnight blue [blue]
+  1. the record skips - and letting go [go]
+  2. polaroid memories - fading slow [slow]
+  3. the nostalgic constellation with its - gentle glow [glow]
+  4. skinny love Bon Iver - whispers through the snow [snow]
 
 **[Outro]** (pattern: XX)
-  1. I watched the leaves - decompose in the park [park]
-  2. the vintage lamp casts - shadows on the wall [wall]
+  1. the sentimental architecture - of a memory [memory]
+  2. the record player - skips on our old song [song]
 
 ---
 
@@ -253,47 +251,47 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 **[Intro]** (pattern: AA)
   1. The autumn leaves - are turning gold [gold]
-  2. we grew apart - as we grew old [old]
+  2. in the margins - of the story told [told]
 
 **[Verse 1]** (pattern: AABB)
-  1. the rain wander between the lines - of what was never said [said]
-  2. i wonder sometimes - if you'd see me dead [dead]
-  3. the nostalgic feeling - of a temporary home [home]
-  4. the subway hums - a melancholic drone [drone]
+  1. the rain fade through the cobblestone - streets of memory [memory]
+  2. I found a mixtape without a label - and it played our entire history [history]
+  3. I wear my insecurities - with pride [pride]
+  4. the bookstore closed - and I had nowhere left to hide [hide]
 
 **[Chorus]** (pattern: AABB)
-  1. we roam the world - but never feel alone [alone]
-  2. I feel the most at home - when far from home [home]
-  3. I listened for the echo - down the hall [hall]
-  4. a half-drawn - sketch upon the wall [wall]
+  1. the colors - bleed into the grey [grey]
+  2. the sentimental echoes - fading far away [away]
+  3. I painted my - apartment midnight blue [blue]
+  4. I contemplated - everything we knew [knew]
 
 **[Verse 2]** (pattern: AABB)
-  1. i sketch in the amber - glow of afternoon [afternoon]
-  2. the record store on Bleecker Street is closing - after June [june]
-  3. the rain against the window - plays a melancholy song [song]
-  4. the contemplated silence - of the sentimental dawn [dawn]
+  1. a half-drawn sketch - upon the wall [wall]
+  2. i wander where nobody else - would understand at all [all]
+  3. I found your letter in a secondhand - book at the thrift store [store]
+  4. I read your highlighted passages - and understood you better than before [before]
 
 **[Chorus]** (pattern: AABB)
-  1. we roam the world - but never feel alone [alone]
-  2. I feel the most at home - when far from home [home]
-  3. I listened for the echo - down the hall [hall]
-  4. a half-drawn - sketch upon the wall [wall]
+  1. the colors - bleed into the grey [grey]
+  2. the sentimental echoes - fading far away [away]
+  3. I painted my - apartment midnight blue [blue]
+  4. I contemplated - everything we knew [knew]
 
 **[Bridge]** (pattern: AABB)
-  1. a curated selection - of the haze [haze]
-  2. I made a playlist - for the end of days [days]
-  3. and the secondhand finds are the ones - that fit the best always [always]
-  4. nothing left except - the rays [rays]
+  1. and the secondhand finds are the ones - that fit the best always [always]
+  2. a curated selection - of the haze [haze]
+  3. the art house cinema - closed at midnight last [last]
+  4. a flickering reminder - of the past [past]
 
 **[Final Chorus]** (pattern: AABB)
-  1. we roam the world - but never feel alone [alone]
-  2. I feel the most at home - when far from home [home]
-  3. I listened for the echo - down the hall [hall]
-  4. a half-drawn - sketch upon the wall [wall]
+  1. the colors - bleed into the grey [grey]
+  2. the sentimental echoes - fading far away [away]
+  3. I painted my - apartment midnight blue [blue]
+  4. I contemplated - everything we knew [knew]
 
 **[Outro]** (pattern: AA)
-  1. the film photography caught the light - the digital would have missed [missed]
-  2. I wrote the chorus - on a grocery list [list]
+  1. the vintage lamp casts - shadows on the wall [wall]
+  2. the biggest room can feel - incredibly small [small]
 
 ---
 

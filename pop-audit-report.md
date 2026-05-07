@@ -1,6 +1,6 @@
 # POP Lyrics Generation Audit Report
 
-Generated: 2026-04-02T19:40:52.629Z
+Generated: 2026-05-02T22:42:26.303Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 1 |
+| Total quality issues | 2 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -36,7 +36,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | romantic | 176 | 76 | 0 | 100.0% | 0 |
 | aggressive | 176 | 72 | 0 | 100.0% | 0 |
 | dreamy | 176 | 84 | 0 | 100.0% | 0 |
-| dark | 176 | 76 | 0 | 100.0% | 1 |
+| dark | 176 | 76 | 0 | 100.0% | 2 |
 | epic | 176 | 76 | 0 | 100.0% | 0 |
 | hopeful | 176 | 72 | 0 | 100.0% | 0 |
 | melancholic | 176 | 84 | 0 | 100.0% | 0 |
@@ -45,11 +45,12 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 1 |
+| WEAK_ENDING | 2 |
 
-## Weak Ending Examples (1 total, showing up to 25)
+## Weak Ending Examples (2 total, showing up to 25)
 
-- Gen#24 [dark/freeform] Verse 1: `a paper airplane - with your number on` — WEAK_ENDING: ends with "on"
+- Gen#33 [dark/AABB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#33 [dark/AABB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
 
 ---
 
@@ -58,140 +59,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. I elevated - every single celebration [celebration]
-  2. illuminate the path - to every destination [destination]
-  3. the love you gave was truly - one of a kind [kind]
-  4. the answers - that I couldn't find [find]
+  1. I spark - through the night [night]
+  2. I fly - in the spotlight [spotlight]
+  3. the roller coaster drops - and then we scream [scream]
+  4. this life together - is the wildest dream [dream]
 
 **[Chorus]** (pattern: AABB)
-  1. candy coated - glittering name [name]
-  2. the clock keeps ticking - but I freeze the frame [frame]
-  3. I thought I knew the way - but I was blind [blind]
-  4. I held the moment - like a candle in the wind [wind]
+  1. this incredible love shines - like a star [star]
+  2. the summer breeze keeps whispering your - name into my ear [ear]
+  3. the incredible - sensation of our dedication [dedication]
+  4. generate the energy - of pure anticipation [anticipation]
 
 **[Verse 2]** (pattern: AABB)
-  1. you called me at the perfect - wrong time [time]
-  2. this feeling right - here is sublime [sublime]
-  3. I drew a heart - inside the foggy glass [glass]
-  4. Ferris Bueller said life - moves pretty fast [fast]
+  1. Gaga told me - I was born this way [way]
+  2. sometimes i wonder - if i should just run away [away]
+  3. Sabrina's nonsense - running through my brain [brain]
+  4. I fly - through the rain [rain]
 
 **[Chorus]** (pattern: AABB)
-  1. candy coated - glittering name [name]
-  2. the clock keeps ticking - but I freeze the frame [frame]
-  3. I thought I knew the way - but I was blind [blind]
-  4. I held the moment - like a candle in the wind [wind]
+  1. this incredible love shines - like a star [star]
+  2. the summer breeze keeps whispering your - name into my ear [ear]
+  3. the incredible - sensation of our dedication [dedication]
+  4. generate the energy - of pure anticipation [anticipation]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. the frequency - is crystal clear [clear]
-  2. the beautiful connection - was our liberation [liberation]
-  3. the orbit bringing - you right here [here]
-  4. this extraordinary night - became our revelation [revelation]
+  1. I watched the rivers - slowly flow [flow]
+  2. I sing through the rain [rain]
+  3. the seeds we planted start - to grow [grow]
+  4. Sabrina's nonsense - running through my brain [brain]
 
 **[Chorus]** (pattern: ABAB)
-  1. appreciation for this - beautiful ride [ride]
-  2. the hardest thing to do is - let it go [go]
-  3. determination keeps us - side by side [side]
-  4. I remember every word - and every afterglow [afterglow]
+  1. we on repeat - like endless soundtrack [soundtrack]
+  2. I keep - searching for a way [way]
+  3. the mirror shows a stranger - looking back [back]
+  4. this feeling takes my - breath away [away]
 
 **[Verse 2]** (pattern: ABAB)
-  1. feeling - like Taylor on a sold-out night [night]
-  2. we were alone - from the start [start]
-  3. Mamma Mia here we go - again tonight [tonight]
-  4. the vinyl skipped right - on our favorite part [part]
+  1. I wore the bracelet - till the thread gave out [out]
+  2. I fly - into the dawn [dawn]
+  3. we painted stars on ceilings - made of doubt [doubt]
+  4. the playlist shuffles - to our favorite song [song]
 
 **[Chorus]** (pattern: ABAB)
-  1. appreciation for this - beautiful ride [ride]
-  2. the hardest thing to do is - let it go [go]
-  3. determination keeps us - side by side [side]
-  4. I remember every word - and every afterglow [afterglow]
+  1. we on repeat - like endless soundtrack [soundtrack]
+  2. I keep - searching for a way [way]
+  3. the mirror shows a stranger - looking back [back]
+  4. this feeling takes my - breath away [away]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. the show goes on until the break - of dawn [dawn]
-  2. i realize that this - is where i belong [belong]
-  3. the radio is playing - our old song [song]
-  4. the spotlight chasing - what is gone [gone]
+  1. we were together - from the start [start]
+  2. the fire - burning in my heart [heart]
+  3. we slowly drifted - miles apart [apart]
+  4. the way you love me - is a work of art [art]
 
 **[Chorus]** (pattern: AAAA)
-  1. zero skips - prismatic moment on repeat [repeat]
-  2. a candy-coated day - that tasted sweet [sweet]
-  3. the feeling bittersweet [bittersweet]
-  4. the seconds stretched - like taffy in the summer heat [heat]
+  1. elevate the moment - feel the glow [glow]
+  2. you live a life of high - and low [low]
+  3. I wrote your - name on every foggy window [window]
+  4. the dam is breaking - hearts about to overflow [overflow]
 
 **[Verse 2]** (pattern: AAAA)
-  1. I got that Dua - Lipa energy tonight [tonight]
-  2. we shine - in the moonlight [moonlight]
-  3. i shine - through the night [night]
-  4. i dance - in the spotlight [spotlight]
+  1. the vinyl skipped right - on our favorite part [part]
+  2. I communicated everything - inside my heart [heart]
+  3. the pieces of my world - just fall apart [apart]
+  4. you fascinated me right - from the very start [start]
 
 **[Chorus]** (pattern: AAAA)
-  1. zero skips - prismatic moment on repeat [repeat]
-  2. a candy-coated day - that tasted sweet [sweet]
-  3. the feeling bittersweet [bittersweet]
-  4. the seconds stretched - like taffy in the summer heat [heat]
+  1. elevate the moment - feel the glow [glow]
+  2. you live a life of high - and low [low]
+  3. I wrote your - name on every foggy window [window]
+  4. the dam is breaking - hearts about to overflow [overflow]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. we move so fast - but want the days to last [last]
-  2. i dance - through the silence [silence]
-  3. you saved the last slow dance - tonight for me [me]
-  4. I watched the sunset - from your side of town [town]
+  1. you showed me constellations - I can't unsee [unsee]
+  2. I burn - into your arms [arms]
+  3. you called me at the perfect - wrong time [time]
+  4. Olivia's good for you is my new anthem [anthem]
 
 **[Chorus]** (pattern: XXXX)
-  1. daydream in zealous vertigo [vertigo]
-  2. the anticipation - of a beautiful tomorrow [tomorrow]
-  3. but there are things i want - you to know [know]
-  4. the origami crane you - left on my pillow [pillow]
+  1. the whole world disappears - when we collide [collide]
+  2. the rain will wash - away the tears we cried [cried]
+  3. I communicated - everything I held inside [inside]
+  4. I danced through every doubt - until the dawn arrived [arrived]
 
 **[Verse 2]** (pattern: XXXX)
-  1. i glow into your arms [arms]
-  2. i shine - under the stars [stars]
-  3. the jukebox played as if - it read our minds [minds]
-  4. I fade - past the horizon [horizon]
+  1. this electricity - between you is the remedy [remedy]
+  2. I rise - through the rain [rain]
+  3. we shine - through the night [night]
+  4. the rain keeps - falling on the glass [glass]
 
 **[Chorus]** (pattern: XXXX)
-  1. daydream in zealous vertigo [vertigo]
-  2. the anticipation - of a beautiful tomorrow [tomorrow]
-  3. but there are things i want - you to know [know]
-  4. the origami crane you - left on my pillow [pillow]
+  1. the whole world disappears - when we collide [collide]
+  2. the rain will wash - away the tears we cried [cried]
+  3. I communicated - everything I held inside [inside]
+  4. I danced through every doubt - until the dawn arrived [arrived]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the promises - we didn't make [make]
-  2. the memories are golden ones - no time could ever take [take]
-  3. I trace the words - you left behind [behind]
-  4. the moment that we shared - was hard to find [find]
+  1. a little sign - from the universe to me [me]
+  2. the speakers thump - and everyone is free [free]
+  3. I drift - through the rain [rain]
+  4. the corner store - that sold our cheap champagne [champagne]
 
 **[Chorus]** (pattern: AABB)
-  1. I'll keep - calling out your name [name]
-  2. we are the fire - we are the flame [flame]
-  3. we slowly - drifted miles apart [apart]
-  4. the playlist that you made - me is the soundtrack of my heart [heart]
+  1. I'll be your favorite - song on repeat [repeat]
+  2. walking through the crowded street [street]
+  3. the answers - that I couldn't find [find]
+  4. the crowd went silent - when our eyes aligned [aligned]
 
 **[Verse 2]** (pattern: AABB)
-  1. I melt - through the night [night]
-  2. i dance - in the moonlight [moonlight]
-  3. the incredible sensation - of our dedication [dedication]
-  4. you turned a comma - into an exclamation [exclamation]
+  1. the city sleeps - but I'm awake [awake]
+  2. my heart is yours - for you to take [take]
+  3. the music echoes - down the street [street]
+  4. champagne bubbles - rising to the beat [beat]
 
 **[Chorus]** (pattern: AABB)
-  1. I'll keep - calling out your name [name]
-  2. we are the fire - we are the flame [flame]
-  3. we slowly - drifted miles apart [apart]
-  4. the playlist that you made - me is the soundtrack of my heart [heart]
+  1. I'll be your favorite - song on repeat [repeat]
+  2. walking through the crowded street [street]
+  3. the answers - that I couldn't find [find]
+  4. the crowd went silent - when our eyes aligned [aligned]
 
 ---
 

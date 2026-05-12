@@ -44,3 +44,18 @@ check-caesura-all.js
 *-audit-report.md
 test-write.txt
 New Text Document.txt
+
+# IP scrub (2026-05-11) — these files were removed from git history via
+# `git filter-branch --index-filter`. Anyone with the public repo before
+# the rewrite may still have local copies in their working tree or in
+# git's reflog. GitHub's object cache may serve raw blob URLs by SHA for
+# ~90 days; contact GitHub Support to purge if needed.
+ENHANCEMENT_GUIDE.md
+FINAL_INTEGRATION_SUMMARY.md
+FOLDER_GENERATION_GUIDE.md
+IMPLEMENTATION_GUIDE.md
+INTEGRATION_UPDATE.md
+WavLoom - Pitch Correction Feature for Vocals.txt
+WavLoom-New-Features.txt
+WavLoom-Product-Demo-Walkthrough.txt
+CLAUDE.md

@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.20.2",
   "license": "UNLICENSED",
-  "author": "Mike Weaver",
+  "author": {
+    "name": "Mike Weaver",
+    "email": "mythodikalone@gmail.com"
+  },
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",

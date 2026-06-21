@@ -76,7 +76,9 @@ jobs:
         run: npm --prefix native ci || npm --prefix native install
 
       - name: Build native VST3 host addon (cmake-js)
-        run: npm run native:build
+        run: |
+          rm -rf native/build native/audio_capture/build   # never reuse a committed/stale CMake cache
+          npm run native:build
 
       - name: Build renderer (electron mode)
         run: npm run build:electron

@@ -8683,20 +8683,33 @@ const WavLoomAppComplete = () => {
                                     tempo={globalTempo}
                                     theme={theme}
                                     accentColors={accent}
+                                    generatedTracks={isGenerated}
                                     onApplyToTimeline={(clipPlacements) => {
                                         applyArrangementToTimeline(clipPlacements, {
                                             setTimelineBars,
+                                            // Dedup by (track, bar): update a clip already at this bar (preserving
+                                            // any notes there), otherwise add a new one. Re-running the arrangement
+                                            // after generating a track fills the newly-available track into the
+                                            // aligned blank spots without duplicating or wiping the other lanes.
                                             addDrumClip: (bar, bars, sectionType, intensity) => {
-                                                addDrumClip({ timelineBar: bar, bars, name: `${sectionType} Drums`, intensity });
+                                                const ex = drumClipsRef.current.find(c => (c.timelineBar || 0) === bar);
+                                                if (ex) updateDrumClip(ex.id, { bars, name: `${sectionType} Drums`, intensity });
+                                                else addDrumClip({ timelineBar: bar, bars, name: `${sectionType} Drums`, intensity });
                                             },
                                             addChordClip: (bar, bars, sectionType, intensity) => {
-                                                addChordClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Chords`, intensity });
+                                                const ex = chordClipsRef.current.find(c => (c.timelineBar || 0) === bar);
+                                                if (ex) updateChordClip(ex.id, { bars, name: `${sectionType} Chords`, intensity });
+                                                else addChordClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Chords`, intensity });
                                             },
                                             addMelodyClip: (bar, bars, sectionType, intensity) => {
-                                                addMelodyClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Melody`, intensity });
+                                                const ex = melodyClipsRef.current.find(c => (c.timelineBar || 0) === bar);
+                                                if (ex) updateMelodyClip(ex.id, { bars, name: `${sectionType} Melody`, intensity });
+                                                else addMelodyClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Melody`, intensity });
                                             },
                                             addBassClip: (bar, bars, sectionType, intensity) => {
-                                                addBassClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Bass`, intensity });
+                                                const ex = bassClipsRef.current.find(c => (c.timelineBar || 0) === bar);
+                                                if (ex) updateBassClip(ex.id, { bars, name: `${sectionType} Bass`, intensity });
+                                                else addBassClip({ timelineBar: bar, bars, pattern: [], name: `${sectionType} Bass`, intensity });
                                             }
                                         });
                                     }}

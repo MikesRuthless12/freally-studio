@@ -10,6 +10,19 @@ import { useTranslation } from './i18n/I18nContext.jsx';
 
 const SECTION_TYPES = getSectionTypes();
 
+// Deterministic 32-bit seed from a string so a given genre regenerates the SAME
+// section structure — re-running the arrangement after you add a track drops it
+// into the same aligned blank spots instead of reshuffling everything.
+function hashSeed(str) {
+    let h = 2166136261;
+    const s = String(str);
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h | 0;
+}
+
 /**
  * ArrangementIntelligencePanel — Collapsible panel for AI-driven song structure generation.
  *
@@ -24,7 +37,8 @@ const ArrangementIntelligencePanel = ({
     tempo = 120,
     theme,
     accentColors,
-    onApplyToTimeline
+    onApplyToTimeline,
+    generatedTracks = null
 }) => {
     const { t } = useTranslation();
     const ac = accentColors?.accent || '#ff6b6b';
@@ -63,15 +77,22 @@ const ArrangementIntelligencePanel = ({
         : '--:--';
 
     const handleGenerate = useCallback(() => {
+        // Only arrange tracks the user has actually generated; others stay blank.
+        const availableTracks = generatedTracks
+            ? Object.keys(generatedTracks).filter(k => generatedTracks[k])
+            : null;
         const result = generateArrangement({
             genre,
             mood,
             variation: variation / 100,
-            seed: null // random each time
+            // Stable genre-derived seed → re-generating after adding a track keeps
+            // the same structure so the new track fills the aligned blank spots.
+            seed: hashSeed(genre),
+            availableTracks
         });
         setGenerated(result);
         setApplied(false);
-    }, [genre, mood, variation]);
+    }, [genre, mood, variation, generatedTracks]);
 
     const handleApply = useCallback(() => {
         if (!generated || !onApplyToTimeline) return;
@@ -205,6 +226,28 @@ const ArrangementIntelligencePanel = ({
                         </div>
                     </div>
 
+                    {/* Which tracks the arrangement will place (blank = not generated yet) */}
+                    {generatedTracks && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '8px', fontWeight: '800', color: textMuted, letterSpacing: '0.5px' }}>TRACKS</span>
+                            {['drums', 'chords', 'melody', 'bass'].map(tk => {
+                                const on = !!generatedTracks[tk];
+                                return (
+                                    <span key={tk} style={{
+                                        fontSize: '9px', fontWeight: '700',
+                                        padding: '2px 8px', borderRadius: '4px', textTransform: 'capitalize',
+                                        color: on ? ac : textMuted,
+                                        background: on ? hexToRgba(ac, 0.1) : 'transparent',
+                                        border: `1px solid ${on ? hexToRgba(ac, 0.3) : (isDark ? '#222' : '#ddd')}`,
+                                        opacity: on ? 1 : 0.5
+                                    }}>
+                                        {tk}{on ? '' : ' · blank'}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     {/* Generated section list */}
                     {sections.length > 0 && (
                         <>
@@ -252,6 +295,16 @@ const ArrangementIntelligencePanel = ({
                             padding: '8px 0'
                         }}>
                             Click GENERATE to create a song structure based on {genre}
+                        </div>
+                    )}
+
+                    {/* Nothing generated yet — guide the user */}
+                    {generated && generated.length === 0 && (
+                        <div style={{
+                            fontSize: '10px', color: textMuted, fontStyle: 'italic',
+                            padding: '8px 0'
+                        }}>
+                            No generated tracks yet — generate at least one (drums, chords, melody, or bass), then generate the arrangement.
                         </div>
                     )}
                 </div>

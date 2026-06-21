@@ -13,16 +13,24 @@
 
 // ─── Section Type Definitions ────────────────────────────────────────────────
 
+// `tracks` = per-section-type activity for each track: 1 = full / present,
+// 0.5 = reduced (present but lighter), 0 = absent (no clip → blank lane).
+// Grounded in cross-genre arrangement research: intros/outros are minimal with
+// the melody held back; verses reduce drums for vocal space; pre-chorus/chorus/
+// drop are full; breakdowns drop the drums (chords + melody carry); build-ups
+// filter the bass out; bridges pull back drums + bass. Because each genre has its
+// own section sequence, attaching activity to section types makes every genre
+// arrange appropriately without per-genre code paths.
 const SECTION_TYPES = {
-    Intro:      { defaultBars: 4,  intensity: 0.3, color: '#4dabf7' },
-    Verse:      { defaultBars: 8,  intensity: 0.6, color: '#69db7c' },
-    PreChorus:  { defaultBars: 4,  intensity: 0.75, color: '#ffd43b' },
-    Chorus:     { defaultBars: 8,  intensity: 1.0, color: '#ff6b6b' },
-    Bridge:     { defaultBars: 4,  intensity: 0.5, color: '#9775fa' },
-    Breakdown:  { defaultBars: 4,  intensity: 0.35, color: '#20c997' },
-    Drop:       { defaultBars: 8,  intensity: 1.0, color: '#f06595' },
-    Buildup:    { defaultBars: 4,  intensity: 0.8, color: '#ffa94d' },
-    Outro:      { defaultBars: 4,  intensity: 0.25, color: '#74c0fc' }
+    Intro:      { defaultBars: 4,  intensity: 0.3, color: '#4dabf7', tracks: { drums: 0.5, chords: 0.5, melody: 0,   bass: 0.5 } },
+    Verse:      { defaultBars: 8,  intensity: 0.6, color: '#69db7c', tracks: { drums: 0.5, chords: 1,   melody: 1,   bass: 1   } },
+    PreChorus:  { defaultBars: 4,  intensity: 0.75, color: '#ffd43b', tracks: { drums: 1,   chords: 1,   melody: 1,   bass: 1   } },
+    Chorus:     { defaultBars: 8,  intensity: 1.0, color: '#ff6b6b', tracks: { drums: 1,   chords: 1,   melody: 1,   bass: 1   } },
+    Bridge:     { defaultBars: 4,  intensity: 0.5, color: '#9775fa', tracks: { drums: 0.5, chords: 1,   melody: 1,   bass: 0.5 } },
+    Breakdown:  { defaultBars: 4,  intensity: 0.35, color: '#20c997', tracks: { drums: 0,   chords: 1,   melody: 1,   bass: 0.5 } },
+    Drop:       { defaultBars: 8,  intensity: 1.0, color: '#f06595', tracks: { drums: 1,   chords: 1,   melody: 1,   bass: 1   } },
+    Buildup:    { defaultBars: 4,  intensity: 0.8, color: '#ffa94d', tracks: { drums: 0.5, chords: 1,   melody: 0.5, bass: 0   } },
+    Outro:      { defaultBars: 4,  intensity: 0.25, color: '#74c0fc', tracks: { drums: 0.5, chords: 0.5, melody: 0,   bass: 0.5 } }
 };
 
 // ─── Genre → Template Mapping ────────────────────────────────────────────────
@@ -315,23 +323,26 @@ function clampBars(bars) {
  * @param {string} [genreDNA.mood]      - Mood modifier name
  * @param {number} [genreDNA.variation] - Variation amount 0-1 (default 0.3)
  * @param {number} [genreDNA.seed]      - Optional seed for deterministic output
- * @returns {Array<{trackType: string, timelineBar: number, bars: number, sectionType: string, intensity: number, color: string}>}
+ * @param {string[]} [genreDNA.availableTracks] - Restrict output to these track types
+ *        (e.g. only the tracks the user has generated). null/omitted = all four.
+ * @returns {Array<{trackType: string, timelineBar: number, bars: number, sectionType: string, intensity: number, activity: number, color: string}>}
  */
 export function generateArrangement(genreDNA) {
-    const { genre = 'Trap', mood = null, variation = 0.3, seed = null } = genreDNA || {};
+    const { genre = 'Trap', mood = null, variation = 0.3, seed = null, availableTracks = null } = genreDNA || {};
 
     const rand = seed != null ? seededRandom(seed) : Math.random.bind(Math);
+
+    // Only emit clips for tracks the caller marks as available (i.e. generated).
+    // null = no filter (all four) — preserves backward-compatible behavior.
+    const trackAllowed = (t) => !availableTracks || availableTracks.includes(t);
 
     // 1. Resolve template
     const templateKey = GENRE_TO_TEMPLATE[genre] || 'pop';
     const template = ARRANGEMENT_TEMPLATES[templateKey];
     if (!template) {
-        return [
-            { trackType: 'drums', timelineBar: 0, bars: 8, sectionType: 'verse', intensity: 0.6, color: SECTION_TYPES.Verse.color },
-            { trackType: 'chords', timelineBar: 0, bars: 8, sectionType: 'verse', intensity: 0.6, color: SECTION_TYPES.Verse.color },
-            { trackType: 'melody', timelineBar: 0, bars: 8, sectionType: 'verse', intensity: 0.6, color: SECTION_TYPES.Verse.color },
-            { trackType: 'bass', timelineBar: 0, bars: 8, sectionType: 'verse', intensity: 0.6, color: SECTION_TYPES.Verse.color }
-        ];
+        return ['drums', 'chords', 'melody', 'bass']
+            .filter(trackAllowed)
+            .map(trackType => ({ trackType, timelineBar: 0, bars: 8, sectionType: 'verse', intensity: 0.6, activity: 1, color: SECTION_TYPES.Verse.color }));
     }
 
     // 2. Build section layout with bar variation
@@ -354,6 +365,7 @@ export function generateArrangement(genreDNA) {
             section: entry.section,
             bars,
             intensity: Math.round(intensity * 100) / 100,
+            tracks: sectionDef.tracks,
             color: sectionDef.color
         };
     });
@@ -365,12 +377,18 @@ export function generateArrangement(genreDNA) {
 
     for (const sec of sections) {
         for (const trackType of trackTypes) {
+            const activity = sec.tracks ? (sec.tracks[trackType] ?? 1) : 1;
+            // activity 0 → track is silent in this section type (leave the lane blank);
+            // not-allowed → track hasn't been generated yet (leave it blank for now).
+            if (activity <= 0) continue;
+            if (!trackAllowed(trackType)) continue;
             clipPlacements.push({
                 trackType,
                 timelineBar: barOffset,
                 bars: sec.bars,
                 sectionType: sec.section.toLowerCase(),
                 intensity: sec.intensity,
+                activity,
                 color: sec.color
             });
         }

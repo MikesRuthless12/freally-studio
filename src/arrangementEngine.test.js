@@ -33,21 +33,72 @@ describe('ArrangementEngine — generateArrangement', () => {
         });
     });
 
-    it('should produce 4 track types per section', () => {
-        const result = generateArrangement({ genre: 'Trap', variation: 0 });
-        // Group by timelineBar
+    it('should honor per-section track activity (genre-aware)', () => {
+        // 'House' resolves to the drop-based 'edm' template (Intro/Buildup/Drop/Breakdown/...)
+        const result = generateArrangement({ genre: 'House', variation: 0 });
+        const bySection = {};
+        for (const cp of result) {
+            (bySection[cp.sectionType] = bySection[cp.sectionType] || new Set()).add(cp.trackType);
+        }
+        // Drop = full band
+        expect(bySection.drop).toEqual(new Set(['drums', 'chords', 'melody', 'bass']));
+        // Breakdown drops the drums (chords/melody carry)
+        expect(bySection.breakdown?.has('drums')).toBe(false);
+        expect(bySection.breakdown?.has('chords')).toBe(true);
+        // Build-up filters the bass out
+        expect(bySection.buildup?.has('bass')).toBe(false);
+        // Intro holds the melody back
+        expect(bySection.intro?.has('melody')).toBe(false);
+    });
+
+    it('every section has at least one active track', () => {
+        const result = generateArrangement({ genre: 'Pop', variation: 0 });
         const byBar = {};
         for (const cp of result) {
-            if (!byBar[cp.timelineBar]) byBar[cp.timelineBar] = new Set();
-            byBar[cp.timelineBar].add(cp.trackType);
+            (byBar[cp.timelineBar] = byBar[cp.timelineBar] || new Set()).add(cp.trackType);
         }
         for (const tracks of Object.values(byBar)) {
-            expect(tracks.size).toBe(4);
-            expect(tracks.has('drums')).toBe(true);
-            expect(tracks.has('chords')).toBe(true);
-            expect(tracks.has('melody')).toBe(true);
-            expect(tracks.has('bass')).toBe(true);
+            expect(tracks.size).toBeGreaterThan(0);
         }
+    });
+
+    it('availableTracks restricts output to generated tracks only', () => {
+        const result = generateArrangement({ genre: 'Pop', variation: 0, availableTracks: ['drums', 'bass'] });
+        expect(result.length).toBeGreaterThan(0);
+        const types = new Set(result.map(cp => cp.trackType));
+        expect(types.has('drums')).toBe(true);
+        expect(types.has('bass')).toBe(true);
+        expect(types.has('chords')).toBe(false);
+        expect(types.has('melody')).toBe(false);
+    });
+
+    it('a single available track is still placed across its active sections', () => {
+        const result = generateArrangement({ genre: 'Pop', variation: 0, availableTracks: ['chords'] });
+        expect(result.length).toBeGreaterThan(0);
+        result.forEach(cp => expect(cp.trackType).toBe('chords'));
+    });
+
+    it('no generated tracks yields an empty arrangement', () => {
+        const result = generateArrangement({ genre: 'Pop', variation: 0, availableTracks: [] });
+        expect(result).toEqual([]);
+    });
+
+    it('re-running after generating a track fills the aligned blank spots (stable structure)', () => {
+        const seed = 12345;
+        const drumsOnly = generateArrangement({ genre: 'Pop', variation: 0.3, seed, availableTracks: ['drums'] });
+        const withMelody = generateArrangement({ genre: 'Pop', variation: 0.3, seed, availableTracks: ['drums', 'melody'] });
+
+        // Same seed → identical section structure regardless of which tracks are available:
+        // the drum placements (bars) are unchanged across the two runs.
+        const drumBars = (arr) => arr.filter(cp => cp.trackType === 'drums').map(cp => cp.timelineBar);
+        expect(drumBars(withMelody)).toEqual(drumBars(drumsOnly));
+
+        // The newly-available melody now appears, and only at bar positions that already
+        // exist in the structure (i.e. it drops into the previously-blank spots).
+        const structureBars = new Set(drumsOnly.map(cp => cp.timelineBar));
+        const melodyPlacements = withMelody.filter(cp => cp.trackType === 'melody');
+        expect(melodyPlacements.length).toBeGreaterThan(0);
+        melodyPlacements.forEach(cp => expect(structureBars.has(cp.timelineBar)).toBe(true));
     });
 
     it('intensity should be between 0.1 and 1.0', () => {

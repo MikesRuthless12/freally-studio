@@ -1,0 +1,100 @@
+name: release
+
+# Tag-triggered cross-platform release. Push a v* tag (or run manually with a tag
+# input). Each OS builds its installer(s) — the native VST3 host addon (cmake-js +
+# the vst3sdk submodule) + the Electron renderer + electron-builder — and uploads
+# to a DRAFT GitHub release titled "WavLoom Studio 2.0 — Enhanced". Verify the
+# artifacts, then publish (gh release edit <tag> --draft=false).
+#
+# Version: the tag, release name, and download filenames say v0.20.02, but the
+# internal package.json version is 0.20.2 (electron-builder requires valid semver).
+# Bundles are UNSIGNED (no signing secrets) — macOS Gatekeeper / Windows SmartScreen
+# warnings are expected.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build/publish (e.g. v0.20.02)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  REL_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create draft release (idempotent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$REL_TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$REL_TAG" -R "$GITHUB_REPOSITORY" --draft \
+              --title "WavLoom Studio 2.0 — Enhanced" \
+              --notes "A browser-based DAW with AI pattern generation across 35+ genres, an FL-style mixer, an arrangement timeline, an audio-clip editor, vocal pitch correction, and real-time collaboration."
+          fi
+
+  build:
+    needs: create-release
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: windows-latest, eb: "--win --x64" }
+          - { platform: macos-14, eb: "--mac --arm64" }
+          - { platform: macos-13, eb: "--mac --x64" }
+          - { platform: ubuntu-22.04, eb: "--linux --x64" }
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive # vst3sdk + its nested submodules
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install native addon dependencies
+        run: npm --prefix native ci || npm --prefix native install
+
+      - name: Build native VST3 host addon (cmake-js)
+        run: npm run native:build
+
+      - name: Build renderer (electron mode)
+        run: npm run build:electron
+
+      - name: Package installer(s)
+        run: npx electron-builder ${{ matrix.eb }} --publish never
+
+      - name: Upload artifacts to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(release/*.exe release/*.dmg release/*.AppImage release/*.deb)
+          echo "Uploading ${#files[@]} file(s): ${files[*]}"
+          if [ ${#files[@]} -gt 0 ]; then
+            gh release upload "$REL_TAG" "${files[@]}" -R "$GITHUB_REPOSITORY" --clobber
+          else
+            echo "::error::No installer artifacts found in release/ for ${{ matrix.platform }}"
+            ls -la release/ || true
+            exit 1
+          fi

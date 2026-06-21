@@ -2,6 +2,10 @@ appId: com.havocsoftware.wavloom
 productName: WavLoom Studio
 copyright: Copyright (c) Havoc Software
 
+# User-facing filenames say 0.20.02; internal package.json version is 0.20.2
+# (electron-builder requires valid semver — no leading zero).
+artifactName: WavLoom-Studio-0.20.02-${arch}.${ext}
+
 protocols:
   - name: WavLoom Collab
     schemes:
@@ -21,16 +25,8 @@ extraResources:
     to: "native"
     filter:
       - "*.node"
-  - from: "Factory Library"
-    to: "Factory Library"
-    filter:
-      - "**/*"
   - from: "public/mobile-app"
     to: "mobile-app"
-    filter:
-      - "**/*"
-  - from: "public/wasm"
-    to: "wasm"
     filter:
       - "**/*"
   - from: "public/worklets"

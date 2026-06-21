@@ -53,6 +53,8 @@ if(VST3_SDK_FOUND)
         set(MODULE_PLATFORM_SRC "${VST3_SDK_ROOT}/public.sdk/source/vst/hosting/module_win32.cpp")
     elseif(APPLE)
         set(MODULE_PLATFORM_SRC "${VST3_SDK_ROOT}/public.sdk/source/vst/hosting/module_mac.mm")
+        # module_mac.mm is Objective-C++ and must be compiled with ARC enabled.
+        set_source_files_properties("${MODULE_PLATFORM_SRC}" PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     else()
         set(MODULE_PLATFORM_SRC "${VST3_SDK_ROOT}/public.sdk/source/vst/hosting/module_linux.cpp")
     endif()

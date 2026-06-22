@@ -1,6 +1,6 @@
 # R&B Lyrics Generation Audit Report
 
-Generated: 2026-05-02T22:46:32.172Z
+Generated: 2026-06-21T23:05:37.971Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 9 |
+| Total quality issues | 3 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -34,30 +34,24 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | happy | 192 | 84 | 0 | 100.0% | 0 |
 | sad | 176 | 76 | 0 | 100.0% | 0 |
 | romantic | 176 | 76 | 0 | 100.0% | 0 |
-| aggressive | 176 | 72 | 0 | 100.0% | 3 |
-| dreamy | 176 | 84 | 0 | 100.0% | 2 |
-| dark | 176 | 76 | 0 | 100.0% | 2 |
+| aggressive | 176 | 72 | 0 | 100.0% | 0 |
+| dreamy | 176 | 84 | 0 | 100.0% | 0 |
+| dark | 176 | 76 | 0 | 100.0% | 0 |
 | epic | 176 | 76 | 0 | 100.0% | 1 |
-| hopeful | 176 | 72 | 0 | 100.0% | 1 |
-| melancholic | 176 | 84 | 0 | 100.0% | 0 |
+| hopeful | 176 | 72 | 0 | 100.0% | 0 |
+| melancholic | 176 | 84 | 0 | 100.0% | 2 |
 
 ## Issue Type Breakdown
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 9 |
+| WEAK_ENDING | 3 |
 
-## Weak Ending Examples (9 total, showing up to 25)
+## Weak Ending Examples (3 total, showing up to 25)
 
-- Gen#4 [aggressive/freeform] Verse 2: `you showed me - who I really truly are` — WEAK_ENDING: ends with "are"
-- Gen#15 [dark/AAAA] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
-- Gen#15 [dark/AAAA] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
-- Gen#52 [epic/freeform] Verse 2: `a paper airplane - with your number on` — WEAK_ENDING: ends with "on"
-- Gen#58 [aggressive/ABAB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
-- Gen#58 [aggressive/ABAB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
-- Gen#77 [dreamy/AABB] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
-- Gen#77 [dreamy/AABB] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
-- Gen#80 [hopeful/freeform] Verse 2: `you showed me - who I really truly are` — WEAK_ENDING: ends with "are"
+- Gen#45 [melancholic/AABB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#45 [melancholic/AABB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#88 [epic/freeform] Verse 1: `you showed me - who I really truly are` — WEAK_ENDING: ends with "are"
 
 ---
 
@@ -66,140 +60,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. we carved our initials - in the old oak tree [tree]
-  2. Miley showed me wrecking - balls can set you free [free]
-  3. we slowly drifted - miles apart [apart]
-  4. the memories - replay a broken heart [heart]
+  1. Gaga told me - I was born this way [way]
+  2. you painted over every shade - of grey [grey]
+  3. I demonstrated love - through every conversation [conversation]
+  4. the phenomenal energy - sparked a generation [generation]
 
 **[Chorus]** (pattern: AABB)
-  1. influencer of brainrot tea [tea]
-  2. nothing can stop us - when we're falling free [free]
-  3. i turn the page - and find a brand new start [start]
-  4. I communicated everything - inside my heart [heart]
+  1. I drown in your - loud glow [glow]
+  2. but there are things - i want you to know [know]
+  3. I whisper to the wind - and hope you hear [hear]
+  4. unforgettable the moment - everything was clear [clear]
 
 **[Verse 2]** (pattern: AABB)
-  1. the mirror shows a braver - version now [now]
-  2. I made a promise - and I kept my vow [vow]
-  3. i shine - in the moonlight [moonlight]
-  4. I fly - in the spotlight [spotlight]
+  1. I caught - it just before the wind had gone [gone]
+  2. the radio is playing - our old song [song]
+  3. champagne bubbles - rising to the beat [beat]
+  4. a voicemail I keep - playing on repeat [repeat]
 
 **[Chorus]** (pattern: AABB)
-  1. influencer of brainrot tea [tea]
-  2. nothing can stop us - when we're falling free [free]
-  3. i turn the page - and find a brand new start [start]
-  4. I communicated everything - inside my heart [heart]
+  1. I drown in your - loud glow [glow]
+  2. but there are things - i want you to know [know]
+  3. I whisper to the wind - and hope you hear [hear]
+  4. unforgettable the moment - everything was clear [clear]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. I melt - in the spotlight [spotlight]
-  2. a candy-coated day - that tasted sweet [sweet]
-  3. I burn - in the moonlight [moonlight]
-  4. walking through the crowded street [street]
+  1. I fade - into the dawn [dawn]
+  2. I burn - along the shore [shore]
+  3. the spotlight chasing - what is gone [gone]
+  4. I never knew what - love was till you walked through that door [door]
 
 **[Chorus]** (pattern: ABAB)
-  1. i promise you we'll - never fall [fall]
-  2. you are the only - dream come true [true]
-  3. the silence after the last - note says it all [all]
-  4. I'm alive alive - alive with you [you]
+  1. elevate the moment - feel the glow [glow]
+  2. together we are - finally breaking through [through]
+  3. the flowers in the garden - start to bloom and letting go [go]
+  4. every single carriage - leads to you [you]
 
 **[Verse 2]** (pattern: ABAB)
-  1. i dance - through the night [night]
-  2. the universe aligned - to bring you soon [soon]
-  3. I break - in the moonlight [moonlight]
-  4. I whisper secrets - to the crescent moon [moon]
+  1. the way you touch my skin - it feels so right [right]
+  2. Gaga told me - I was born this way [way]
+  3. feeling like Taylor - on a sold-out night [night]
+  4. i saw the colors - painting at the break of day [day]
 
 **[Chorus]** (pattern: ABAB)
-  1. i promise you we'll - never fall [fall]
-  2. you are the only - dream come true [true]
-  3. the silence after the last - note says it all [all]
-  4. I'm alive alive - alive with you [you]
+  1. elevate the moment - feel the glow [glow]
+  2. together we are - finally breaking through [through]
+  3. the flowers in the garden - start to bloom and letting go [go]
+  4. every single carriage - leads to you [you]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. your voice echoes - in my mind [mind]
-  2. I left - the broken past behind [behind]
-  3. your love is gentle - and it's kind [kind]
-  4. every melody - you sing is intertwined [intertwined]
+  1. my feet are floating - inches off the ground [ground]
+  2. the ferris wheel keeps spinning - round and round [round]
+  3. our generation dances - to a different sound [sound]
+  4. they cannot stop - the gowned [gowned]
 
 **[Chorus]** (pattern: AAAA)
-  1. the map inside your - gleam leads to anthem [anthem]
-  2. this love could - fill a stadium [stadium]
-  3. the carnival lights - flickered to our rhythm [rhythm]
-  4. I demolished - the conundrum [conundrum]
+  1. the stream - goes exclusive [exclusive]
+  2. phenomenal the way you - make me feel alive [alive]
+  3. sensational together we will - always thrive [thrive]
+  4. the landscape - is instinctive [instinctive]
 
 **[Verse 2]** (pattern: AAAA)
-  1. I know this feeling - all too well [well]
-  2. the place - where all the memories dwell [dwell]
-  3. I'm falling deeper - can you tell [tell]
-  4. another story - beyond the dumbbell [dumbbell]
+  1. I kept the ticket - stub from our first date [date]
+  2. the neon sign keeps blinking - open late [late]
+  3. irresistible I cannot help - but celebrate [celebrate]
+  4. unforgettable the way - you illuminate [illuminate]
 
 **[Chorus]** (pattern: AAAA)
-  1. the map inside your - gleam leads to anthem [anthem]
-  2. this love could - fill a stadium [stadium]
-  3. the carnival lights - flickered to our rhythm [rhythm]
-  4. I demolished - the conundrum [conundrum]
+  1. the stream - goes exclusive [exclusive]
+  2. phenomenal the way you - make me feel alive [alive]
+  3. sensational together we will - always thrive [thrive]
+  4. the landscape - is instinctive [instinctive]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. I am the main character - in this coming of age [age]
-  2. I fell in love - with all your little charms [charms]
-  3. I catch your glance - and I cannot deny [deny]
-  4. I counted shooting stars - and named them after you [you]
+  1. I fall - across the sky [sky]
+  2. i dance - under the stars [stars]
+  3. we balanced on the edge - and did not fall [fall]
+  4. I melt - into the dawn [dawn]
 
 **[Chorus]** (pattern: XXXX)
-  1. the rhythm of us - could power the sun [sun]
-  2. the summer fades - but we have just begun [begun]
-  3. when everything is - said and done [done]
-  4. the mosaic - paints the everyone [everyone]
+  1. light and opulent - in the same paradise [paradise]
+  2. lost in the music - found in your eyes [eyes]
+  3. somewhere in between the truth - and lies [lies]
+  4. the parking lot - became our dance floor twice [twice]
 
 **[Verse 2]** (pattern: XXXX)
-  1. you showed me - who I really truly are [are] ⚠️ WEAK_ENDING: ends with "are"
-  2. a love - so pure the whole world stops to see [see]
-  3. i shine - through the silence [silence]
-  4. we dance - across the room [room]
+  1. karaoke night - and I chose our song [song]
+  2. the countdown starts - and confetti explodes [explodes]
+  3. i shine - while the universe unfolds for us [us]
+  4. i shine - through the silence [silence]
 
 **[Chorus]** (pattern: XXXX)
-  1. the rhythm of us - could power the sun [sun]
-  2. the summer fades - but we have just begun [begun]
-  3. when everything is - said and done [done]
-  4. the mosaic - paints the everyone [everyone]
+  1. light and opulent - in the same paradise [paradise]
+  2. lost in the music - found in your eyes [eyes]
+  3. somewhere in between the truth - and lies [lies]
+  4. the parking lot - became our dance floor twice [twice]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. every lyric sounds - like you somehow [somehow]
-  2. I made a promise - and I kept my vow [vow]
-  3. but there are things - i want you to know [know]
-  4. the hardest thing to do is let - it go [go]
+  1. the dam is breaking - hearts about to overflow [overflow]
+  2. the Greatest Showman said - this is the greatest show [show]
+  3. Something whispers - through the night [night]
+  4. we dance - in the moonlight [moonlight]
 
 **[Chorus]** (pattern: AABB)
-  1. tonight's the side we - own the daydream [daydream]
-  2. participate in every - beautiful dream [dream]
-  3. I close my eyes - and hold you extra tight [tight]
-  4. we are - unstoppable tonight [tonight]
+  1. the oracle - speaks of pressed face [face]
+  2. and somewhere in the chaos was a quiet - kind of peace [peace]
+  3. I drift - in the moonlight [moonlight]
+  4. Ariana said no tears - left to cry tonight [tonight]
 
 **[Verse 2]** (pattern: AABB)
-  1. i glow along - the shore [shore]
-  2. I keep on wanting - just a little more [more]
-  3. you painted over every shade - of grey [grey]
-  4. memories from another day [day]
+  1. I fall - in the spotlight [spotlight]
+  2. I told myself - I wouldn't call tonight [tonight]
+  3. we balanced on the edge - and did not fall [fall]
+  4. the shadows dance - across the wall [wall]
 
 **[Chorus]** (pattern: AABB)
-  1. tonight's the side we - own the daydream [daydream]
-  2. participate in every - beautiful dream [dream]
-  3. I close my eyes - and hold you extra tight [tight]
-  4. we are - unstoppable tonight [tonight]
+  1. the oracle - speaks of pressed face [face]
+  2. and somewhere in the chaos was a quiet - kind of peace [peace]
+  3. I drift - in the moonlight [moonlight]
+  4. Ariana said no tears - left to cry tonight [tonight]
 
 ---
 

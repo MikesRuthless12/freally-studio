@@ -1,6 +1,6 @@
 # POP Lyrics Generation Audit Report
 
-Generated: 2026-05-02T22:42:26.303Z
+Generated: 2026-06-21T23:00:27.041Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 700 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 2 |
+| Total quality issues | 8 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -32,12 +32,12 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Mood | Lines | Rhyme Pairs | Rhyme Failures | Accuracy | Quality Issues |
 |------|-------|-------------|----------------|----------|----------------|
 | happy | 192 | 84 | 0 | 100.0% | 0 |
-| sad | 176 | 76 | 0 | 100.0% | 0 |
-| romantic | 176 | 76 | 0 | 100.0% | 0 |
-| aggressive | 176 | 72 | 0 | 100.0% | 0 |
+| sad | 176 | 76 | 0 | 100.0% | 3 |
+| romantic | 176 | 76 | 0 | 100.0% | 2 |
+| aggressive | 176 | 72 | 0 | 100.0% | 2 |
 | dreamy | 176 | 84 | 0 | 100.0% | 0 |
-| dark | 176 | 76 | 0 | 100.0% | 2 |
-| epic | 176 | 76 | 0 | 100.0% | 0 |
+| dark | 176 | 76 | 0 | 100.0% | 0 |
+| epic | 176 | 76 | 0 | 100.0% | 1 |
 | hopeful | 176 | 72 | 0 | 100.0% | 0 |
 | melancholic | 176 | 84 | 0 | 100.0% | 0 |
 
@@ -45,12 +45,18 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 2 |
+| WEAK_ENDING | 8 |
 
-## Weak Ending Examples (2 total, showing up to 25)
+## Weak Ending Examples (8 total, showing up to 25)
 
-- Gen#33 [dark/AABB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
-- Gen#33 [dark/AABB] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#20 [sad/freeform] Verse 1: `a paper airplane - with your number on` — WEAK_ENDING: ends with "on"
+- Gen#56 [sad/freeform] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#56 [sad/freeform] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#67 [aggressive/AAAA] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
+- Gen#67 [aggressive/AAAA] Chorus: `the person I was - born to finally be` — WEAK_ENDING: ends with "be"
+- Gen#84 [romantic/freeform] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#84 [romantic/freeform] Chorus: `I left a light on for the person - I was meant to be` — WEAK_ENDING: ends with "be"
+- Gen#88 [epic/freeform] Verse 1: `the confetti settled - but the rush stayed on` — WEAK_ENDING: ends with "on"
 
 ---
 
@@ -59,140 +65,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. I spark - through the night [night]
-  2. I fly - in the spotlight [spotlight]
-  3. the roller coaster drops - and then we scream [scream]
-  4. this life together - is the wildest dream [dream]
+  1. I kept the ticket - stub from our first date [date]
+  2. you smiled and said forever - and I knew it must be fate [fate]
+  3. I used to dream - about this place [place]
+  4. we vanish - and we leave no trace [trace]
 
 **[Chorus]** (pattern: AABB)
-  1. this incredible love shines - like a star [star]
-  2. the summer breeze keeps whispering your - name into my ear [ear]
-  3. the incredible - sensation of our dedication [dedication]
-  4. generate the energy - of pure anticipation [anticipation]
+  1. underneath the neon paradise [paradise]
+  2. the parking lot - became our dance floor twice [twice]
+  3. we chased the rainbow - all the way to grey [grey]
+  4. a lavender sky at the end - of the day [day]
 
 **[Verse 2]** (pattern: AABB)
-  1. Gaga told me - I was born this way [way]
-  2. sometimes i wonder - if i should just run away [away]
-  3. Sabrina's nonsense - running through my brain [brain]
-  4. I fly - through the rain [rain]
+  1. the radio is playing our song - from long ago [ago]
+  2. the flowers in the garden - start to bloom and letting go [go]
+  3. you saved the last slow dance - tonight for me [me]
+  4. Miley showed me wrecking - balls can set you free [free]
 
 **[Chorus]** (pattern: AABB)
-  1. this incredible love shines - like a star [star]
-  2. the summer breeze keeps whispering your - name into my ear [ear]
-  3. the incredible - sensation of our dedication [dedication]
-  4. generate the energy - of pure anticipation [anticipation]
+  1. underneath the neon paradise [paradise]
+  2. the parking lot - became our dance floor twice [twice]
+  3. we chased the rainbow - all the way to grey [grey]
+  4. a lavender sky at the end - of the day [day]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. I watched the rivers - slowly flow [flow]
-  2. I sing through the rain [rain]
-  3. the seeds we planted start - to grow [grow]
-  4. Sabrina's nonsense - running through my brain [brain]
+  1. I never knew what - love was till you walked through that door [door]
+  2. your love is like a compass - you will lead the way [way]
+  3. I fall - along the shore [shore]
+  4. I catch myself rehearsing - what I'd say [say]
 
 **[Chorus]** (pattern: ABAB)
-  1. we on repeat - like endless soundtrack [soundtrack]
-  2. I keep - searching for a way [way]
-  3. the mirror shows a stranger - looking back [back]
-  4. this feeling takes my - breath away [away]
+  1. tangled up - in electric spark [spark]
+  2. I melt - through the night [night]
+  3. glowing like the sunrise - after dark [dark]
+  4. I found my wings - and now I choose to fight [fight]
 
 **[Verse 2]** (pattern: ABAB)
-  1. I wore the bracelet - till the thread gave out [out]
-  2. I fly - into the dawn [dawn]
-  3. we painted stars on ceilings - made of doubt [doubt]
-  4. the playlist shuffles - to our favorite song [song]
+  1. the neon - fading in a blush [blush]
+  2. the memories are golden ones - no time could ever take [take]
+  3. the city - sleeping in a hush [hush]
+  4. the lanterns float - across the midnight lake [lake]
 
 **[Chorus]** (pattern: ABAB)
-  1. we on repeat - like endless soundtrack [soundtrack]
-  2. I keep - searching for a way [way]
-  3. the mirror shows a stranger - looking back [back]
-  4. this feeling takes my - breath away [away]
+  1. tangled up - in electric spark [spark]
+  2. I melt - through the night [night]
+  3. glowing like the sunrise - after dark [dark]
+  4. I found my wings - and now I choose to fight [fight]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. we were together - from the start [start]
-  2. the fire - burning in my heart [heart]
-  3. we slowly drifted - miles apart [apart]
-  4. the way you love me - is a work of art [art]
+  1. the memories - replay a broken heart [heart]
+  2. i turn the page - and find a brand new start [start]
+  3. the way you love me - is a work of art [art]
+  4. the pieces of my world - just fall apart [apart]
 
 **[Chorus]** (pattern: AAAA)
-  1. elevate the moment - feel the glow [glow]
-  2. you live a life of high - and low [low]
-  3. I wrote your - name on every foggy window [window]
-  4. the dam is breaking - hearts about to overflow [overflow]
+  1. catchy stunning - and exclusive always [always]
+  2. the morning sun breaks - through the haze [haze]
+  3. I lost myself - inside your gaze [gaze]
+  4. I invested - in the blaze [blaze]
 
 **[Verse 2]** (pattern: AAAA)
-  1. the vinyl skipped right - on our favorite part [part]
-  2. I communicated everything - inside my heart [heart]
-  3. the pieces of my world - just fall apart [apart]
-  4. you fascinated me right - from the very start [start]
+  1. i glow - through the rain [rain]
+  2. we found the sunshine hiding - past the pain [pain]
+  3. Sabrina's nonsense - running through my brain [brain]
+  4. the corner store - that sold our cheap champagne [champagne]
 
 **[Chorus]** (pattern: AAAA)
-  1. elevate the moment - feel the glow [glow]
-  2. you live a life of high - and low [low]
-  3. I wrote your - name on every foggy window [window]
-  4. the dam is breaking - hearts about to overflow [overflow]
+  1. catchy stunning - and exclusive always [always]
+  2. the morning sun breaks - through the haze [haze]
+  3. I lost myself - inside your gaze [gaze]
+  4. I invested - in the blaze [blaze]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. you showed me constellations - I can't unsee [unsee]
-  2. I burn - into your arms [arms]
-  3. you called me at the perfect - wrong time [time]
-  4. Olivia's good for you is my new anthem [anthem]
+  1. Billie painted everything in shades - of green [green]
+  2. a story only time - will tell [tell]
+  3. we dance - through the rain [rain]
+  4. I burn - through my veins [veins]
 
 **[Chorus]** (pattern: XXXX)
-  1. the whole world disappears - when we collide [collide]
-  2. the rain will wash - away the tears we cried [cried]
-  3. I communicated - everything I held inside [inside]
-  4. I danced through every doubt - until the dawn arrived [arrived]
+  1. the drop is - chef-kiss the pre-chorus is real [real]
+  2. screaming Beyonce lyrics - at the steering wheel [wheel]
+  3. trying to explain the way - I feel [feel]
+  4. we fortified - the windshield [windshield]
 
 **[Verse 2]** (pattern: XXXX)
-  1. this electricity - between you is the remedy [remedy]
-  2. I rise - through the rain [rain]
-  3. we shine - through the night [night]
-  4. the rain keeps - falling on the glass [glass]
+  1. i glow - across the room [room]
+  2. the wind chimes sing - outside the open door [door]
+  3. I heard our song - in someone else's car [car]
+  4. I sing - along the shore [shore]
 
 **[Chorus]** (pattern: XXXX)
-  1. the whole world disappears - when we collide [collide]
-  2. the rain will wash - away the tears we cried [cried]
-  3. I communicated - everything I held inside [inside]
-  4. I danced through every doubt - until the dawn arrived [arrived]
+  1. the drop is - chef-kiss the pre-chorus is real [real]
+  2. screaming Beyonce lyrics - at the steering wheel [wheel]
+  3. trying to explain the way - I feel [feel]
+  4. we fortified - the windshield [windshield]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. a little sign - from the universe to me [me]
-  2. the speakers thump - and everyone is free [free]
-  3. I drift - through the rain [rain]
-  4. the corner store - that sold our cheap champagne [champagne]
+  1. velvet midnight - sugar rush [rush]
+  2. the neon - fading in a blush [blush]
+  3. the love you gave was truly - one of a kind [kind]
+  4. the photograph keeps - running on my mind [mind]
 
 **[Chorus]** (pattern: AABB)
-  1. I'll be your favorite - song on repeat [repeat]
-  2. walking through the crowded street [street]
-  3. the answers - that I couldn't find [find]
-  4. the crowd went silent - when our eyes aligned [aligned]
+  1. bop to the deep - side tonight [tonight]
+  2. the magic - feeling feels so right [right]
+  3. the anticipation - of a beautiful tomorrow [tomorrow]
+  4. the phenomenal energy - starts to flow [flow]
 
 **[Verse 2]** (pattern: AABB)
-  1. the city sleeps - but I'm awake [awake]
-  2. my heart is yours - for you to take [take]
-  3. the music echoes - down the street [street]
-  4. champagne bubbles - rising to the beat [beat]
+  1. I never thought - I'd find my way [way]
+  2. under skies of gold - and grey [grey]
+  3. I drift - in the moonlight [moonlight]
+  4. i need you here tonight - so hold me tight [tight]
 
 **[Chorus]** (pattern: AABB)
-  1. I'll be your favorite - song on repeat [repeat]
-  2. walking through the crowded street [street]
-  3. the answers - that I couldn't find [find]
-  4. the crowd went silent - when our eyes aligned [aligned]
+  1. bop to the deep - side tonight [tonight]
+  2. the magic - feeling feels so right [right]
+  3. the anticipation - of a beautiful tomorrow [tomorrow]
+  4. the phenomenal energy - starts to flow [flow]
 
 ---
 

@@ -198,8 +198,13 @@ export function generate808Bassline({
         }
     }
 
-    // Sort and deduplicate
-    const uniqueHits = [...new Set(hitSteps)].sort((a, b) => a - b);
+    // Sort, deduplicate, and drop hits too close to the end to hold a
+    // minimum-length 808 — keeps every note within bounds while still honoring
+    // MIN_NOTE_DURATION (a hit in the final steps can satisfy neither otherwise).
+    const lastViableStep = totalSteps - MIN_NOTE_DURATION;
+    const uniqueHits = [...new Set(hitSteps)]
+        .filter(s => s <= lastViableStep)
+        .sort((a, b) => a - b);
 
     // Occupied map for duration calculation
     const occupied = new Array(totalSteps).fill(false);

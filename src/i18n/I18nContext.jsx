@@ -45,35 +45,53 @@ const LANGUAGE_NAMES = {
     az: { en: 'İngiliscə', es: 'İspancа', fr: 'Fransızca', de: 'Almanca', it: 'İtalyanca', pt: 'Portuqalca', ja: 'Yaponca', ko: 'Koreyaca', zh: 'Çincə (Sadələşdirilmiş)', ru: 'Rusca', ar: 'Ərəbcə', hi: 'Hindcə', tr: 'Türkcə', fi: 'Fincə', hu: 'Macarca', th: 'Tayca', et: 'Estoncа', az: 'Azərbaycanca' },
 };
 
-// All supported language codes (18 languages)
-const LANGUAGE_CODES = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'ru', 'ar', 'hi', 'tr', 'fi', 'hu', 'th', 'et', 'az'];
+// All supported UI language codes (18) — English first, then alphabetical by
+// English language name. This is the FIXED picker order (locale-independent).
+const LANGUAGE_CODES = ['en', 'ar', 'zh-CN', 'nl', 'fr', 'de', 'hi', 'id', 'it', 'ja', 'ko', 'pl', 'pt-BR', 'ru', 'es', 'tr', 'uk', 'vi'];
+
+// Native self-name (endonym) per UI code — shown verbatim in the picker so the
+// list reads the same regardless of the active language.
+const NATIVE_NAMES = {
+    en: 'English', ar: 'العربية', 'zh-CN': '简体中文', nl: 'Nederlands', fr: 'Français',
+    de: 'Deutsch', hi: 'हिन्दी', id: 'Bahasa Indonesia', it: 'Italiano', ja: '日本語',
+    ko: '한국어', pl: 'Polski', 'pt-BR': 'Português (Brasil)', ru: 'Русский', es: 'Español',
+    tr: 'Türkçe', uk: 'Українська', vi: 'Tiếng Việt',
+};
+
+// Normalize a browser/stored locale to a supported UI code (region-aware:
+// pt-* -> pt-BR, zh-* -> zh-CN); returns null if unsupported.
+function normalizeCode(code) {
+    if (!code) return null;
+    if (LANGUAGE_CODES.includes(code)) return code;
+    const base = code.split('-')[0].toLowerCase();
+    if (base === 'pt') return 'pt-BR';
+    if (base === 'zh') return 'zh-CN';
+    if (LANGUAGE_CODES.includes(base)) return base;
+    return null;
+}
 
 const I18nContext = createContext(null);
 
 /**
- * Get sorted language list: English first, then alphabetical in the current language.
+ * UI language list for the picker: the fixed LANGUAGE_CODES order (English first,
+ * then alphabetical by English name), each shown by its native endonym. The order
+ * and labels are constant — they do NOT change with the active language.
  */
-function getSortedLanguages(currentLang) {
-    const names = LANGUAGE_NAMES[currentLang] || LANGUAGE_NAMES.en;
-    const others = LANGUAGE_CODES
-        .filter(code => code !== 'en')
-        .map(code => ({ code, name: names[code] || code }))
-        .sort((a, b) => a.name.localeCompare(b.name, currentLang));
-    return [{ code: 'en', name: names.en }, ...others];
+function getSortedLanguages() {
+    return LANGUAGE_CODES.map(code => ({ code, name: NATIVE_NAMES[code] || code }));
 }
 
 /**
- * Detect the browser/system language and return a supported language code.
- * Falls back to 'en' if the system language is not among our 18 supported languages.
+ * Detect the browser/system language and return a supported UI code (region-aware
+ * via normalizeCode, e.g. "pt-PT"->"pt-BR", "zh-TW"/"zh"->"zh-CN"). Falls back to 'en'.
  */
 function detectSystemLanguage() {
     try {
         // navigator.languages is an ordered list of user-preferred languages
         const candidates = navigator.languages || [navigator.language || 'en'];
         for (const locale of candidates) {
-            // Extract 2-letter code from locale (e.g. "en-US" → "en", "zh-CN" → "zh")
-            const code = locale.split('-')[0].toLowerCase();
-            if (LANGUAGE_CODES.includes(code)) return code;
+            const code = normalizeCode(locale);
+            if (code) return code;
         }
     } catch (e) { /* ignore */ }
     return 'en';
@@ -85,9 +103,9 @@ export function I18nProvider({ children }) {
             const settings = localStorage.getItem('wavloom_settings');
             if (settings) {
                 const parsed = JSON.parse(settings);
-                // Convert old string language names to codes
-                if (parsed.language && parsed.language.length === 2) return parsed.language;
-                if (parsed.languageCode) return parsed.languageCode;
+                // Accept a stored code, normalizing old/region forms (pt->pt-BR, zh->zh-CN)
+                const saved = normalizeCode(parsed.languageCode || parsed.language);
+                if (saved) return saved;
             }
         } catch (e) { /* ignore */ }
         // No saved language — detect from browser/system, fallback to English
@@ -134,7 +152,7 @@ export function I18nProvider({ children }) {
         return LANGUAGE_NAMES[lang]?.[langCode] || LANGUAGE_NAMES.en[langCode] || langCode;
     }, [language]);
 
-    const sortedLanguages = useMemo(() => getSortedLanguages(language), [language]);
+    const sortedLanguages = useMemo(() => getSortedLanguages(), []);
 
     const value = useMemo(() => ({
         language,
@@ -160,7 +178,7 @@ export function useTranslation() {
             setLanguage: () => {},
             t: (key) => en[key] || key,
             getLanguageName: (code) => LANGUAGE_NAMES.en[code] || code,
-            sortedLanguages: getSortedLanguages('en'),
+            sortedLanguages: getSortedLanguages(),
             languageCodes: LANGUAGE_CODES,
         };
     }

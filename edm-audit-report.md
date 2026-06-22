@@ -1,6 +1,6 @@
 # EDM Lyrics Generation Audit Report
 
-Generated: 2026-05-02T22:47:43.513Z
+Generated: 2026-06-21T23:06:52.598Z
 Structure: verse-chorus-verse-chorus
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -48,140 +48,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the bass explode into the stratosphere - of sound [sound]
-  2. the bass is shaking - all around [around]
-  3. Tron Legacy the grid lights - up at night [night]
-  4. we penetrate past - the limits of reality tonight [tonight]
+  1. the bass vibrate through every cell - inside our bodies now [now]
+  2. the kaleidoscopic atmosphere - is all around [around]
+  3. We are the pulse - of the night [night]
+  4. the bass pulse past - the limits of reality tonight [tonight]
 
 **[Chorus]** (pattern: AABB)
-  1. the pulverized intensity - reverberates the dome [dome]
-  2. a moment shared - yet deeply felt alone [alone]
-  3. the euphoric - revelation of the celebration [celebration]
-  4. the white noise builds - like static before a revelation [revelation]
+  1. this is the moment - this is the frequency of love [love]
+  2. the arpeggio climbs - to the sky above [above]
+  3. we explode past - the limits of reality tonight [tonight]
+  4. the arpeggio - ascends into the night [night]
 
 **[Verse 2]** (pattern: AABB)
-  1. we drop through the fog - and laser light supreme [supreme]
-  2. the oscillator - warps into a scream [scream]
-  3. we pulse - until the sunrise breaks the spell at last [last]
-  4. I found my tribe - under the canopy of bass [bass]
+  1. I found religion - on a festival dance floor [floor]
+  2. the adrenaline is pumping wanting more - and more [more]
+  3. we radiate through the speakers - shattering the air [air]
+  4. the festival mud becomes a badge - of honor we all wear [wear]
 
 **[Chorus]** (pattern: AABB)
-  1. the pulverized intensity - reverberates the dome [dome]
-  2. a moment shared - yet deeply felt alone [alone]
-  3. the euphoric - revelation of the celebration [celebration]
-  4. the white noise builds - like static before a revelation [revelation]
+  1. this is the moment - this is the frequency of love [love]
+  2. the arpeggio climbs - to the sky above [above]
+  3. we explode past - the limits of reality tonight [tonight]
+  4. the arpeggio - ascends into the night [night]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. the electrified surrender - to the supernatural beat [beat]
-  2. the sub bass - vibrates through the dancing floor [floor]
-  3. the supersonic adrenaline from head - to feet [feet]
-  4. the adrenaline is pumping wanting more - and more [more]
+  1. the bass cascade into the stratosphere - of sound [sound]
+  2. the bass cascade across the dancefloor - shaking everything [everything]
+  3. our feet don't ever - touch the ground [ground]
+  4. the sound system tests at two - PM and already I'm moving [moving]
 
 **[Chorus]** (pattern: ABAB)
-  1. strobe brostep - and proud light [light]
-  2. the modular patch cable - connected me to the infinite unknown [unknown]
-  3. the lasers - paint the ceiling white [white]
-  4. a signal - reaching for a different zone [zone]
+  1. synthesizers screaming through the dark [dark]
+  2. the bridge between the worlds of sound - and silence is this beat [beat]
+  3. the music - echoing across the park [park]
+  4. the whole floor moves - like one body one mind one heartbeat [heartbeat]
 
 **[Verse 2]** (pattern: ABAB)
-  1. the bass ripple through the fog - and laser light supreme [supreme]
-  2. we surge past - the limits of reality tonight [tonight]
-  3. reality dissolves into a dream [dream]
-  4. Marshmello alone - but alone in the light [light]
+  1. we penetrate through every cell - inside our bodies now [now]
+  2. the rave will never - be the same [same]
+  3. the bass is shaking - all around [around]
+  4. the energy is wild - and we are to blame [blame]
 
 **[Chorus]** (pattern: ABAB)
-  1. strobe brostep - and proud light [light]
-  2. the modular patch cable - connected me to the infinite unknown [unknown]
-  3. the lasers - paint the ceiling white [white]
-  4. a signal - reaching for a different zone [zone]
+  1. synthesizers screaming through the dark [dark]
+  2. the bridge between the worlds of sound - and silence is this beat [beat]
+  3. the music - echoing across the park [park]
+  4. the whole floor moves - like one body one mind one heartbeat [heartbeat]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. the bass explode into the stratosphere - of sound [sound]
-  2. the euphoric intensity - that lifts us off the ground [ground]
-  3. the kaleidoscopic atmosphere - is all around [around]
-  4. the beat controller spinning round - and round [round]
+  1. the oscillator - warps into a scream [scream]
+  2. the bass rise through the fog - and laser light supreme [supreme]
+  3. the supersaw lead cuts through the mix - like a laser beam [beam]
+  4. reality dissolves into a dream [dream]
 
 **[Chorus]** (pattern: AAAA)
-  1. set the night - ablaze for days and days [days]
-  2. we harmonized together in the strobe - lit haze [haze]
-  3. the laser - cuts through neon rays [rays]
-  4. the polyrhythm section makes the body - move in new ways [ways]
+  1. arpeggio of fierce tide [tide]
+  2. this is how we - come alive inside [inside]
+  3. the floor is - shaking open wide [wide]
+  4. the rhythm - pounding let it ride [ride]
 
 **[Verse 2]** (pattern: AAAA)
-  1. we thunder through the speakers - shattering the air [air]
-  2. we feel the frequencies - from everywhere [everywhere]
-  3. the festival mud becomes a badge - of honor we all wear [wear]
-  4. we pulse hands in the air - like we just do not care [care]
+  1. a euphoric riser - climbing to the sun [sun]
+  2. electrified and synchronized - we move as one [one]
+  3. I was dreaming of the son [son]
+  4. chasing down - the everyone [everyone]
 
 **[Chorus]** (pattern: AAAA)
-  1. set the night - ablaze for days and days [days]
-  2. we harmonized together in the strobe - lit haze [haze]
-  3. the laser - cuts through neon rays [rays]
-  4. the polyrhythm section makes the body - move in new ways [ways]
+  1. arpeggio of fierce tide [tide]
+  2. this is how we - come alive inside [inside]
+  3. the floor is - shaking open wide [wide]
+  4. the rhythm - pounding let it ride [ride]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. the buildup crescendos - and the world stops spinning [spinning]
-  2. the festival economy runs on good vibes - and water [water]
-  3. the transcendent atmosphere engulfing - one and all [all]
-  4. the tent vibrates - like the inside of a speaker cabinet [cabinet]
+  1. the countdown hits - and then we let it drop [drop]
+  2. the synchronized infinity - of shuffling feet [feet]
+  3. we ripple into the stratosphere - of sound [sound]
+  4. the strobe lights froze - the crowd mid-air [mid-air]
 
 **[Chorus]** (pattern: XXXX)
-  1. built on projection - not on haze [haze]
-  2. we live for these - electric golden days [days]
-  3. the polyrhythm section makes the body - move in new ways [ways]
-  4. we danced for hours - lost in a purple daze [daze]
+  1. one laser one - wub one chance [chance]
+  2. the algorithm - teaches us to dance [dance]
+  3. this electrifying energy - broke all resistance [resistance]
+  4. the vocoder turned my - doubts into a choir of reassurance [reassurance]
 
 **[Verse 2]** (pattern: XXXX)
-  1. the pad evolves over thirty-two - bars of pure emotion [emotion]
-  2. the filter sweeps - across a massive chord [chord]
-  3. the supersaw lead cuts through the mix - like a laser beam [beam]
-  4. the lasers paint - the ceiling white [white]
+  1. we pulse from the subwoofer - to the rooftop high [high]
+  2. the bass ripple - like a supernova in the dark [dark]
+  3. the rhythm pulls - us to the core [core]
+  4. the sidechain pumping - electronic sounds [sounds]
 
 **[Chorus]** (pattern: XXXX)
-  1. built on projection - not on haze [haze]
-  2. we live for these - electric golden days [days]
-  3. the polyrhythm section makes the body - move in new ways [ways]
-  4. we danced for hours - lost in a purple daze [daze]
+  1. one laser one - wub one chance [chance]
+  2. the algorithm - teaches us to dance [dance]
+  3. this electrifying energy - broke all resistance [resistance]
+  4. the vocoder turned my - doubts into a choir of reassurance [reassurance]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the bass pulse into the stratosphere - of sound [sound]
-  2. our feet don't ever - touch the ground [ground]
-  3. the bassline dropping - and i'm feeling prime [prime]
-  4. the crowd surges forward on the downbeat - every time [time]
+  1. the bass pulse - until the sunrise breaks the spell at last [last]
+  2. I found my tribe - under the canopy of bass [bass]
+  3. we penetrate across the dancefloor - shaking everything [everything]
+  4. the river of the rhythm - keeps on flowing [flowing]
 
 **[Chorus]** (pattern: AABB)
-  1. the atmosphere is - hypnotized with kaleidoscopic glow [glow]
-  2. let it flow - and steal the whole damn show [show]
-  3. we traded words for wavelengths - and understood more [more]
-  4. the sub bass - vibrates through the dancing floor [floor]
+  1. the transcendent energy - begins to overflow [overflow]
+  2. I found myself - inside the bass and glow [glow]
+  3. the euphoric - velocity reverberates tonight [tonight]
+  4. the adrenaline is supersonic - through the night [night]
 
 **[Verse 2]** (pattern: AABB)
-  1. the adrenaline is pumping wanting more - and more [more]
-  2. the kaleidoscopic lights - illuminate the floor [floor]
-  3. we thunder through every cell - inside our bodies now [now]
-  4. the bass is shaking - all around [around]
+  1. the bass radiate - like a supernova in the dark [dark]
+  2. the music echoing across the park [park]
+  3. we rise into the stratosphere - of sound [sound]
+  4. the euphoric intensity - that lifts us off the ground [ground]
 
 **[Chorus]** (pattern: AABB)
-  1. the atmosphere is - hypnotized with kaleidoscopic glow [glow]
-  2. let it flow - and steal the whole damn show [show]
-  3. we traded words for wavelengths - and understood more [more]
-  4. the sub bass - vibrates through the dancing floor [floor]
+  1. the transcendent energy - begins to overflow [overflow]
+  2. I found myself - inside the bass and glow [glow]
+  3. the euphoric - velocity reverberates tonight [tonight]
+  4. the adrenaline is supersonic - through the night [night]
 
 ---
 

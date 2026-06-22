@@ -1,6 +1,6 @@
 # K-POP Lyrics Generation Audit Report
 
-Generated: 2026-05-02T22:51:20.922Z
+Generated: 2026-06-21T23:12:25.361Z
 Structure: verse-pre-chorus-bridge
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -16,7 +16,7 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | Rhyme pairs checked | 1150 |
 | Rhyme failures | 0 |
 | **Rhyme accuracy** | **100.0%** |
-| Total quality issues | 2 |
+| Total quality issues | 3 |
 
 ## Rhyme Accuracy by Scheme
 
@@ -34,23 +34,24 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 | happy | 336 | 138 | 0 | 100.0% | 0 |
 | sad | 308 | 124 | 0 | 100.0% | 0 |
 | romantic | 308 | 126 | 0 | 100.0% | 0 |
-| aggressive | 308 | 118 | 0 | 100.0% | 0 |
+| aggressive | 308 | 118 | 0 | 100.0% | 1 |
 | dreamy | 308 | 138 | 0 | 100.0% | 0 |
-| dark | 308 | 124 | 0 | 100.0% | 1 |
+| dark | 308 | 124 | 0 | 100.0% | 0 |
 | epic | 308 | 126 | 0 | 100.0% | 0 |
-| hopeful | 308 | 118 | 0 | 100.0% | 1 |
+| hopeful | 308 | 118 | 0 | 100.0% | 2 |
 | melancholic | 308 | 138 | 0 | 100.0% | 0 |
 
 ## Issue Type Breakdown
 
 | Issue Type | Count |
 |-----------|-------|
-| WEAK_ENDING | 2 |
+| WEAK_ENDING | 3 |
 
-## Weak Ending Examples (2 total, showing up to 25)
+## Weak Ending Examples (3 total, showing up to 25)
 
-- Gen#8 [hopeful/freeform] Pre-Chorus: `a version of the life - I am aiming for` — WEAK_ENDING: ends with "for"
-- Gen#60 [dark/freeform] Pre-Chorus: `a version of the life - I am aiming for` — WEAK_ENDING: ends with "for"
+- Gen#44 [hopeful/freeform] Pre-Chorus: `a version of the life - I am aiming for` — WEAK_ENDING: ends with "for"
+- Gen#76 [aggressive/freeform] Pre-Chorus: `a version of the life - I am aiming for` — WEAK_ENDING: ends with "for"
+- Gen#80 [hopeful/freeform] Pre-Chorus: `a version of the life - I am aiming for` — WEAK_ENDING: ends with "for"
 
 ---
 
@@ -59,240 +60,240 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the spectacular celebration - of this place [place]
-  2. the dance relay - picking up the pace [pace]
-  3. the incredible sensation - of the constellation above [above]
-  4. the choreography - of love [love]
+  1. I never want to feel - this pain [pain]
+  2. the tears are rising - just like summer rain [rain]
+  3. you fade - in the spotlight [spotlight]
+  4. she fly - through the night [night]
 
 **[Pre-Chorus]** (pattern: AA)
-  1. the nervous heartbeat - of a detailed plan [plan]
-  2. a bond that everyone - can understand [understand]
+  1. a masterpiece a living - work of art [art]
+  2. we have been together - from the start [start]
 
 **[Chorus]** (pattern: AABB)
-  1. I played the galaxy - they gave me [me]
-  2. the maknae line - carrying the energy [energy]
-  3. the colors glow on a brand - new day [day]
-  4. we face the world - and come what may [may]
+  1. I hear you - when you softly call [call]
+  2. the comeback dropped - and shattered every wall [wall]
+  3. your voice the most - beautiful thing [thing]
+  4. the spotlight fades - but my heart keeps on glowing [glowing]
 
 **[Verse 2]** (pattern: AABB)
-  1. you crash - through the night [night]
-  2. she burn - in the spotlight [spotlight]
-  3. the unforgettable - sensation everywhere [everywhere]
-  4. the cherry blossoms - fill the air [air]
+  1. unforgettable the way - we captivated everyone [everyone]
+  2. this celebration - has only just begun [begun]
+  3. a feeling - that I can't ignore [ignore]
+  4. she dance - along the shore [shore]
 
 **[Pre-Chorus]** (pattern: AA)
-  1. the fan letters piled - up beside my bed [bed]
-  2. every single word - I ever read [read]
+  1. a symbol of the moments - that will last [last]
+  2. the award is more - than gold and glass [glass]
 
 **[Chorus]** (pattern: AABB)
-  1. I played the galaxy - they gave me [me]
-  2. the maknae line - carrying the energy [energy]
-  3. the colors glow on a brand - new day [day]
-  4. we face the world - and come what may [may]
+  1. I hear you - when you softly call [call]
+  2. the comeback dropped - and shattered every wall [wall]
+  3. your voice the most - beautiful thing [thing]
+  4. the spotlight fades - but my heart keeps on glowing [glowing]
 
 **[Bridge]** (pattern: AABB)
-  1. I found strength in the synchronized - heartbeat of seven souls as one [one]
-  2. unforgettable the way - we captivated everyone [everyone]
-  3. I trained through midnight - and I trained through dawn [dawn]
-  4. the dedication - never fully gone [gone]
+  1. the comeback stage is where - we reunite [reunite]
+  2. the fan chant echoed louder - than the speakers in the arena tonight [tonight]
+  3. I sang in Korean - but the bridge translates into every language known [known]
+  4. the lightsticks remind us - were never alone [alone]
 
 **[Final Chorus]** (pattern: AABB)
-  1. I played the galaxy - they gave me [me]
-  2. the maknae line - carrying the energy [energy]
-  3. the colors glow on a brand - new day [day]
-  4. we face the world - and come what may [may]
+  1. I hear you - when you softly call [call]
+  2. the comeback dropped - and shattered every wall [wall]
+  3. your voice the most - beautiful thing [thing]
+  4. the spotlight fades - but my heart keeps on glowing [glowing]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[Verse 1]** (pattern: ABAB)
-  1. the constellation guiding us toward - the light [light]
-  2. you fade - through the rain [rain]
-  3. the choreography hits - different tonight [tonight]
-  4. a love so sweet - it drives me sane [sane]
+  1. my confidence - is shining through [through]
+  2. hyung line providing - the foundation [foundation]
+  3. My heart goes crazy - when I see you [you]
+  4. the pre-chorus - builds anticipation [anticipation]
 
 **[Pre-Chorus]** (pattern: AB)
-  1. the music video - tells our story best [best]
-  2. I trained through midnight - and I trained through dawn [dawn]
+  1. the hand-written letter to fans said what - the bridge is trying to say [say]
+  2. a supernova lighting up - the night [night]
 
 **[Chorus]** (pattern: ABAB)
-  1. the name is dropping - generate it now [now]
-  2. the melody is - running through my brain [brain]
-  3. the grace and - poise of every single bow [bow]
-  4. I never want to feel - this pain [pain]
+  1. kings and queens - of the rare heat [heat]
+  2. the fan project - illuminating the hall [hall]
+  3. a fan chant - echoing through every seat [seat]
+  4. a single voice that - represents us all [all]
 
 **[Verse 2]** (pattern: ABAB)
-  1. you burn - through the rain [rain]
-  2. she fall into the dawn [dawn]
-  3. the styling team - outdid themselves again [again]
-  4. the power of the crowd - singing along [along]
+  1. fan projects lighting up - the stadium [stadium]
+  2. the unforgettable - electrifying delight [delight]
+  3. album packaging that belongs - in a museum [museum]
+  4. the crowd is screaming - our name tonight [tonight]
 
 **[Pre-Chorus]** (pattern: AB)
-  1. our voices singing beautiful - and loud [loud]
-  2. the fan letters piled - up beside my bed [bed]
+  1. we have been alone - from the start [start]
+  2. a blossom - breaking through the concrete bloom [bloom]
 
 **[Chorus]** (pattern: ABAB)
-  1. the name is dropping - generate it now [now]
-  2. the melody is - running through my brain [brain]
-  3. the grace and - poise of every single bow [bow]
-  4. I never want to feel - this pain [pain]
+  1. kings and queens - of the rare heat [heat]
+  2. the fan project - illuminating the hall [hall]
+  3. a fan chant - echoing through every seat [seat]
+  4. a single voice that - represents us all [all]
 
 **[Bridge]** (pattern: ABAB)
-  1. but the fire inside - could never be controlled [controlled]
-  2. I held the trophy - but I felt your hand [hand]
-  3. the practice room at three - AM was cold [cold]
-  4. a vision - born from the creative plan [plan]
+  1. the fan meeting showed me that the bridge goes - both ways stage to seat [seat]
+  2. I crossed the bridge between who I was before debut - and who I am now [now]
+  3. i hear your voice - and feel the beat [beat]
+  4. the grace - and poise of every single bow [bow]
 
 **[Final Chorus]** (pattern: ABAB)
-  1. the name is dropping - generate it now [now]
-  2. the melody is - running through my brain [brain]
-  3. the grace and - poise of every single bow [bow]
-  4. I never want to feel - this pain [pain]
+  1. kings and queens - of the rare heat [heat]
+  2. the fan project - illuminating the hall [hall]
+  3. a fan chant - echoing through every seat [seat]
+  4. a single voice that - represents us all [all]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[Verse 1]** (pattern: AAAA)
-  1. NewJeans made nostalgia - sound brand new [new]
-  2. a fantasy we make - come true [true]
-  3. I practiced this smile a thousand - times for you [you]
-  4. my confidence - is shining through [through]
+  1. the unforgettable - electrifying delight [delight]
+  2. vlive comments flooding faster - than light [light]
+  3. you spark - in the moonlight [moonlight]
+  4. you burn - through the night [night]
 
 **[Pre-Chorus]** (pattern: AA)
-  1. the music video - tells our story best [best]
-  2. our bond is stronger - than the rest [rest]
+  1. a diamond forged inside - the pressure stream [stream]
+  2. the story unfolds - like a dream [dream]
 
 **[Chorus]** (pattern: AAAA)
-  1. the generation - celebrates the constellation light [light]
-  2. you fade - in the moonlight [moonlight]
-  3. she rise - through the night [night]
-  4. the stage is our - universe tonight [tonight]
+  1. the bass hits my debut - and I debut [debut]
+  2. NewJeans made nostalgia - sound brand new [new]
+  3. together there is - nothing we can't do [do]
+  4. a fantasy we - make come true [true]
 
 **[Verse 2]** (pattern: AAAA)
-  1. the bridge section - is a masterpiece [masterpiece]
-  2. a playlist made - of you and me [me]
-  3. extraordinary electricity - set free [free]
-  4. the maknae line - carrying the energy [energy]
+  1. the synchronization - is so complete [complete]
+  2. the rhythm shaking head to feet - and can't be beat [beat]
+  3. this love is painful - and a little bittersweet [bittersweet]
+  4. a fan chant echoing through every seat [seat]
 
 **[Pre-Chorus]** (pattern: AA)
-  1. the concept photos told one story - but the bridge tells another deeper one [one]
-  2. unforgettable the way - we captivated everyone [everyone]
+  1. a global heartbeat - pulsing underground [underground]
+  2. we crossed the continents - to find our sound [sound]
 
 **[Chorus]** (pattern: AAAA)
-  1. the generation - celebrates the constellation light [light]
-  2. you fade - in the moonlight [moonlight]
-  3. she rise - through the night [night]
-  4. the stage is our - universe tonight [tonight]
+  1. the bass hits my debut - and I debut [debut]
+  2. NewJeans made nostalgia - sound brand new [new]
+  3. together there is - nothing we can't do [do]
+  4. a fantasy we - make come true [true]
 
 **[Bridge]** (pattern: AAAA)
-  1. I learned to shine - in every kind of light [light]
-  2. a supernova lighting up - the night [night]
-  3. the morning soft - the stage lights bright [bright]
-  4. I sang this note for every trainee - still practicing together tonight [tonight]
+  1. the countdown starts - and everything goes bright [bright]
+  2. the fan chant echoed louder - than the speakers in the arena tonight [tonight]
+  3. I smiled through the exhaustion - because the fans deserve the brightest light [light]
+  4. a supernova lighting up - the night [night]
 
 **[Final Chorus]** (pattern: AAAA)
-  1. the generation - celebrates the constellation light [light]
-  2. you fade - in the moonlight [moonlight]
-  3. she rise - through the night [night]
-  4. the stage is our - universe tonight [tonight]
+  1. the bass hits my debut - and I debut [debut]
+  2. NewJeans made nostalgia - sound brand new [new]
+  3. together there is - nothing we can't do [do]
+  4. a fantasy we - make come true [true]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[Verse 1]** (pattern: XXXX)
-  1. a brand new era brave - and bold [bold]
-  2. you melt into your arms [arms]
-  3. a solo debut breaking - all the charts [charts]
-  4. this phenomenal sensation - left me so inspired [inspired]
+  1. Jungkook said standing - next to you and the chart broke [broke]
+  2. I illuminated - every captivated heart [heart]
+  3. We own the stage - we own the night [night]
+  4. the energy - is on point [point]
 
 **[Pre-Chorus]** (pattern: XX)
-  1. a love letter - floating through the air [air]
-  2. from the practice room to the worlds - biggest stages [stages]
+  1. the dance practice at dawn - proved that bridges are built through repetition [repetition]
+  2. a journey measured more - than just in miles [miles]
 
 **[Chorus]** (pattern: XXXX)
-  1. I harmonize you more - than the vibe [vibe]
-  2. the bridge is where the choreography pauses - and the feelings come alive [alive]
-  3. the satellite - orbits the transcribe [transcribe]
-  4. we amplified - the bribe [bribe]
+  1. respawn with clear heart [heart]
+  2. a masterpiece a living - work of art [art]
+  3. the incredible sensation of a brand - new start [start]
+  4. connected even - when we are apart [apart]
 
 **[Verse 2]** (pattern: XXXX)
-  1. vocal line reaching - impossible notes [notes]
-  2. official colors - representing our identity [identity]
-  3. your smile - could light a thousand suns [suns]
-  4. the phenomenal sensation - of the satellite [satellite]
+  1. a love so sweet - it drives me sane [sane]
+  2. you melt into the dawn [dawn]
+  3. she fade - across the room [room]
+  4. every performance - tells a new story [story]
 
 **[Pre-Chorus]** (pattern: XX)
-  1. a cup of hope - filled to the brim [brim]
-  2. a vision - born from the creative plan [plan]
+  1. and somewhere between the teasers - and the title track was vulnerability [vulnerability]
+  2. the lightstick ocean waved - and I felt the current carry me to safety [safety]
 
 **[Chorus]** (pattern: XXXX)
-  1. I harmonize you more - than the vibe [vibe]
-  2. the bridge is where the choreography pauses - and the feelings come alive [alive]
-  3. the satellite - orbits the transcribe [transcribe]
-  4. we amplified - the bribe [bribe]
+  1. respawn with clear heart [heart]
+  2. a masterpiece a living - work of art [art]
+  3. the incredible sensation of a brand - new start [start]
+  4. connected even - when we are apart [apart]
 
 **[Bridge]** (pattern: XXXX)
-  1. the sound check - echoes in the empty hall [hall]
-  2. the lightsticks remind us - were never alone [alone]
-  3. a canvas ready - for the center stage [stage]
-  4. I left my hometown - for a bigger dream [dream]
+  1. a testament - to every lullaby [lullaby]
+  2. the award is more - than gold and glass [glass]
+  3. I broke formation on purpose - because the bridge demands raw honesty [honesty]
+  4. a constellation burning - ever bright [bright]
 
 **[Final Chorus]** (pattern: XXXX)
-  1. I harmonize you more - than the vibe [vibe]
-  2. the bridge is where the choreography pauses - and the feelings come alive [alive]
-  3. the satellite - orbits the transcribe [transcribe]
-  4. we amplified - the bribe [bribe]
+  1. respawn with clear heart [heart]
+  2. a masterpiece a living - work of art [art]
+  3. the incredible sensation of a brand - new start [start]
+  4. connected even - when we are apart [apart]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[Verse 1]** (pattern: AABB)
-  1. the choreography is soft - and tight [tight]
-  2. your laughter makes my world - so bright [bright]
-  3. fan projects lighting up - the stadium [stadium]
-  4. bias wrecker - energy on maximum [maximum]
+  1. the synchronization - is so complete [complete]
+  2. the rhythm shaking head to feet - and can't be beat [beat]
+  3. our destiny - begins to unfold [unfold]
+  4. photocards worth more - than gold [gold]
 
 **[Pre-Chorus]** (pattern: AA)
-  1. the nervous heartbeat - of a detailed plan [plan]
-  2. a bond that everyone - can understand [understand]
+  1. the pre-release - is trending everywhere [everywhere]
+  2. a love letter - floating through the air [air]
 
 **[Chorus]** (pattern: AABB)
-  1. the hero chose to harmonize - the flame [flame]
-  2. a million hearts that - call me by my name [name]
-  3. you fade - into the dawn [dawn]
-  4. the mesmerizing constellation - guiding us along [along]
+  1. the fanchant - goes dreamy tonight [tonight]
+  2. the incredible performance - takes us through the night [night]
+  3. I trained through midnight - and I trained through dawn [dawn]
+  4. the extraordinary - constellation all night long [long]
 
 **[Verse 2]** (pattern: AABB)
-  1. a lightstick ocean - in the concert hall [hall]
-  2. we get back up - each time we start to fall [fall]
-  3. one two three four - hit the dance floor [floor]
-  4. you drift along - the shore [shore]
+  1. the butterflies won't - go away [away]
+  2. the mesmerizing beauty - of the unforgettable display [display]
+  3. she fade into the dawn [dawn]
+  4. the unforgettable beauty - of our signature song [song]
 
 **[Pre-Chorus]** (pattern: AA)
-  1. the award is more - than gold and glass [glass]
-  2. a symbol of the moments - that will last [last]
+  1. I closed my eyes - and dreamed of something more [more]
+  2. a path I never - dared to walk before [before]
 
 **[Chorus]** (pattern: AABB)
-  1. the hero chose to harmonize - the flame [flame]
-  2. a million hearts that - call me by my name [name]
-  3. you fade - into the dawn [dawn]
-  4. the mesmerizing constellation - guiding us along [along]
+  1. the fanchant - goes dreamy tonight [tonight]
+  2. the incredible performance - takes us through the night [night]
+  3. I trained through midnight - and I trained through dawn [dawn]
+  4. the extraordinary - constellation all night long [long]
 
 **[Bridge]** (pattern: AABB)
-  1. I harmonized - with every beating heart [heart]
-  2. a masterpiece a living - work of art [art]
-  3. a midnight flower waiting - just to bloom [bloom]
-  4. I found my voice - inside a crowded room [room]
+  1. the practice room at three - AM was cold [cold]
+  2. but the fire inside - could never be controlled [controlled]
+  3. the photo card you keep - beside your heart [heart]
+  4. connected even when we are apart [apart]
 
 **[Final Chorus]** (pattern: AABB)
-  1. the hero chose to harmonize - the flame [flame]
-  2. a million hearts that - call me by my name [name]
-  3. you fade - into the dawn [dawn]
-  4. the mesmerizing constellation - guiding us along [along]
+  1. the fanchant - goes dreamy tonight [tonight]
+  2. the incredible performance - takes us through the night [night]
+  3. I trained through midnight - and I trained through dawn [dawn]
+  4. the extraordinary - constellation all night long [long]
 
 ---
 

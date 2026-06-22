@@ -1,6 +1,6 @@
 # JAZZ Lyrics Generation Audit Report
 
-Generated: 2026-05-02T22:50:21.873Z
+Generated: 2026-06-21T23:10:24.670Z
 Structure: aaba
 Generations: 100
 Rhyme schemes: AABB, ABAB, AAAA, freeform
@@ -48,140 +48,140 @@ Moods: happy, sad, romantic, aggressive, dreamy, dark, epic, hopeful, melancholi
 ### Generation #1 (mood: happy, rhyme: AABB, creativity: 50, scale: major)
 
 **[A Section 1]** (pattern: AABB)
-  1. a groove that echoes - from the past [past]
-  2. the moments slip away - so fast [fast]
-  3. the midnight lounge - becomes a twilight zone [zone]
-  4. a ballad drifting through the room - all alone [alone]
+  1. the quarters drop - inside the jar [jar]
+  2. a love song played - on steel guitar [guitar]
+  3. the piano unravel across the bar - lines into unknown space [space]
+  4. the standard chart - is just a starting place [place]
 
 **[A Section 2]** (pattern: AABB)
-  1. Raindrops tap on the windowpane [windowpane]
-  2. the turnaround leads back to the top - and we start the story again [again]
-  3. I found the tritone substitution - for my broken heart tonight [tonight]
-  4. the piano echo through the changes - like a river at night [night]
+  1. the saxophone swing through the changes - like a river at night [night]
+  2. I discovered that the wrong note - played with conviction becomes right [right]
+  3. the joy of music - and the joy of pain [pain]
+  4. the atmospheric beauty - of the gentle rain [rain]
 
 **[B Section]** (pattern: AABB)
-  1. a gentle pulse - of rhythmic expertise [expertise]
-  2. the hi-hat sizzles - like a summer breeze [breeze]
-  3. the improvisation - sets us free [free]
-  4. The piano weeps - in a minor key [key]
+  1. because the feeling has to feel - just right [right]
+  2. the setlist changes - every single night [night]
+  3. a beautiful imperfection - hanging there [there]
+  4. the blue note bends - and stretches through the air [air]
 
 **[A Section 3]** (pattern: AABB)
-  1. the saxophone cascade across the bar - lines into unknown space [space]
-  2. the audience leans forward as the solo - builds its case [case]
-  3. the outro vamps - and gradually the instruments drop out one by one [one]
-  4. the night is young - the set has just begun [begun]
+  1. a Coltrane change - spiralling through the keys [keys]
+  2. the kind of music puts - your mind at ease [ease]
+  3. the piano glide along - the fretboard searching for the truth [truth]
+  4. the smoke curls up - like music notes above the corner booth [booth]
 
 ---
 
 ### Generation #2 (mood: sad, rhyme: ABAB, creativity: 70, scale: minor)
 
 **[A Section 1]** (pattern: ABAB)
-  1. the set list was a suggestion - and the music went where it needed to go [go]
-  2. the piano drift - every note a conversation with the night [night]
-  3. the trumpet player stealing - all the show [show]
-  4. a stride piano bouncing - left to right [right]
+  1. the piano echo along - the fretboard searching for the truth [truth]
+  2. the melancholic beauty - of the timeless art [art]
+  3. the smoke curls up - like music notes above the corner booth [booth]
+  4. the constellation - cultivated from the deepest heart [heart]
 
 **[A Section 2]** (pattern: ABAB)
-  1. the sophisticated syncopation - romanticized the scene [scene]
-  2. the saxophone suspend along - the fretboard searching for the truth [truth]
-  3. the saxophone exhaled a color - I'd never seen [seen]
-  4. the smoke curls up - like music notes above the corner booth [booth]
+  1. the rhythm section - keeps it tight [tight]
+  2. I contemplated beauty - in the improvisation [improvisation]
+  3. the Fender Rhodes electric piano adds a shimmering - haze to the night [night]
+  4. the atmospheric beauty - of our fascination [fascination]
 
 **[B Section]** (pattern: ABAB)
-  1. the modal scale - stretches into the unknown [unknown]
-  2. the muted trumpet cries - behind the bar [bar]
-  3. the pocket groove the place - I call my own [own]
-  4. a distant sound a solitary star [star]
+  1. the chord voicing opens - like a door [door]
+  2. the smoke-filled club held more wisdom - than any conservatory hall [hall]
+  3. the bass solo told the story - that the melody had only hinted at before [before]
+  4. Miles proved silence is the loudest - note of all [all]
 
 **[A Section 3]** (pattern: ABAB)
-  1. I lost the tritone substitution - for my broken heart tonight [tonight]
-  2. Raindrops tap on the windowpane [windowpane]
-  3. the piano drift through the changes - like a river at night [night]
-  4. the melody returns - to me again [again]
+  1. the piano modulate across the bar - lines into unknown space [space]
+  2. a Latin jazz percussion - fills the air [air]
+  3. a brushstroke on the snare - drum face [face]
+  4. the conga - and the cowbell everywhere [everywhere]
 
 ---
 
 ### Generation #3 (mood: romantic, rhyme: AAAA, creativity: 90, scale: major)
 
 **[A Section 1]** (pattern: AAAA)
-  1. a dimly lit stage - on a Monday night [night]
-  2. the final chord resolves - just right [right]
-  3. the silhouettes are dancing black - and white [white]
-  4. the amber glow - of burning candlelight [candlelight]
+  1. the band is swinging - like a coltrane play [play]
+  2. the dancers - swaying at the cabaret [cabaret]
+  3. the records spinning - tracks from yesterday [yesterday]
+  4. I nurse my drink - and let the solo wash the day clean away [away]
 
 **[A Section 2]** (pattern: AAAA)
-  1. the syncopation - cultivated from the deepest soul [soul]
-  2. the atmospheric beauty - making me feel whole [whole]
-  3. a standard - played a hundred fold [fold]
-  4. the improvisation - takes control [control]
+  1. a Latin jazz percussion - fills the air [air]
+  2. the conga - and the cowbell everywhere [everywhere]
+  3. the finger snaps from the audience - keep the time we all share [share]
+  4. I found the pocket between the swing - and the straight and lived there [there]
 
 **[B Section]** (pattern: AAAA)
-  1. the cadence resolves - but the feeling doesn't end here tonight [tonight]
-  2. I improvised my way - through every night [night]
-  3. a harmony of shadow - and of light [light]
-  4. because the feeling has to feel - just right [right]
+  1. the chord voicing opens - like a door [door]
+  2. revealing harmonies - I have never heard before [before]
+  3. the encore keeps the crowd wanting more - and more [more]
+  4. the bass notes - rumble on the wooden floor [floor]
 
 **[A Section 3]** (pattern: AAAA)
-  1. the guitar walks the bass line - while the bass player solos above [above]
-  2. the piano wander underneath - the surface of the groove [groove]
-  3. the alto sax - is crying out for love [love]
-  4. the notes descending - like a mourning dove [dove]
+  1. I hear the quote from a standard - buried inside the improvisation [improvisation]
+  2. I contemplated - every harmonized interpretation [interpretation]
+  3. the mesmerizing - evening was a celebration [celebration]
+  4. the drummer trades fours with the saxophone - like a conversation [conversation]
 
 ---
 
 ### Generation #4 (mood: aggressive, rhyme: freeform, creativity: 50, scale: minor)
 
 **[A Section 1]** (pattern: XXXX)
-  1. Herbie Hancock headhunted - every chord alive [alive]
-  2. the saxophone glide underneath - the surface of the groove [groove]
-  3. the clarinet - ascends a liquid run [run]
-  4. the piano whispers - softly late at night [night]
+  1. the sophisticated - melody a sweet confession [confession]
+  2. the piano echo into a progression - nobody expected [expected]
+  3. the hi-hat ticks like clockwork - but the solo runs ahead [ahead]
+  4. the saxophone breathe around - the edges of a standard tune [tune]
 
 **[A Section 2]** (pattern: XXXX)
-  1. Coltrane's love supreme - whispered through the night [night]
-  2. the upright bass is walking down - the line [line]
-  3. a brushstroke on the snare - drum face [face]
-  4. the trombone slides into a harmony - that melts the ice cubes [cubes]
+  1. the captivating rhythm - slowly spinning round [round]
+  2. the saxophone resolve past - the bridge into the final coda [coda]
+  3. the jam session starts at midnight - and ends when it ends [ends]
+  4. the kind of music puts - your mind at ease [ease]
 
 **[B Section]** (pattern: XXXX)
-  1. the muted trumpet cries - behind the bar [bar]
-  2. a fresh perspective - on a timeless view [view]
-  3. I heard Coltrane in the subway tiles - and Miles in the midnight rain [rain]
-  4. the tension builds through the extended - dominant chord voicings used [used]
+  1. I heard the ghost of Coltrane - in the room [room]
+  2. the walking bass line - takes me down the street [street]
+  3. I quoted a melody from thirty years ago - and the room understood at once [once]
+  4. a tender - pause a momentary grace [grace]
 
 **[A Section 3]** (pattern: XXXX)
-  1. the tension - and release of harmony [harmony]
-  2. the piano modulate along - the fretboard searching for the truth [truth]
-  3. a watercolour world - beside the stream [stream]
-  4. this atmospheric beauty - felt like ecstasy [ecstasy]
+  1. the piano player comps chords - I have never heard before [before]
+  2. the promises the night - will keep [keep]
+  3. the saxophone linger through the changes - like a river at night [night]
+  4. the improvisation fascinated everyone - who heard [heard]
 
 ---
 
 ### Generation #5 (mood: dreamy, rhyme: AABB, creativity: 70, scale: major)
 
 **[A Section 1]** (pattern: AABB)
-  1. Miles painted silence - into every empty space [space]
-  2. the standard chart - is just a starting place [place]
-  3. the interpretation - of the melancholic rain [rain]
-  4. the grand piano - hums a bittersweet refrain [refrain]
+  1. the organ grinds a Hammond - B3 tone [tone]
+  2. a single player sitting - all alone [alone]
+  3. the piano linger along - the fretboard searching for the truth [truth]
+  4. the smoke curls up - like music notes above the corner booth [booth]
 
 **[A Section 2]** (pattern: AABB)
-  1. the melody meanders through the places - where we sleep [sleep]
-  2. the melodies run smooth - and deep [deep]
-  3. a cool west coast arrangement clean - and bright [bright]
-  4. the piano keys are black - and white [white]
+  1. the hi-hat whispers - keeping time [time]
+  2. the melody - is so sublime [sublime]
+  3. the drummer trades fours with the saxophone - like a conversation [conversation]
+  4. I contemplated - every harmonized interpretation [interpretation]
 
 **[B Section]** (pattern: AABB)
-  1. the muted trumpet cries - behind the bar [bar]
-  2. a distant sound a solitary star [star]
-  3. and the ensemble breathes together as one instrument - in the dark [dark]
-  4. the melody wanders through the changes - like a poet in the park [park]
+  1. I improvised my way - through every night [night]
+  2. the wrong notes somehow - always feeling right [right]
+  3. Ella proved the voice - is the original instrument [instrument]
+  4. I let the melody breathe - and in the breathing heard what it really meant [meant]
 
 **[A Section 3]** (pattern: AABB)
-  1. I sat at the wrong table - and heard the right song [song]
-  2. the trio plays - until the break of dawn [dawn]
-  3. the saxophone improvise through the changes - like a river at night [night]
-  4. the silhouettes are dancing black - and white [white]
+  1. the cool jazz quintet - plays with the restraint of a held breath [breath]
+  2. the contrafact uses new - melody over the same old changes underneath [underneath]
+  3. the keys dance - in the amber light [light]
+  4. the saxophone suspend through the changes - like a river at night [night]
 
 ---
 

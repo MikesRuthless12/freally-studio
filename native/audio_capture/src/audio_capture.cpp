@@ -1,5 +1,5 @@
 /**
- * WavLoom Audio Capture — WASAPI implementation.
+ * Freally Audio Capture — WASAPI implementation.
  *
  * Device enumeration and background-thread audio capture using
  * Windows Audio Session API (WASAPI) in exclusive mode with

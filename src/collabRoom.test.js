@@ -9,7 +9,7 @@ beforeEach(() => {
     globalThis.window = globalThis.window || globalThis;
     window.location = {
         search: '',
-        href: 'https://wavloom.studio/',
+        href: 'https://freally.studio/',
     };
     window.electronAPI = undefined; // non-Electron by default
 });
@@ -36,18 +36,18 @@ describe('Room — getOrCreateRoom', () => {
 describe('Room — createInviteLink', () => {
     it('should create a web invite link with room parameter', async () => {
         window.electronAPI = undefined;
-        window.location.href = 'https://wavloom.studio/';
+        window.location.href = 'https://freally.studio/';
         const { createInviteLink } = await import('./collab/Room.js');
         const link = createInviteLink('myroom');
         expect(link).toContain('room=myroom');
-        expect(link).toContain('wavloom.studio');
+        expect(link).toContain('freally.studio');
     });
 
     it('should create Electron protocol link when in Electron', async () => {
         window.electronAPI = { isElectron: true };
         const { createInviteLink } = await import('./collab/Room.js');
         const link = createInviteLink('myroom');
-        expect(link).toContain('wavloom://');
+        expect(link).toContain('freally://');
         expect(link).toContain('room=myroom');
     });
 

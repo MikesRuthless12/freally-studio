@@ -1,6 +1,6 @@
 /**
  * drumPatternsExpansion.js
- * Massive expansion of drum pattern skeletons for WavLoom Studio.
+ * Massive expansion of drum pattern skeletons for Freally Studio.
  * Auto-generated with 10,263 unique, musically valid patterns.
  *
  * Tables: KICK_SKELETONS_EXPANSION, SNARE_SKELETONS_EXPANSION,

@@ -1,8 +1,8 @@
-# 🌊 WavLoom Complete Setup Guide
+# 🌊 Freally Complete Setup Guide
 
 ## 📦 What's Included
 
-This package contains the **complete WavLoom MIDI Generator** with all features:
+This package contains the **complete Freally MIDI Generator** with all features:
 
 ### Core Features
 - ✅ **Drum Generator** - 8-track drum sequencer with sample loading
@@ -23,7 +23,7 @@ This package contains the **complete WavLoom MIDI Generator** with all features:
 ### 1. Install Dependencies
 
 ```bash
-cd wavloom-project
+cd freally-project
 npm install
 ```
 
@@ -43,7 +43,7 @@ Server starts at: **http://localhost:5173**
 ### 3. Open in Browser
 
 Navigate to `http://localhost:5173` and you'll see:
-- 🌊 WavLoom MIDI Generator interface
+- 🌊 Freally MIDI Generator interface
 - File Explorer on the left
 - Generator tabs (Drums, Chords, Melody, Bass)
 - Global controls at top
@@ -53,9 +53,9 @@ Navigate to `http://localhost:5173` and you'll see:
 ## 📁 Project Structure
 
 ```
-wavloom-project/
+freally-project/
 ├── src/
-│   ├── WavLoomApp.jsx          # Main app component (NEW)
+│   ├── FreallyApp.jsx          # Main app component (NEW)
 │   ├── App.css                 # Main app styles (NEW)
 │   ├── main.jsx                # Entry point
 │   │
@@ -233,7 +233,7 @@ npm install
 
 ### Blank Screen
 1. Check browser console (F12)
-2. Verify `src/main.jsx` imports `WavLoomApp`
+2. Verify `src/main.jsx` imports `FreallyApp`
 3. Clear browser cache (Ctrl+Shift+R)
 
 ### File Explorer Not Working
@@ -259,7 +259,7 @@ npm install
 
 ## 🎉 You're Ready!
 
-Start creating music with WavLoom! The app is fully functional and ready to use.
+Start creating music with Freally! The app is fully functional and ready to use.
 
 **Key Features to Try:**
 1. Import a sample folder

@@ -6,7 +6,7 @@ const TrackExportDialog = ({
     onClose, 
     onExport, 
     availableTracks = [],
-    projectName = 'WavLoom_Project' 
+    projectName = 'Freally_Project' 
 }) => {
     const [selectedTracks, setSelectedTracks] = useState([]);
     const [audioFormat, setAudioFormat] = useState('wav');

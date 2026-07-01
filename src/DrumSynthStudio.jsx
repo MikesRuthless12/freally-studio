@@ -179,14 +179,14 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
             // Native File System API save - Session Based
             try {
                 // 1. Get or request the master session folder
-                if (!window.wavloomSessionExportDir) {
+                if (!window.freallySessionExportDir) {
                     alert(t('common.selectMasterFolder'));
-                    window.wavloomSessionExportDir = await window.showDirectoryPicker({
+                    window.freallySessionExportDir = await window.showDirectoryPicker({
                         mode: 'readwrite'
                     });
                 }
 
-                const rootDir = window.wavloomSessionExportDir;
+                const rootDir = window.freallySessionExportDir;
 
                 // 2. Ensure "Drum Synthesis Studio" subfolder exists
                 const studioDir = await rootDir.getDirectoryHandle('Drum Synthesis Studio', { create: true });
@@ -199,7 +199,7 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
 
                 // 4. Alert FileExplorer to auto-mount/rescan this specific auto-generated subfolder
                 try {
-                    window.dispatchEvent(new CustomEvent('wavloom:autoMountFolder', { detail: { handle: studioDir } }));
+                    window.dispatchEvent(new CustomEvent('freally:autoMountFolder', { detail: { handle: studioDir } }));
                 } catch (e) { }
 
             } catch (err) {
@@ -309,7 +309,7 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
                 <button className="dss-btn dss-btn-ghost" style={{ marginRight: `auto`, fontSize: 11 }} onClick={async () => {
                     try {
                         const newDir = await window.showDirectoryPicker({ mode: 'readwrite' });
-                        window.wavloomSessionExportDir = newDir;
+                        window.freallySessionExportDir = newDir;
                         alert(t('common.masterFolderUpdated'));
                     } catch (e) { }
                 }}>

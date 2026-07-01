@@ -1,7 +1,7 @@
 import { AudioEffect } from './AudioEffect.js';
 
 /**
- * LoomSauce — Compound vocal chain plugin for WavLoom Studio.
+ * LoomSauce — Compound vocal chain plugin for Freally Studio.
  *
  * 6-section processing chain:
  *   Input → COMPRESS → ENHANCE → EQ → MULTIPLY → SPACE → GAIN → Output

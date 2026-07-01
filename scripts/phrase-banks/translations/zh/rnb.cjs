@@ -1,5 +1,5 @@
 /**
- * WavLoom Lyric Engine — Chinese (Simplified) R&B Phrase Bank
+ * Freally Lyric Engine — Chinese (Simplified) R&B Phrase Bank
  * Chinese R&B / 华语R&B influenced lyrics covering all 14 moods.
  */
 module.exports = {

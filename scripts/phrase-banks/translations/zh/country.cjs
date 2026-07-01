@@ -1,5 +1,5 @@
 /**
- * WavLoom Lyric Engine — Chinese (Simplified) Country Phrase Bank
+ * Freally Lyric Engine — Chinese (Simplified) Country Phrase Bank
  * Pastoral / folk-country influenced lyrics covering all 14 moods.
  */
 module.exports = {

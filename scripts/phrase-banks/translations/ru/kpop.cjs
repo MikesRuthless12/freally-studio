@@ -1,6 +1,6 @@
 /**
  * Russian (ru) K-Pop Phrase Bank
- * Russian K-Pop influenced lyrics for WavLoom Studio lyric engine.
+ * Russian K-Pop influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

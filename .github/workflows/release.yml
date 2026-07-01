@@ -3,7 +3,7 @@ name: release
 # Tag-triggered cross-platform release. Push a v* tag (or run manually with a tag
 # input). Each OS builds its installer(s) — the native VST3 host addon (cmake-js +
 # the vst3sdk submodule) + the Electron renderer + electron-builder — and uploads
-# to a DRAFT GitHub release titled "WavLoom Studio 2.0 — Enhanced". Verify the
+# to a DRAFT GitHub release titled "Freally Studio 2.0 — Enhanced". Verify the
 # artifacts, then publish (gh release edit <tag> --draft=false).
 #
 # Version: the tag, release name, and download filenames say v0.20.02, but the
@@ -36,7 +36,7 @@ jobs:
         run: |
           if ! gh release view "$REL_TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$REL_TAG" -R "$GITHUB_REPOSITORY" --draft \
-              --title "WavLoom Studio 2.0 — Enhanced" \
+              --title "Freally Studio 2.0 — Enhanced" \
               --notes "A browser-based DAW with AI pattern generation across 35+ genres, an FL-style mixer, an arrangement timeline, an audio-clip editor, vocal pitch correction, and real-time collaboration."
           fi
 

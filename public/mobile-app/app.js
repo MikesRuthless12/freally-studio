@@ -1,8 +1,8 @@
 /**
- * WavLoom Mobile — Client App
+ * Freally Mobile — Client App
  *
  * Single-file IIFE that handles:
- *   - PeerJS connection to desktop WavLoom session
+ *   - PeerJS connection to desktop Freally session
  *   - WebRTC audio playback with iOS Safari handling
  *   - Waveform visualizer on canvas
  *   - VU meter updates from data channel
@@ -471,7 +471,7 @@
 
     function connect() {
         if (!sessionId) {
-            showError('No session ID in URL. Scan the QR code from WavLoom.');
+            showError('No session ID in URL. Scan the QR code from Freally.');
             return;
         }
 
@@ -552,7 +552,7 @@
         peer.on('error', (err) => {
             console.error('[Mobile] Peer error:', err);
             if (err.type === 'peer-unavailable') {
-                showError('Desktop session not found. Make sure WavLoom is running.');
+                showError('Desktop session not found. Make sure Freally is running.');
                 elConnectBtn.disabled = false;
                 elConnectBtn.textContent = 'Tap to Connect';
             } else {

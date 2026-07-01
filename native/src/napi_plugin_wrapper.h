@@ -6,7 +6,7 @@
 
 #include <napi.h>
 
-namespace wavloom_napi {
+namespace freally_napi {
 
 // Plugin lifecycle
 Napi::Value LoadPlugin(const Napi::CallbackInfo& info);
@@ -45,4 +45,4 @@ Napi::Value IsEditorOpen(const Napi::CallbackInfo& info);
 // Editor key callback (spacebar passthrough)
 Napi::Value RegisterEditorKeyCallback(const Napi::CallbackInfo& info);
 
-} // namespace wavloom_napi
+} // namespace freally_napi

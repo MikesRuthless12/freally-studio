@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- * WavLoom Audio Capture — WASAPI exclusive-mode audio input.
+ * Freally Audio Capture — WASAPI exclusive-mode audio input.
  *
  * Enumerates audio input devices, opens a capture stream on a selected device,
  * and captures raw PCM float32 samples in a background thread.

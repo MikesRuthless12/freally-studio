@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace wavloom {
+namespace freally {
 
 /**
  * Deinterleave stereo audio: [L0,R0,L1,R1,...] → separate L/R buffers.
@@ -38,4 +38,4 @@ inline void zeroBuffer(float* buffer, int32_t count) {
     }
 }
 
-} // namespace wavloom
+} // namespace freally

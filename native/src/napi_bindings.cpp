@@ -1,5 +1,5 @@
 /**
- * N-API module entry point for wavloom_vst3_host.
+ * N-API module entry point for freally_vst3_host.
  *
  * When VST3_SDK_AVAILABLE is defined, exports the full host API.
  * Otherwise, exports a stub with just getVersion() for build verification.
@@ -164,7 +164,7 @@ static bool PatchAndSkipCrashInstruction(EXCEPTION_POINTERS* exInfo) {
     int instrLen = GetX64InstructionLength(ip);
 
     if (instrLen < 1 || instrLen > 15) {
-        fprintf(stderr, "[WavLoom] Unknown instruction at 0x%llX — cannot patch\n",
+        fprintf(stderr, "[Freally] Unknown instruction at 0x%llX — cannot patch\n",
                 (unsigned long long)(DWORD64)ip);
         fflush(stderr);
         return false;
@@ -179,7 +179,7 @@ static bool PatchAndSkipCrashInstruction(EXCEPTION_POINTERS* exInfo) {
     // Check if this is a VEX/EVEX encoded instruction (AVX/AVX2/AVX-512)
     bool isVexEncoded = (ip[0] == 0xC5 || ip[0] == 0xC4 || ip[0] == 0x62);
 
-    fprintf(stderr, "[WavLoom] Patching %d-byte %s instruction at 0x%llX with NOPs (AV=%s)\n",
+    fprintf(stderr, "[Freally] Patching %d-byte %s instruction at 0x%llX with NOPs (AV=%s)\n",
             instrLen, isVexEncoded ? "VEX" : "legacy",
             (unsigned long long)(DWORD64)ip,
             avType == 0 ? "READ" : avType == 1 ? "WRITE" : "DEP");
@@ -216,7 +216,7 @@ static bool PatchAndSkipCrashInstruction(EXCEPTION_POINTERS* exInfo) {
                 // Point to dummy page instead of zeroing — prevents cascading WRITE AVs
                 DWORD64 safeValue = g_dummyPage ? (DWORD64)g_dummyPage : 0;
                 *regMap[regField] = safeValue;
-                fprintf(stderr, "[WavLoom] Set register %d to dummy page 0x%llX\n",
+                fprintf(stderr, "[Freally] Set register %d to dummy page 0x%llX\n",
                         regField, (unsigned long long)safeValue);
             }
         }
@@ -231,7 +231,7 @@ static bool PatchAndSkipCrashInstruction(EXCEPTION_POINTERS* exInfo) {
         for (int i = 0; i < instrLen; i++) ip[i] = 0x90;
         VirtualProtect(ip, instrLen, oldProtect, &oldProtect);
         FlushInstructionCache(GetCurrentProcess(), ip, instrLen);
-        fprintf(stderr, "[WavLoom] NOPed %d bytes — instruction patched\n", instrLen);
+        fprintf(stderr, "[Freally] NOPed %d bytes — instruction patched\n", instrLen);
         fflush(stderr);
     }
 
@@ -271,7 +271,7 @@ static bool UnwindPastPluginCode(EXCEPTION_POINTERS* exInfo) {
         framesUnwound++;
 
         if (!IsAddressInVST3Module((void*)ctx.Rip)) {
-            fprintf(stderr, "[WavLoom] Unwound %d frames past plugin code — resuming at 0x%llX\n",
+            fprintf(stderr, "[Freally] Unwound %d frames past plugin code — resuming at 0x%llX\n",
                     framesUnwound, (unsigned long long)ctx.Rip);
             fflush(stderr);
 
@@ -291,7 +291,7 @@ static bool UnwindPastPluginCode(EXCEPTION_POINTERS* exInfo) {
     }
 
     // Fallback: simple single-frame return
-    fprintf(stderr, "[WavLoom] Could not unwind past plugin code (%d frames) — single frame fallback\n",
+    fprintf(stderr, "[Freally] Could not unwind past plugin code (%d frames) — single frame fallback\n",
             framesUnwound);
     fflush(stderr);
     DWORD64 returnAddr = *((DWORD64*)exInfo->ContextRecord->Rsp);
@@ -395,7 +395,7 @@ static bool RedirectFaultingRegister(PCONTEXT ctx, ULONG_PTR faultAddr, ULONG_PT
                 DWORD64 old = *regMap[i];
                 *regMap[i] = dummyBase;
                 if (count <= 20) {
-                    fprintf(stderr, "[WavLoom] Redirect %s: 0x%llX -> dummy (READ exact)\n",
+                    fprintf(stderr, "[Freally] Redirect %s: 0x%llX -> dummy (READ exact)\n",
                             regNames16[i], (unsigned long long)old);
                     fflush(stderr);
                 }
@@ -409,7 +409,7 @@ static bool RedirectFaultingRegister(PCONTEXT ctx, ULONG_PTR faultAddr, ULONG_PT
             DWORD64 old = *regMap[baseIdx];
             *regMap[baseIdx] = dummyBase;
             if (count <= 20) {
-                fprintf(stderr, "[WavLoom] Redirect %s: 0x%llX -> dummy (READ decoded base)\n",
+                fprintf(stderr, "[Freally] Redirect %s: 0x%llX -> dummy (READ decoded base)\n",
                         regNames16[baseIdx], (unsigned long long)old);
                 fflush(stderr);
             }
@@ -425,7 +425,7 @@ static bool RedirectFaultingRegister(PCONTEXT ctx, ULONG_PTR faultAddr, ULONG_PT
             DWORD64 old = *regMap[baseIdx];
             *regMap[baseIdx] = dummyBase;
             if (count <= 20) {
-                fprintf(stderr, "[WavLoom] Redirect %s: 0x%llX -> dummy (WRITE decoded base)\n",
+                fprintf(stderr, "[Freally] Redirect %s: 0x%llX -> dummy (WRITE decoded base)\n",
                         regNames16[baseIdx], (unsigned long long)old);
                 fflush(stderr);
             }
@@ -439,7 +439,7 @@ static bool RedirectFaultingRegister(PCONTEXT ctx, ULONG_PTR faultAddr, ULONG_PT
             if (rv == (DWORD64)faultAddr) {
                 *regMap[i] = dummyBase;
                 if (count <= 20) {
-                    fprintf(stderr, "[WavLoom] Redirect %s: 0x%llX -> dummy (WRITE exact match)\n",
+                    fprintf(stderr, "[Freally] Redirect %s: 0x%llX -> dummy (WRITE exact match)\n",
                             regNames16[i], (unsigned long long)rv);
                     fflush(stderr);
                 }
@@ -464,7 +464,7 @@ static LONG WINAPI PluginCrashGuardVEH(EXCEPTION_POINTERS* exInfo) {
 
     // Log non-trivial exceptions (suppress recurring main-thread .vst3 AVs after first 20)
     if (threadId != g_mainThreadId) {
-        fprintf(stderr, "[WavLoom-VEH] Thread %lu: ex=0x%08lX flags=0x%lX addr=0x%llX\n",
+        fprintf(stderr, "[Freally-VEH] Thread %lu: ex=0x%08lX flags=0x%lX addr=0x%llX\n",
                 threadId, exCode, exInfo->ExceptionRecord->ExceptionFlags,
                 (unsigned long long)(DWORD64)exInfo->ExceptionRecord->ExceptionAddress);
         fflush(stderr);
@@ -488,17 +488,17 @@ static LONG WINAPI PluginCrashGuardVEH(EXCEPTION_POINTERS* exInfo) {
 
                 // Log first 20 for diagnostics, suppress after that
                 if (count <= 20) {
-                    fprintf(stderr, "[WavLoom] Plugin AV #%ld at 0x%llX (type=%s target=0x%llX)\n",
+                    fprintf(stderr, "[Freally] Plugin AV #%ld at 0x%llX (type=%s target=0x%llX)\n",
                             count,
                             (unsigned long long)(DWORD64)crashAddr,
                             avType == 0 ? "READ" : avType == 1 ? "WRITE" : "DEP",
                             (unsigned long long)faultAddr);
                     BYTE* ip = (BYTE*)crashAddr;
-                    fprintf(stderr, "[WavLoom]   Bytes: %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                    fprintf(stderr, "[Freally]   Bytes: %02X %02X %02X %02X %02X %02X %02X %02X\n",
                             ip[0], ip[1], ip[2], ip[3], ip[4], ip[5], ip[6], ip[7]);
                     fflush(stderr);
                 } else if (count == 21) {
-                    fprintf(stderr, "[WavLoom] Suppressing further AV logs (redirecting silently)...\n");
+                    fprintf(stderr, "[Freally] Suppressing further AV logs (redirecting silently)...\n");
                     fflush(stderr);
                 }
 
@@ -513,7 +513,7 @@ static LONG WINAPI PluginCrashGuardVEH(EXCEPTION_POINTERS* exInfo) {
                 int instrLen = GetX64InstructionLength(ip);
                 if (instrLen >= 1 && instrLen <= 15) {
                     if (count <= 20) {
-                        fprintf(stderr, "[WavLoom] Skip %d-byte instruction at 0x%llX (redirect failed)\n",
+                        fprintf(stderr, "[Freally] Skip %d-byte instruction at 0x%llX (redirect failed)\n",
                                 instrLen, (unsigned long long)(DWORD64)ip);
                         fflush(stderr);
                     }
@@ -563,7 +563,7 @@ static LONG WINAPI PluginCrashGuardVEH(EXCEPTION_POINTERS* exInfo) {
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    fprintf(stderr, "[WavLoom] Plugin thread %lu: intercepting 0x%08lX at .vst3 addr 0x%llX — redirecting to ExitThread\n",
+    fprintf(stderr, "[Freally] Plugin thread %lu: intercepting 0x%08lX at .vst3 addr 0x%llX — redirecting to ExitThread\n",
             threadId, exCode, (unsigned long long)(DWORD64)bgCrashAddr);
     fflush(stderr);
 
@@ -588,7 +588,7 @@ static LONG WINAPI PluginCrashGuardVEH(EXCEPTION_POINTERS* exInfo) {
 // std::terminate handler — catches uncaught C++ exceptions from any thread
 static void PluginTerminateHandler() {
     DWORD threadId = GetCurrentThreadId();
-    fprintf(stderr, "[WavLoom] std::terminate on thread %lu\n", threadId);
+    fprintf(stderr, "[Freally] std::terminate on thread %lu\n", threadId);
     fflush(stderr);
     if (threadId != g_mainThreadId) {
         ExitThread(1); // Kill just this thread
@@ -599,7 +599,7 @@ static void PluginTerminateHandler() {
 // Handle abort() from plugin background threads
 static void PluginAbortHandler(int) {
     DWORD threadId = GetCurrentThreadId();
-    fprintf(stderr, "[WavLoom] abort() on thread %lu (main=%lu)\n", threadId, g_mainThreadId);
+    fprintf(stderr, "[Freally] abort() on thread %lu (main=%lu)\n", threadId, g_mainThreadId);
     fflush(stderr);
     if (threadId != g_mainThreadId) {
         signal(SIGABRT, PluginAbortHandler); // Re-install (signal resets to SIG_DFL)
@@ -612,7 +612,7 @@ static void PluginAbortHandler(int) {
 
 // atexit handler for diagnostics
 static void PluginAtExitHandler() {
-    fprintf(stderr, "[WavLoom] atexit handler called on thread %lu\n", GetCurrentThreadId());
+    fprintf(stderr, "[Freally] atexit handler called on thread %lu\n", GetCurrentThreadId());
     fflush(stderr);
 }
 
@@ -631,7 +631,7 @@ static void InstallPluginCrashGuard() {
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     std::set_terminate(PluginTerminateHandler);
     atexit(PluginAtExitHandler);
-    fprintf(stderr, "[WavLoom] Plugin crash guard installed (main thread=%lu)\n", g_mainThreadId);
+    fprintf(stderr, "[Freally] Plugin crash guard installed (main thread=%lu)\n", g_mainThreadId);
     fflush(stderr);
 }
 #endif // _WIN32
@@ -659,32 +659,32 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
 
 #ifdef VST3_SDK_AVAILABLE
     // Full VST3 host API
-    exports.Set("loadPlugin", Napi::Function::New(env, wavloom_napi::LoadPlugin));
-    exports.Set("unloadPlugin", Napi::Function::New(env, wavloom_napi::UnloadPlugin));
-    exports.Set("unloadAll", Napi::Function::New(env, wavloom_napi::UnloadAll));
-    exports.Set("processBlock", Napi::Function::New(env, wavloom_napi::ProcessBlock));
-    exports.Set("sendNoteOn", Napi::Function::New(env, wavloom_napi::SendNoteOn));
-    exports.Set("sendNoteOff", Napi::Function::New(env, wavloom_napi::SendNoteOff));
-    exports.Set("sendCC", Napi::Function::New(env, wavloom_napi::SendCC));
-    exports.Set("setParameter", Napi::Function::New(env, wavloom_napi::SetParameter));
-    exports.Set("getParameter", Napi::Function::New(env, wavloom_napi::GetParameter));
-    exports.Set("getParameterList", Napi::Function::New(env, wavloom_napi::GetParameterList));
-    exports.Set("setTransportState", Napi::Function::New(env, wavloom_napi::SetTransportState));
-    exports.Set("setSampleRate", Napi::Function::New(env, wavloom_napi::SetSampleRate));
-    exports.Set("setBlockSize", Napi::Function::New(env, wavloom_napi::SetBlockSize));
-    exports.Set("getPluginState", Napi::Function::New(env, wavloom_napi::GetPluginState));
-    exports.Set("setPluginState", Napi::Function::New(env, wavloom_napi::SetPluginState));
+    exports.Set("loadPlugin", Napi::Function::New(env, freally_napi::LoadPlugin));
+    exports.Set("unloadPlugin", Napi::Function::New(env, freally_napi::UnloadPlugin));
+    exports.Set("unloadAll", Napi::Function::New(env, freally_napi::UnloadAll));
+    exports.Set("processBlock", Napi::Function::New(env, freally_napi::ProcessBlock));
+    exports.Set("sendNoteOn", Napi::Function::New(env, freally_napi::SendNoteOn));
+    exports.Set("sendNoteOff", Napi::Function::New(env, freally_napi::SendNoteOff));
+    exports.Set("sendCC", Napi::Function::New(env, freally_napi::SendCC));
+    exports.Set("setParameter", Napi::Function::New(env, freally_napi::SetParameter));
+    exports.Set("getParameter", Napi::Function::New(env, freally_napi::GetParameter));
+    exports.Set("getParameterList", Napi::Function::New(env, freally_napi::GetParameterList));
+    exports.Set("setTransportState", Napi::Function::New(env, freally_napi::SetTransportState));
+    exports.Set("setSampleRate", Napi::Function::New(env, freally_napi::SetSampleRate));
+    exports.Set("setBlockSize", Napi::Function::New(env, freally_napi::SetBlockSize));
+    exports.Set("getPluginState", Napi::Function::New(env, freally_napi::GetPluginState));
+    exports.Set("setPluginState", Napi::Function::New(env, freally_napi::SetPluginState));
 
     // Editor (plugin GUI window)
-    exports.Set("openEditor", Napi::Function::New(env, wavloom_napi::OpenEditor));
-    exports.Set("closeEditor", Napi::Function::New(env, wavloom_napi::CloseEditor));
-    exports.Set("isEditorOpen", Napi::Function::New(env, wavloom_napi::IsEditorOpen));
+    exports.Set("openEditor", Napi::Function::New(env, freally_napi::OpenEditor));
+    exports.Set("closeEditor", Napi::Function::New(env, freally_napi::CloseEditor));
+    exports.Set("isEditorOpen", Napi::Function::New(env, freally_napi::IsEditorOpen));
 
     // Editor key callback (spacebar passthrough from VST3 editor to host)
-    exports.Set("registerEditorKeyCallback", Napi::Function::New(env, wavloom_napi::RegisterEditorKeyCallback));
+    exports.Set("registerEditorKeyCallback", Napi::Function::New(env, freally_napi::RegisterEditorKeyCallback));
 #endif
 
     return exports;
 }
 
-NODE_API_MODULE(wavloom_vst3_host, Init)
+NODE_API_MODULE(freally_vst3_host, Init)

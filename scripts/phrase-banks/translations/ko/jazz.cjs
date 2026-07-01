@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Jazz Phrase Bank
- * Korean jazz / K-Jazz influenced lyrics for WavLoom Studio lyric engine.
+ * Korean jazz / K-Jazz influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

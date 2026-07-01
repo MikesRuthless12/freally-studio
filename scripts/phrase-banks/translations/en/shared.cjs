@@ -1,5 +1,5 @@
 // ============================================================
-// shared.cjs — Shared English phrase bank for WavLoom lyric engine
+// shared.cjs — Shared English phrase bank for Freally lyric engine
 // ============================================================
 
 module.exports = {

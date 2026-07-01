@@ -12,7 +12,7 @@
  *  4. Add pitch slides between distant notes
  *  5. Add octave jumps for variation
  *
- * All output uses the standard WavLoom note format:
+ * All output uses the standard Freally note format:
  *   { time, duration, note, velocity, slide? }
  *
  * Steps per bar: 32  |  Velocity: 0.0–1.0  |  MIDI note: 0–127
@@ -47,10 +47,10 @@ const coinFlip = (p = 0.5) => Math.random() < p;
 
 /**
  * Extract kick hit positions from a drum pattern.
- * Supports the WavLoom drum pattern format:
+ * Supports the Freally drum pattern format:
  *   drumPattern.kick.lanes.root.pattern  →  boolean[]
  *
- * @param {Object} drumPattern - WavLoom drum pattern object
+ * @param {Object} drumPattern - Freally drum pattern object
  * @param {number} totalSteps  - Total steps (bars * 32)
  * @returns {boolean[]} Array where true = kick hit at that step
  */
@@ -147,7 +147,7 @@ function calcDuration(startStep, occupied, totalSteps) {
  * Generate a trap/drill-style 808 bassline.
  *
  * @param {Object} options
- * @param {Object}  options.drumPattern       - WavLoom drum pattern object
+ * @param {Object}  options.drumPattern       - Freally drum pattern object
  * @param {Array}   options.chordProgression  - Array of Roman numeral strings
  * @param {string}  options.key               - Musical key (e.g. 'C')
  * @param {string}  options.scale             - Scale name (e.g. 'Minor')

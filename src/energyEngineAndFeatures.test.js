@@ -205,7 +205,7 @@ describe('Shuffle Slider — HumanizePanel source verification', () => {
     it('humanizeParams default should include shuffle', async () => {
         const fs = await import('fs');
         const path = await import('path');
-        const src = fs.readFileSync(path.resolve(__dirname, 'WavLoomAppComplete.jsx'), 'utf-8');
+        const src = fs.readFileSync(path.resolve(__dirname, 'FreallyAppComplete.jsx'), 'utf-8');
         expect(src).toContain('shuffle: 0');
     });
 });
@@ -216,7 +216,7 @@ describe('Shift+D Duplicate Shortcut', () => {
     it('should exist in global keyboard handler', async () => {
         const fs = await import('fs');
         const path = await import('path');
-        const src = fs.readFileSync(path.resolve(__dirname, 'WavLoomAppComplete.jsx'), 'utf-8');
+        const src = fs.readFileSync(path.resolve(__dirname, 'FreallyAppComplete.jsx'), 'utf-8');
         expect(src).toContain("e.shiftKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyD'");
     });
 

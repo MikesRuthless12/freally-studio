@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * French Phrase Bank Generator — WavLoom Studio
+ * French Phrase Bank Generator — Freally Studio
  *
  * Assembles all per-genre data files into a single fr.json locale file.
  * Run: node scripts/phrase-banks/generate.cjs

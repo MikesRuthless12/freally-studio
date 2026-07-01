@@ -87,7 +87,7 @@ export class PeerManager {
         // Surface broker warning to consumer (B6).
         if (this.onBrokerNotice) {
             try {
-                this.onBrokerNotice('WavLoom collaboration uses the public PeerJS broker. Peer IDs and signaling metadata are visible to that broker. Use a private signaling server for sensitive sessions.');
+                this.onBrokerNotice('Freally collaboration uses the public PeerJS broker. Peer IDs and signaling metadata are visible to that broker. Use a private signaling server for sensitive sessions.');
             } catch (_) {}
         }
     }

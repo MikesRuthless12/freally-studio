@@ -1,5 +1,5 @@
 /**
- * AudioRecorder — Live microphone recording engine for WavLoom Studio.
+ * AudioRecorder — Live microphone recording engine for Freally Studio.
  *
  * Records audio from the user's microphone using the Web Audio API.
  * Uses AudioWorkletNode (dedicated audio thread) for glitch-free recording,
@@ -412,7 +412,7 @@ export class AudioRecorder {
         let echoCancellation = false;
         let noiseSuppression = false;
         try {
-            const raw = localStorage.getItem('wavloom_settings');
+            const raw = localStorage.getItem('freally_settings');
             if (raw) {
                 const s = JSON.parse(raw);
                 if (s.recordingEchoCancellation !== undefined) echoCancellation = s.recordingEchoCancellation;
@@ -505,7 +505,7 @@ export class AudioRecorder {
         let echoCancellation = false;
         let noiseSuppression = false;
         try {
-            const raw = localStorage.getItem('wavloom_settings');
+            const raw = localStorage.getItem('freally_settings');
             if (raw) {
                 const s = JSON.parse(raw);
                 if (s.recordingEchoCancellation !== undefined) echoCancellation = s.recordingEchoCancellation;
@@ -868,7 +868,7 @@ export class AudioRecorder {
 
             // Input monitoring — route mic through track effects chain (getUserMedia path)
             try {
-                const raw = localStorage.getItem('wavloom_settings');
+                const raw = localStorage.getItem('freally_settings');
                 const settings = raw ? JSON.parse(raw) : {};
                 if (settings.recordingInputMonitor) {
                     const mainCtx = this._audioCtxGetter ? this._audioCtxGetter() : this.audioContext;

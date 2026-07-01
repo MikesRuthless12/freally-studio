@@ -1,5 +1,5 @@
 /**
- * RecentlyUsedTracker — Anti-repeat system for WavLoom generators.
+ * RecentlyUsedTracker — Anti-repeat system for Freally generators.
  * Tracks last N selections per category key so the same progression,
  * drum skeleton, motif seed, or lyric phrase is never picked twice in a row.
  *

@@ -94,11 +94,11 @@ const FileExplorerPanelEnhanced = ({ onGenerateFromFolder, onFolderSelect, onRem
             }
         };
 
-        window.addEventListener('wavloom:externalSave', handleExternalSave);
-        window.addEventListener('wavloom:autoMountFolder', handleAutoMount);
+        window.addEventListener('freally:externalSave', handleExternalSave);
+        window.addEventListener('freally:autoMountFolder', handleAutoMount);
         return () => {
-            window.removeEventListener('wavloom:externalSave', handleExternalSave);
-            window.removeEventListener('wavloom:autoMountFolder', handleAutoMount);
+            window.removeEventListener('freally:externalSave', handleExternalSave);
+            window.removeEventListener('freally:autoMountFolder', handleAutoMount);
         };
     }, []);
 

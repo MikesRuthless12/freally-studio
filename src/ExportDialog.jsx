@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './ExportDialog.css';
 import { useTranslation } from './i18n/I18nContext.jsx';
 
-const ExportDialog = ({ isOpen, onClose, onExport, projectName = 'WavLoom_Project' }) => {
+const ExportDialog = ({ isOpen, onClose, onExport, projectName = 'Freally_Project' }) => {
     const { t } = useTranslation();
     const [exportType, setExportType] = useState('audio'); // 'audio' or 'midi'
     const [audioFormat, setAudioFormat] = useState('wav'); // 'wav' or 'mp3'

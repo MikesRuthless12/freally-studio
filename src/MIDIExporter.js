@@ -76,7 +76,7 @@ class MidiExporter {
         const zipBlob = await zip.generateAsync({ type: "blob" });
         return {
             blob: zipBlob,
-            filename: `wavloom_midi_stems_${Date.now()}.zip`
+            filename: `freally_midi_stems_${Date.now()}.zip`
         };
     }
 
@@ -562,7 +562,7 @@ class MidiExporter {
      * @param {string} projectName - for filename
      * @returns {Promise<{blob: Blob, filename: string}>}
      */
-    async exportGeneratorMIDI(patternData, tempo, selected, projectName = 'WavLoom') {
+    async exportGeneratorMIDI(patternData, tempo, selected, projectName = 'Freally') {
         const tempoTrack = this.createTempoTrack(tempo);
         const generatedTracks = [];
         const labels = [];
@@ -625,7 +625,7 @@ class MidiExporter {
     }
 
     // Download MIDI file (Updated for Blob/Zip usage mostly)
-    downloadMidi(sequencer, filename = 'wavloom_pattern.mid') {
+    downloadMidi(sequencer, filename = 'freally_pattern.mid') {
         const midiData = this.exportPattern(sequencer);
         const blob = new Blob([midiData], { type: 'audio/midi' });
         const url = URL.createObjectURL(blob);

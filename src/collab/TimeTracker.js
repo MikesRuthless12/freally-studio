@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const STORAGE_KEY = 'wavloom_time_tracker';
+const STORAGE_KEY = 'freally_time_tracker';
 
 function loadStore() {
     try {

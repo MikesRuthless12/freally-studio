@@ -1,7 +1,7 @@
 /**
  * Audio Capture Bridge — Main process bridge between IPC and native addon.
  *
- * Loads the compiled wavloom_audio_capture .node module and registers all
+ * Loads the compiled freally_audio_capture .node module and registers all
  * IPC handlers for WASAPI audio capture operations.
  */
 
@@ -38,12 +38,12 @@ function loadNativeAddon() {
     // Try multiple paths for the compiled .node file
     const searchPaths = isDev
         ? [
-            path.join(__dirname, '..', 'native', 'audio_capture', 'build', 'Release', 'wavloom_audio_capture.node'),
-            path.join(__dirname, '..', 'native', 'audio_capture', 'build', 'Debug', 'wavloom_audio_capture.node'),
-            path.join(__dirname, '..', 'native', 'audio_capture', 'build', 'wavloom_audio_capture.node'),
+            path.join(__dirname, '..', 'native', 'audio_capture', 'build', 'Release', 'freally_audio_capture.node'),
+            path.join(__dirname, '..', 'native', 'audio_capture', 'build', 'Debug', 'freally_audio_capture.node'),
+            path.join(__dirname, '..', 'native', 'audio_capture', 'build', 'freally_audio_capture.node'),
         ]
         : [
-            path.join(process.resourcesPath, 'native', 'wavloom_audio_capture.node'),
+            path.join(process.resourcesPath, 'native', 'freally_audio_capture.node'),
         ];
 
     for (const addonPath of searchPaths) {

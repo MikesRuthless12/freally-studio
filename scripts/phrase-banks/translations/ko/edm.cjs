@@ -1,6 +1,6 @@
 /**
  * Korean (ko) EDM Phrase Bank
- * Korean electronic / K-EDM influenced lyrics for WavLoom Studio lyric engine.
+ * Korean electronic / K-EDM influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

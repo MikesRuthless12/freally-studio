@@ -1,6 +1,6 @@
-/* WavLoom App Styles */
+/* Freally App Styles */
 
-.wavloom-app {
+.freally-app {
     width: 100vw;
     height: 100vh;
     display: flex;
@@ -10,7 +10,7 @@
 }
 
 /* Dark Theme */
-.wavloom-app.dark {
+.freally-app.dark {
     --bg-primary: #1a1a1a;
     --bg-secondary: #252525;
     --bg-tertiary: #2a2a2a;
@@ -27,7 +27,7 @@
 }
 
 /* Light Theme */
-.wavloom-app.light {
+.freally-app.light {
     --bg-primary: #ffffff;
     --bg-secondary: #f5f5f5;
     --bg-tertiary: #e8e8e8;
@@ -44,7 +44,7 @@
 }
 
 /* Header */
-.wavloom-header {
+.freally-header {
     height: 60px;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
@@ -55,7 +55,7 @@
     flex-shrink: 0;
 }
 
-.wavloom-logo {
+.freally-logo {
     font-size: 20px;
     font-weight: 700;
     background: var(--theme-gradient);
@@ -64,7 +64,7 @@
     background-clip: text;
 }
 
-.wavloom-controls {
+.freally-controls {
     display: flex;
     align-items: center;
     gap: 20px;
@@ -134,7 +134,7 @@
 }
 
 /* Main Content */
-.wavloom-main {
+.freally-main {
     flex: 1;
     display: flex;
     overflow: hidden;
@@ -208,7 +208,7 @@ button {
 }
 
 /* Footer */
-.wavloom-footer {
+.freally-footer {
     height: 40px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
@@ -254,13 +254,13 @@ button {
 
 /* Responsive */
 @media (max-width: 1024px) {
-    .wavloom-main {
+    .freally-main {
         flex-direction: column;
     }
 }
 
 @media (max-width: 768px) {
-    .wavloom-header {
+    .freally-header {
         flex-direction: column;
         height: auto;
         padding: 12px;

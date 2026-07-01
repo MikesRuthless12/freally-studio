@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * WavLoom Professional Pattern Generation Engine
+ * Freally Professional Pattern Generation Engine
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Four integrated generators for Drums, Chords, Melodies, and Basslines that

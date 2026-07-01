@@ -1,5 +1,5 @@
 /**
- * WavLoom Lyric Engine — Chinese (Simplified) EDM Phrase Bank
+ * Freally Lyric Engine — Chinese (Simplified) EDM Phrase Bank
  * Electronic dance music influenced lyrics covering all 14 moods.
  */
 module.exports = {

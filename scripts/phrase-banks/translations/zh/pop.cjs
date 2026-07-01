@@ -1,5 +1,5 @@
 /**
- * WavLoom Lyric Engine — Chinese (Simplified) Pop/C-Pop Phrase Bank
+ * Freally Lyric Engine — Chinese (Simplified) Pop/C-Pop Phrase Bank
  * Mandopop / C-Pop influenced lyrics covering all 14 moods.
  */
 module.exports = {

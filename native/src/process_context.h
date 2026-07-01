@@ -16,7 +16,7 @@
 #include <chrono>
 #endif
 
-namespace wavloom {
+namespace freally {
 
 inline Steinberg::Vst::ProcessContext buildProcessContext(
     double sampleRate,
@@ -106,6 +106,6 @@ inline Steinberg::Vst::ProcessContext buildProcessContext(
     return ctx;
 }
 
-} // namespace wavloom
+} // namespace freally
 
 #endif // VST3_SDK_AVAILABLE

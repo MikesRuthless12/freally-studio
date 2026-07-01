@@ -139,7 +139,7 @@ private:
     void queryBusInfo();
     void queryPluginInfo();
 
-    friend class WavLoomPlugFrame;
+    friend class FreallyPlugFrame;
 };
 
 #endif // VST3_SDK_AVAILABLE

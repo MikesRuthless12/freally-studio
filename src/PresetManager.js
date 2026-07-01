@@ -3,7 +3,7 @@
 
 export class PresetManager {
     constructor() {
-        this.dbName = 'WavLoomPresets';
+        this.dbName = 'FreallyPresets';
         this.dbVersion = 2;
         this.db = null;
         this._initPromise = this.initDB();
@@ -339,7 +339,7 @@ export class PresetManager {
         // Create export data
         const exportData = {
             version: '1.0',
-            type: 'WavLoomPreset',
+            type: 'FreallyPreset',
             preset
         };
 
@@ -368,7 +368,7 @@ export class PresetManager {
                 try {
                     const data = JSON.parse(e.target.result);
 
-                    if (data.type !== 'WavLoomPreset') {
+                    if (data.type !== 'FreallyPreset') {
                         reject(new Error('Invalid preset file'));
                         return;
                     }

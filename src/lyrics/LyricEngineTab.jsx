@@ -532,7 +532,7 @@ export default function LyricEngineTab({
     // Export handler
     const handleExport = useCallback((format) => {
         if (!song) return;
-        exportLyrics(song, format, { title: 'WavLoom Song', artist: 'WavLoom User' });
+        exportLyrics(song, format, { title: 'Freally Song', artist: 'Freally User' });
         setShowExportMenu(false);
     }, [song]);
 
@@ -546,7 +546,7 @@ export default function LyricEngineTab({
         onSendToLyrics(text, genre, mood, bpm);
     }, [song, onSendToLyrics, genre, mood, bpm]);
 
-    // Save lyrics to .wavloom-lyrics file
+    // Save lyrics to .freally-lyrics file
     const handleSaveLyrics = useCallback(() => {
         if (!song) return;
         const projectData = formatAsProject(song.sections, song.metadata || {
@@ -555,10 +555,10 @@ export default function LyricEngineTab({
             bpm, structure: structureKey, rhymeScheme, creativity, usePunchlines,
         });
         const content = JSON.stringify(projectData, null, 2);
-        downloadFile(content, `lyrics-${Date.now()}.wavloom-lyrics`, 'application/json');
+        downloadFile(content, `lyrics-${Date.now()}.freally-lyrics`, 'application/json');
     }, [song, genre, mood, songKey, scale, bpm, structureKey, rhymeScheme, creativity, usePunchlines]);
 
-    // Load lyrics from .wavloom-lyrics file
+    // Load lyrics from .freally-lyrics file
     const handleLoadLyrics = useCallback(() => {
         lyricsFileInputRef.current?.click();
     }, []);
@@ -570,7 +570,7 @@ export default function LyricEngineTab({
         reader.onload = (evt) => {
             try {
                 const data = JSON.parse(evt.target.result);
-                if (data.type === 'wavloom-lyrics' && data.sections) {
+                if (data.type === 'freally-lyrics' && data.sections) {
                     const sections = data.sections.map(s => ({
                         type: s.type, label: s.label, lines: s.lines, timing: s.timing || null,
                     }));
@@ -654,7 +654,7 @@ export default function LyricEngineTab({
             <input
                 ref={lyricsFileInputRef}
                 type="file"
-                accept=".wavloom-lyrics,.json"
+                accept=".freally-lyrics,.json"
                 style={{ display: 'none' }}
                 onChange={handleLyricsFileSelect}
             />

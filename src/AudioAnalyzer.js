@@ -625,7 +625,7 @@ export class AudioAnalyzer {
      * Detect tempo from onsets
      */
     detectTempo(onsets) {
-        console.log("--- WavLoom AudioAnalyzer V2 (FORCE_RELOAD CHECK) ---");
+        console.log("--- Freally AudioAnalyzer V2 (FORCE_RELOAD CHECK) ---");
         if (onsets.length < 4) {
             return 120; // Default tempo
         }

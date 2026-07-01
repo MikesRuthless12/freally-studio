@@ -1,6 +1,6 @@
 /**
  * Chinese (zh) Jazz Phrase Bank
- * Chinese jazz / 爵士 influenced lyrics for WavLoom Studio lyric engine.
+ * Chinese jazz / 爵士 influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

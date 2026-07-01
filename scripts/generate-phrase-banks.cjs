@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * generate-phrase-banks.cjs — WavLoom Studio
+ * generate-phrase-banks.cjs — Freally Studio
  *
  * Generates ALL 10 non-English locale phrase bank JSON files.
  * Run: node scripts/generate-phrase-banks.cjs
@@ -6373,7 +6373,7 @@ const PHRASE_BANKS = {
   ja: ja_built, ko: ko_built, zh: zh_built, ru: ru_built, ar: ar_built
 };
 
-console.log('\n=== WavLoom Studio — Phrase Bank Generator ===\n');
+console.log('\n=== Freally Studio — Phrase Bank Generator ===\n');
 
 let grandTotal = 0;
 

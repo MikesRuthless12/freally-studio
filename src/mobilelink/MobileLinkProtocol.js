@@ -2,7 +2,7 @@
  * Mobile Link Protocol — Message Types
  *
  * Defines all message types for the PeerJS data channel between
- * the desktop WavLoom app and connected mobile clients.
+ * the desktop Freally app and connected mobile clients.
  */
 
 export const MOBILE_MSG = {

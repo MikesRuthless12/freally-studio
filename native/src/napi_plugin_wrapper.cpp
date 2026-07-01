@@ -34,7 +34,7 @@ static int SEH_CallPlugin(SEH_PluginCallFn fn, void* ctx, const char* desc) {
     } __except(GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
                EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
         if (desc) {
-            fprintf(stderr, "[WavLoom] Plugin crashed during %s — caught by SEH\n", desc);
+            fprintf(stderr, "[Freally] Plugin crashed during %s — caught by SEH\n", desc);
             fflush(stderr);
         }
         result = -1;
@@ -95,7 +95,7 @@ static int DoOpenEditor(void* ctx) {
 
 #endif // _WIN32
 
-namespace wavloom_napi {
+namespace freally_napi {
 
 // --- Plugin lifecycle ---
 
@@ -235,7 +235,7 @@ Napi::Value ProcessBlock(const Napi::CallbackInfo& info) {
     std::vector<float> inLeft(numFrames, 0.0f);
     std::vector<float> inRight(numFrames, 0.0f);
     if (inputData && numInCh >= 2) {
-        wavloom::deinterleaveFloat32(inputData, inLeft.data(), inRight.data(), numFrames);
+        freally::deinterleaveFloat32(inputData, inLeft.data(), inRight.data(), numFrames);
     } else if (inputData && numInCh == 1) {
         std::copy(inputData, inputData + numFrames, inLeft.data());
         std::copy(inputData, inputData + numFrames, inRight.data());
@@ -270,7 +270,7 @@ Napi::Value ProcessBlock(const Napi::CallbackInfo& info) {
     // Log transport state transitions for debugging
     static bool lastPlayingState = false;
     if (isPlaying != lastPlayingState) {
-        fprintf(stderr, "[WavLoom Transport] playing: %s -> %s | tempo=%.1f pos=%.3f\n",
+        fprintf(stderr, "[Freally Transport] playing: %s -> %s | tempo=%.1f pos=%.3f\n",
                 lastPlayingState ? "true" : "false",
                 isPlaying ? "true" : "false",
                 tempo, posBeats);
@@ -278,7 +278,7 @@ Napi::Value ProcessBlock(const Napi::CallbackInfo& info) {
         lastPlayingState = isPlaying;
     }
 
-    auto processCtx = wavloom::buildProcessContext(
+    auto processCtx = freally::buildProcessContext(
         sampleRate, tempo, posBeats,
         transport.timeSigNumerator.load(std::memory_order_relaxed),
         transport.timeSigDenominator.load(std::memory_order_relaxed),
@@ -358,7 +358,7 @@ Napi::Value ProcessBlock(const Napi::CallbackInfo& info) {
     auto outputArray = Napi::Float32Array::New(env, numFrames * numOutCh);
     float* outputData = outputArray.Data();
     if (numOutCh >= 2) {
-        wavloom::interleaveFloat32(outChannels[0].data(), outChannels[1].data(), outputData, numFrames);
+        freally::interleaveFloat32(outChannels[0].data(), outChannels[1].data(), outputData, numFrames);
     } else if (numOutCh == 1) {
         std::copy(outChannels[0].data(), outChannels[0].data() + numFrames, outputData);
     }
@@ -649,6 +649,6 @@ Napi::Value RegisterEditorKeyCallback(const Napi::CallbackInfo& info) {
     return env.Undefined();
 }
 
-} // namespace wavloom_napi
+} // namespace freally_napi
 
 #endif // VST3_SDK_AVAILABLE

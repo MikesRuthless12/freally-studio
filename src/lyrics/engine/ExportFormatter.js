@@ -26,7 +26,7 @@ export function formatAsLRC(sections, metadata = {}) {
     if (metadata.title) header.push(`[ti:${metadata.title}]`);
     if (metadata.artist) header.push(`[ar:${metadata.artist}]`);
     if (metadata.album) header.push(`[al:${metadata.album}]`);
-    header.push('[by:WavLoom Lyric Engine]');
+    header.push('[by:Freally Lyric Engine]');
     header.push('');
 
     const lines = [];
@@ -74,7 +74,7 @@ function msToLRC(ms) {
  */
 export function formatAsJSON(sections, settings = {}) {
     const doc = {
-        generator: 'WavLoom Lyric Engine',
+        generator: 'Freally Lyric Engine',
         version: '1.0.0',
         generatedAt: new Date().toISOString(),
         settings: {
@@ -100,14 +100,14 @@ export function formatAsJSON(sections, settings = {}) {
 }
 
 /**
- * Format lyrics for WavLoom project integration.
+ * Format lyrics for Freally project integration.
  * @param {Array<{label: string, type: string, lines: string[]}>} sections
  * @param {object} settings
  * @returns {object} - project-compatible lyrics object
  */
 export function formatAsProject(sections, settings = {}) {
     return {
-        type: 'wavloom-lyrics',
+        type: 'freally-lyrics',
         version: 1,
         settings,
         sections: sections.map(s => ({

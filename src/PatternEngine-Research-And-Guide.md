@@ -1,4 +1,4 @@
-# WavLoom Pattern Engine — Research Findings & Implementation Guide
+# Freally Pattern Engine — Research Findings & Implementation Guide
 
 ## How Professional Tools Generate MIDI Patterns
 
@@ -187,7 +187,7 @@ This ensures all four parts are **harmonically linked** — the melody targets c
 
 ---
 
-## 6. INTEGRATION WITH WAVLOOM
+## 6. INTEGRATION WITH FREALLY
 
 ### How to use in ChordGeneratorEnhanced.jsx:
 
@@ -223,7 +223,7 @@ const newPattern = generateBassPattern({
 });
 ```
 
-### How to use the unified generator (in WavLoomAppComplete.jsx):
+### How to use the unified generator (in FreallyAppComplete.jsx):
 
 ```javascript
 import { generateAllPatterns } from './PatternEngine';

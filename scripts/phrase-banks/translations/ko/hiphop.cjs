@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Hip-Hop Phrase Bank
- * Korean hip-hop / K-Hip-Hop influenced lyrics for WavLoom Studio lyric engine.
+ * Korean hip-hop / K-Hip-Hop influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

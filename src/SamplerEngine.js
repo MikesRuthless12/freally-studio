@@ -13,20 +13,20 @@ export class SamplerEngine {
 
             // Auto-detect system native sample rate by creating a temporary context
             // with no sampleRate specified — the browser picks the hardware default.
-            if (!window._wavloomNativeSampleRate) {
+            if (!window._freallyNativeSampleRate) {
                 try {
                     const probe = new Ctx();
-                    window._wavloomNativeSampleRate = probe.sampleRate;
+                    window._freallyNativeSampleRate = probe.sampleRate;
                     probe.close().catch(() => {});
                 } catch (_) {
-                    window._wavloomNativeSampleRate = 48000; // fallback
+                    window._freallyNativeSampleRate = 48000; // fallback
                 }
             }
 
             // Use detected native rate as default, user setting overrides
-            let ctxOptions = { latencyHint: 'playback', sampleRate: window._wavloomNativeSampleRate };
+            let ctxOptions = { latencyHint: 'playback', sampleRate: window._freallyNativeSampleRate };
             try {
-                const raw = localStorage.getItem('wavloom_settings');
+                const raw = localStorage.getItem('freally_settings');
                 if (raw) {
                     const s = JSON.parse(raw);
                     if (s.latencyHint) ctxOptions.latencyHint = s.latencyHint;
@@ -584,7 +584,7 @@ export class SamplerEngine {
         // Read device settings
         let deviceId = undefined;
         try {
-            const raw = localStorage.getItem('wavloom_settings');
+            const raw = localStorage.getItem('freally_settings');
             if (raw) {
                 const s = JSON.parse(raw);
                 if (s.audioInputDeviceId) deviceId = s.audioInputDeviceId;
@@ -2013,9 +2013,9 @@ export class SamplerEngine {
 
         // Create fresh context with user settings (default to detected native rate)
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        let ctxOptions = { latencyHint: 'playback', sampleRate: window._wavloomNativeSampleRate || 48000 };
+        let ctxOptions = { latencyHint: 'playback', sampleRate: window._freallyNativeSampleRate || 48000 };
         try {
-            const raw = localStorage.getItem('wavloom_settings');
+            const raw = localStorage.getItem('freally_settings');
             if (raw) {
                 const s = JSON.parse(raw);
                 if (s.latencyHint) ctxOptions.latencyHint = s.latencyHint;
@@ -2240,9 +2240,9 @@ export class SamplerEngine {
         // 2. Build the NEW context and full audio graph FIRST (while old
         //    context is still running). This minimizes the silent gap.
         const Ctx = window.AudioContext || window.webkitAudioContext;
-        let ctxOptions = { latencyHint: 'playback', sampleRate: window._wavloomNativeSampleRate || 48000 };
+        let ctxOptions = { latencyHint: 'playback', sampleRate: window._freallyNativeSampleRate || 48000 };
         try {
-            const raw = localStorage.getItem('wavloom_settings');
+            const raw = localStorage.getItem('freally_settings');
             if (raw) {
                 const s = JSON.parse(raw);
                 if (s.latencyHint) ctxOptions.latencyHint = s.latencyHint;

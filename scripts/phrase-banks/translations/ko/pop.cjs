@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Pop Phrase Bank
- * K-Pop influenced pop lyrics for WavLoom Studio lyric engine.
+ * K-Pop influenced pop lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

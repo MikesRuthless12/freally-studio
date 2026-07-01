@@ -63,7 +63,7 @@ class AudioEngine {
             // Read user-configured audio settings (sample rate + latency hint)
             let ctxOptions = { latencyHint: 'playback' };
             try {
-                const raw = localStorage.getItem('wavloom_settings');
+                const raw = localStorage.getItem('freally_settings');
                 if (raw) {
                     const s = JSON.parse(raw);
                     if (s.latencyHint) ctxOptions.latencyHint = s.latencyHint;

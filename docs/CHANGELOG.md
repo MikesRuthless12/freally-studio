@@ -1,6 +1,6 @@
-# Changelog — WavLoom Studio
+# Changelog — Freally Studio
 
-All notable changes to WavLoom Studio. Format follows
+All notable changes to Freally Studio. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 The project pre-dates this changelog; older releases are represented in
@@ -38,7 +38,7 @@ deferred items called out under *Deferred / Follow-up*. Final state:
 - Native plugin `ProcessBlock` validates `numFrames` (0–8192), `numInCh` /
   `numOutCh` (0–32), and that the input typed array length is at least
   `numFrames * numInCh` before deinterleaving. Throws `Napi::Error` otherwise.
-- `wavloom://` deep-link `room` parameter validated against `/^[A-Za-z0-9_-]{1,64}$/`.
+- `freally://` deep-link `room` parameter validated against `/^[A-Za-z0-9_-]{1,64}$/`.
 - `fs.watch(recursive: true)` capped at 16 active watchers; system roots
   (`C:\`, `/`) rejected.
 - `BrowserWindow` runs with `sandbox: true`, `contextIsolation: true`,
@@ -117,7 +117,7 @@ deferred items called out under *Deferred / Follow-up*. Final state:
   caller (project load, presets, MIDI tap, undo/redo). All `60 / globalTempo`
   divisor sites are protected by this single invariant.
 - **Drum solo-key inconsistency.** `drums_${drumId}` keys lose the trailing
-  space they had in `DrumGeneratorEnhanced.jsx`; `WavLoomAppComplete.jsx`'s
+  space they had in `DrumGeneratorEnhanced.jsx`; `FreallyAppComplete.jsx`'s
   drum-clip poller now treats any `drums_*` key as soloing the drums track.
   (Soloing a single drum lane no longer silences drum clips.)
 - **AudioEngine `_idleSuspendTimer` leak.** `dispose()` clears the timer; the

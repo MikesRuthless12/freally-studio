@@ -1,4 +1,4 @@
-// accentThemes.js — Visual accent color customization for WavLoom Studio
+// accentThemes.js — Visual accent color customization for Freally Studio
 
 export const ACCENT_THEMES = {
     // === 6 Solid Accent Colors ===

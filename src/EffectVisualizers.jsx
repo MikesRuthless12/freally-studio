@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { hexToRgba } from './accentThemes';
 
 // ═══════════════════════════════════════════════════════════════════
-// VST3-Style Effect Visualizers for WavLoom Studio
+// VST3-Style Effect Visualizers for Freally Studio
 // Canvas-based real-time visualizations for all 18 effect types
 // ═══════════════════════════════════════════════════════════════════
 

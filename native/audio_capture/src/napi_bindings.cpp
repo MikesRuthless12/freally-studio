@@ -1,5 +1,5 @@
 /**
- * N-API module entry point for wavloom_audio_capture.
+ * N-API module entry point for freally_audio_capture.
  *
  * Exposes WASAPI audio capture functionality to Node.js:
  *   - listInputDevices()  → array of device info objects
@@ -285,4 +285,4 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     return exports;
 }
 
-NODE_API_MODULE(wavloom_audio_capture, Init)
+NODE_API_MODULE(freally_audio_capture, Init)

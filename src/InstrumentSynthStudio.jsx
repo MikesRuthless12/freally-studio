@@ -142,14 +142,14 @@ const InstrumentSynthStudio = ({ theme, onClose, accentColors}) => {
             // Native File System API save - Session Based
             try {
                 // 1. Get or request the master session folder
-                if (!window.wavloomSessionExportDir) {
+                if (!window.freallySessionExportDir) {
                     alert(t('common.selectMasterFolder'));
-                    window.wavloomSessionExportDir = await window.showDirectoryPicker({
+                    window.freallySessionExportDir = await window.showDirectoryPicker({
                         mode: 'readwrite'
                     });
                 }
 
-                const rootDir = window.wavloomSessionExportDir;
+                const rootDir = window.freallySessionExportDir;
 
                 // 2. Ensure "Instrument Synthesis Studio" subfolder exists
                 const studioDir = await rootDir.getDirectoryHandle('Instrument Synthesis Studio', { create: true });
@@ -162,7 +162,7 @@ const InstrumentSynthStudio = ({ theme, onClose, accentColors}) => {
 
                 // 4. Alert FileExplorer to auto-mount/rescan
                 try {
-                    window.dispatchEvent(new CustomEvent('wavloom:autoMountFolder', { detail: { handle: studioDir } }));
+                    window.dispatchEvent(new CustomEvent('freally:autoMountFolder', { detail: { handle: studioDir } }));
                 } catch (e) { }
 
             } catch (err) {
@@ -286,7 +286,7 @@ const InstrumentSynthStudio = ({ theme, onClose, accentColors}) => {
                 <button className="iss-btn iss-btn-ghost" style={{ marginRight: 'auto', fontSize: 11 }} onClick={async () => {
                     try {
                         const newDir = await window.showDirectoryPicker({ mode: 'readwrite' });
-                        window.wavloomSessionExportDir = newDir;
+                        window.freallySessionExportDir = newDir;
                         alert(t('common.masterFolderUpdated'));
                     } catch (e) { }
                 }}>

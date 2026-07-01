@@ -284,7 +284,7 @@ static bool SEH_PumpPendingMessages(int iterations) {
             }
         } __except(EXCEPTION_EXECUTE_HANDLER) {
             DWORD code = GetExceptionCode();
-            fprintf(stderr, "[WavLoom] Plugin callback crash during message pump: 0x%08lX — plugin may be unstable\n", code);
+            fprintf(stderr, "[Freally] Plugin callback crash during message pump: 0x%08lX — plugin may be unstable\n", code);
             fflush(stderr);
             return false;
         }
@@ -651,7 +651,7 @@ void PluginInstance::processBlock(float** inputBuffers, float** outputBuffers,
     // Zero output buffers before processing
     for (int32_t ch = 0; ch < numOutputChannels; ch++) {
         if (outputBuffers[ch]) {
-            wavloom::zeroBuffer(outputBuffers[ch], numSamples);
+            freally::zeroBuffer(outputBuffers[ch], numSamples);
         }
     }
 
@@ -780,9 +780,9 @@ bool PluginInstance::setState(const std::vector<uint8_t>& data) {
 #ifdef _WIN32
 
 // IPlugFrame implementation — handles plugin resize requests
-class WavLoomPlugFrame : public Steinberg::IPlugFrame {
+class FreallyPlugFrame : public Steinberg::IPlugFrame {
 public:
-    WavLoomPlugFrame(PluginInstance* instance, HWND hwnd)
+    FreallyPlugFrame(PluginInstance* instance, HWND hwnd)
         : refCount_(1), instance_(instance), hwnd_(hwnd) {}
 
     tresult PLUGIN_API resizeView(Steinberg::IPlugView* view, Steinberg::ViewRect* newSize) override {
@@ -968,7 +968,7 @@ std::string PluginInstance::openEditor() {
         wc.hInstance = GetModuleHandle(nullptr);
         wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
         wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-        wc.lpszClassName = L"WavLoomVST3Editor";
+        wc.lpszClassName = L"FreallyVST3Editor";
         if (RegisterClassExW(&wc)) {
             windowClassRegistered_ = true;
         }
@@ -983,7 +983,7 @@ std::string PluginInstance::openEditor() {
 
     // Convert plugin name to wide string for window title
     std::wstring title(name_.begin(), name_.end());
-    title += L" - WavLoom";
+    title += L" - Freally";
 
     // Create the editor window (centered on screen)
     int screenW = GetSystemMetrics(SM_CXSCREEN);
@@ -993,7 +993,7 @@ std::string PluginInstance::openEditor() {
 
     editorWindow_ = CreateWindowExW(
         WS_EX_TOPMOST,
-        L"WavLoomVST3Editor",
+        L"FreallyVST3Editor",
         title.c_str(),
         style,
         posX, posY, windowWidth, windowHeight,
@@ -1013,7 +1013,7 @@ std::string PluginInstance::openEditor() {
     SetWindowLongPtr(editorWindow_, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
     // Create and set IPlugFrame so the plugin can request resize
-    auto* frame = new WavLoomPlugFrame(this, editorWindow_);
+    auto* frame = new FreallyPlugFrame(this, editorWindow_);
     plugFrame_ = frame; // IPtr takes ownership
     frame->release();   // IPtr did addRef, balance our initial refCount of 1
     plugView_->setFrame(plugFrame_);

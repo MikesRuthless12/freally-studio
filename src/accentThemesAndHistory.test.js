@@ -101,10 +101,10 @@ describe('Undo History Limits', () => {
         expect(src).toContain('const MAX_HISTORY = 50');
     });
 
-    it('MAX_AUDIO_HISTORY in WavLoomAppComplete should be 50', async () => {
+    it('MAX_AUDIO_HISTORY in FreallyAppComplete should be 50', async () => {
         const fs = await import('fs');
         const path = await import('path');
-        const src = fs.readFileSync(path.resolve(__dirname, 'WavLoomAppComplete.jsx'), 'utf-8');
+        const src = fs.readFileSync(path.resolve(__dirname, 'FreallyAppComplete.jsx'), 'utf-8');
         expect(src).toContain('const MAX_AUDIO_HISTORY = 50');
     });
 
@@ -128,7 +128,7 @@ describe('Undo/Redo includes trackAutomation', () => {
     it('handleUndo should restore trackAutomation', async () => {
         const fs = await import('fs');
         const path = await import('path');
-        const src = fs.readFileSync(path.resolve(__dirname, 'WavLoomAppComplete.jsx'), 'utf-8');
+        const src = fs.readFileSync(path.resolve(__dirname, 'FreallyAppComplete.jsx'), 'utf-8');
         expect(src).toContain('snapshot.trackAutomation');
         expect(src).toContain('setTrackAutomation');
     });

@@ -1,6 +1,6 @@
 /**
  * Chinese (zh) Gospel Phrase Bank
- * Chinese gospel / 福音 influenced lyrics for WavLoom Studio lyric engine.
+ * Chinese gospel / 福音 influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

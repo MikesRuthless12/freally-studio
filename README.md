@@ -1,4 +1,4 @@
-# 🌊 WavLoom Studio v2.0 - Enhanced
+# 🌊 Freally Studio v2.0 - Enhanced
 
 Professional browser-based DAW with comprehensive music production features.
 
@@ -14,8 +14,8 @@ Professional browser-based DAW with comprehensive music production features.
 
 1. **Extract the project files**
    ```bash
-   unzip WavLoom-Enhanced-v2.zip
-   cd wavloom-project
+   unzip Freally-Enhanced-v2.zip
+   cd freally-project
    ```
 
 2. **Install dependencies**
@@ -76,7 +76,7 @@ FL Studio-style professional mixer:
 ## 📁 Project Structure
 
 ```
-wavloom-project/
+freally-project/
 ├── src/
 │   ├── App.jsx                      # Original app
 │   ├── AppDemo.jsx                  # Enhanced demo app
@@ -306,7 +306,7 @@ pnpm install
 
 ## 🛡️ Quality, Security & Stability
 
-WavLoom Studio went through a comprehensive security + correctness audit pass
+Freally Studio went through a comprehensive security + correctness audit pass
 on **2026-05-02**, hardening the desktop (Electron) shell, the P2P
 collaboration layer, file-import paths, and the lyrics generation engine.
 Highlights:
@@ -334,7 +334,7 @@ Test status: **844 / 844 passing** across 33 test files.
 
 ## 🎉 Enjoy Making Music!
 
-**WavLoom Studio v2.0** - Professional Music Production in Your Browser 🎵
+**Freally Studio v2.0** - Professional Music Production in Your Browser 🎵
 
 For detailed feature documentation, see `FEATURES_IMPLEMENTED.md`
 For change history, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md).

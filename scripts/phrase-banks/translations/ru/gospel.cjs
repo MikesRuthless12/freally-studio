@@ -1,6 +1,6 @@
 /**
  * Russian (ru) Gospel Phrase Bank
- * Russian gospel / духовная музыка influenced lyrics for WavLoom Studio lyric engine.
+ * Russian gospel / духовная музыка influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

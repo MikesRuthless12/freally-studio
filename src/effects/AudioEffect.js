@@ -1,5 +1,5 @@
 /**
- * AudioEffect — Abstract base class for all audio effects in WavLoom Studio.
+ * AudioEffect — Abstract base class for all audio effects in Freally Studio.
  *
  * Each effect subclass implements _buildGraph(ctx) to construct its internal
  * Web Audio node chain. The base class handles bypass (dry/wet crossfade),

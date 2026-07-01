@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Rock Phrase Bank
- * Korean rock / K-Rock influenced lyrics for WavLoom Studio lyric engine.
+ * Korean rock / K-Rock influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

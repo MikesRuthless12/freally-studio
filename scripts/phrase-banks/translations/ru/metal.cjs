@@ -1,6 +1,6 @@
 /**
  * Russian (ru) Metal Phrase Bank
- * Russian metal influenced lyrics for WavLoom Studio lyric engine.
+ * Russian metal influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

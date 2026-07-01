@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * WavLoom Pattern Engine Expansion
+ * Freally Pattern Engine Expansion
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * Extends the melody and bass generation engines in PatternEngine.js with:

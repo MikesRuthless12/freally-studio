@@ -1,5 +1,5 @@
 /**
- * WavLoom Lyric Engine — Chinese (Simplified) Rock Phrase Bank
+ * Freally Lyric Engine — Chinese (Simplified) Rock Phrase Bank
  * Chinese rock influenced lyrics covering all 14 moods.
  */
 module.exports = {

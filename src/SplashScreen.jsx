@@ -35,7 +35,7 @@ export default function SplashScreen({ onFinished }) {
         }}>
             <video
                 ref={videoRef}
-                src="/SauceWare_Audio_WavLoom.mp4"
+                src="/SauceWare_Audio_Freally.mp4"
                 autoPlay
                 muted={false}
                 playsInline

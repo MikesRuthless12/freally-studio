@@ -148,7 +148,7 @@ function PreviewPanel({ type, dark, ac = '#ff6b6b', acSec = '#ff9f43', acGrad = 
             <div style={previewStyle}>
                 <div style={{ ...innerScale, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                     <div style={{ fontSize: '18px' }}>🎵</div>
-                    <div style={{ fontSize: '8px', fontWeight: '900', color: ac, letterSpacing: '1px' }}>WAVLOOM STUDIO</div>
+                    <div style={{ fontSize: '8px', fontWeight: '900', color: ac, letterSpacing: '1px' }}>FREALLY STUDIO</div>
                     <div style={{ display: 'flex', gap: '2px' }}>
                         {['🥁', '🎹', '🎸', '🎵'].map((e, i) => (
                             <span key={i} style={{ fontSize: '8px' }}>{e}</span>
@@ -472,8 +472,8 @@ function StepPreview({ type, isDark, ac, acSec, acGrad, t }) {
     );
 }
 
-const STORAGE_KEY = 'wavloom_tour_completed';
-const STORAGE_DONT_SHOW_KEY = 'wavloom_tour_dont_show';
+const STORAGE_KEY = 'freally_tour_completed';
+const STORAGE_DONT_SHOW_KEY = 'freally_tour_dont_show';
 
 export function OnboardingTour({ isOpen, onClose, theme, onBrowserVisibility, onTabChange, accentColors }) {
     const { t } = useTranslation();

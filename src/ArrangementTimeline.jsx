@@ -3105,7 +3105,7 @@ export default function ArrangementTimeline({
         setClipDropGhost(null);
 
         // ── Internal clip drag between tracks ──
-        const clipData = e.dataTransfer.getData('application/x-wavloom-clip');
+        const clipData = e.dataTransfer.getData('application/x-freally-clip');
         if (clipData && row.type === 'audio' && onAddClip && onRemoveClip) {
             try {
                 const { clipId, trackId: srcTrackId } = JSON.parse(clipData);
@@ -3211,7 +3211,7 @@ export default function ArrangementTimeline({
         }
 
         // ── MIDI clip drag between MIDI tracks ──
-        const midiClipData = e.dataTransfer.getData('application/x-wavloom-midi-clip');
+        const midiClipData = e.dataTransfer.getData('application/x-freally-midi-clip');
         if (midiClipData && row.type === 'midi' && onAddMidiClip) {
             try {
                 const { trackId: srcTrackId, clipId: srcClipId, clip: srcClip } = JSON.parse(midiClipData);
@@ -3830,7 +3830,7 @@ export default function ArrangementTimeline({
                                                 return;
                                             }
                                             // Case 2: Effect drag from Browser
-                                            if (e.dataTransfer.types.includes('application/x-wavloom-effect')) {
+                                            if (e.dataTransfer.types.includes('application/x-freally-effect')) {
                                                 e.preventDefault();
                                                 e.dataTransfer.dropEffect = 'copy';
                                                 return;
@@ -3861,7 +3861,7 @@ export default function ArrangementTimeline({
                                                 return;
                                             }
                                             // Case 2: Effect drop from Browser → add effect to this row's track (max 5 of same type)
-                                            const effectType = e.dataTransfer.getData('application/x-wavloom-effect');
+                                            const effectType = e.dataTransfer.getData('application/x-freally-effect');
                                             if (effectType && effectsManager) {
                                                 e.preventDefault();
                                                 const c = effectsManager.getOrCreateTrackChain(row.effectTrackId || row.id);
@@ -5231,7 +5231,7 @@ export default function ArrangementTimeline({
                                                                     onDragStart={(e) => {
                                                                         e.stopPropagation();
                                                                         e.dataTransfer.effectAllowed = 'copyMove';
-                                                                        e.dataTransfer.setData('application/x-wavloom-clip', JSON.stringify({ clipId: clip.id, trackId: row.trackId }));
+                                                                        e.dataTransfer.setData('application/x-freally-clip', JSON.stringify({ clipId: clip.id, trackId: row.trackId }));
                                                                         // Center ghost preview under cursor
                                                                         const elRect = e.currentTarget.getBoundingClientRect();
                                                                         // Hide native drag image — use timeline ghost only
@@ -5964,7 +5964,7 @@ export default function ArrangementTimeline({
                                                                 }
                                                             }
                                                             // Handle MIDI clip data (from MIDI rows)
-                                                            const midiClipData = e.dataTransfer.getData('application/x-wavloom-midi-clip');
+                                                            const midiClipData = e.dataTransfer.getData('application/x-freally-midi-clip');
                                                             if (midiClipData && onAddMidiClip) {
                                                                 const { trackId: srcTrackId, clipId: srcClipId, clip: srcClip } = JSON.parse(midiClipData);
                                                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -6104,7 +6104,7 @@ export default function ArrangementTimeline({
                                                                     onDragStart={(e) => {
                                                                         e.stopPropagation();
                                                                         e.dataTransfer.effectAllowed = 'copyMove';
-                                                                        e.dataTransfer.setData('application/x-wavloom-midi-clip', JSON.stringify({
+                                                                        e.dataTransfer.setData('application/x-freally-midi-clip', JSON.stringify({
                                                                             trackId: row.trackId, clipId: clip.id,
                                                                             clip: { bars: clip.bars, pattern: clip.pattern, name: clip.name, color: clip.color }
                                                                         }));
@@ -6348,7 +6348,7 @@ export default function ArrangementTimeline({
                                                                     onDragStart={(e) => {
                                                                         e.stopPropagation();
                                                                         e.dataTransfer.effectAllowed = 'copyMove';
-                                                                        e.dataTransfer.setData('application/x-wavloom-drum-clip', JSON.stringify({
+                                                                        e.dataTransfer.setData('application/x-freally-drum-clip', JSON.stringify({
                                                                             clipId: clip.id
                                                                         }));
                                                                         // Center ghost preview under cursor
@@ -6777,7 +6777,7 @@ export default function ArrangementTimeline({
                                                                     onDragStart={(e) => {
                                                                         e.stopPropagation();
                                                                         e.dataTransfer.effectAllowed = 'copyMove';
-                                                                        e.dataTransfer.setData('application/x-wavloom-note-clip', JSON.stringify({
+                                                                        e.dataTransfer.setData('application/x-freally-note-clip', JSON.stringify({
                                                                             trackKey: row.trackKey, clipId: clip.id,
                                                                             clip: { bars: clip.bars, pattern: clip.pattern, name: clip.name, color: clip.color }
                                                                         }));
@@ -7056,7 +7056,7 @@ export default function ArrangementTimeline({
                                                                     onDragStart={(e) => {
                                                                         e.stopPropagation();
                                                                         e.dataTransfer.effectAllowed = 'copyMove';
-                                                                        e.dataTransfer.setData('application/x-wavloom-drumlane-clip', JSON.stringify({
+                                                                        e.dataTransfer.setData('application/x-freally-drumlane-clip', JSON.stringify({
                                                                             drumId: row.drumId, clipId: clip.id,
                                                                             clip: { bars: clip.bars, laneData: clip.laneData, name: clip.name, color: clip.color }
                                                                         }));

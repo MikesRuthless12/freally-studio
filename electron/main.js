@@ -86,7 +86,7 @@ process.on('unhandledRejection', (reason) => {
 
 // --- Window bounds & folder persistence ---
 function getSettingsPath() {
-    return path.join(app.getPath('userData'), 'wavloom-settings.json');
+    return path.join(app.getPath('userData'), 'freally-settings.json');
 }
 function loadSettings() {
     try {
@@ -102,25 +102,25 @@ function saveSettings(data) {
     } catch (_) {}
 }
 
-// Register wavloom:// protocol for deep-link collab invites
+// Register freally:// protocol for deep-link collab invites
 if (process.defaultApp) {
     // Dev mode: register with path to electron executable + script
     if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient('wavloom', process.execPath, [path.resolve(process.argv[1])]);
+        app.setAsDefaultProtocolClient('freally', process.execPath, [path.resolve(process.argv[1])]);
     }
 } else {
-    app.setAsDefaultProtocolClient('wavloom');
+    app.setAsDefaultProtocolClient('freally');
 }
 
-// Extract room param from a wavloom:// URL.
+// Extract room param from a freally:// URL.
 // Validates the room id against /^[A-Za-z0-9_-]{1,64}$/ to prevent
 // injection of arbitrary strings via the deep-link channel.
 const ROOM_ID_REGEX = /^[A-Za-z0-9_-]{1,64}$/;
 function extractRoomFromUrl(url) {
-    if (!url || !url.startsWith('wavloom://')) return null;
+    if (!url || !url.startsWith('freally://')) return null;
     try {
-        // wavloom://join?room=abc123 → abc123
-        const parsed = new URL(url.replace('wavloom://', 'https://wavloom/'));
+        // freally://join?room=abc123 → abc123
+        const parsed = new URL(url.replace('freally://', 'https://freally/'));
         const room = parsed.searchParams.get('room');
         if (!room || !ROOM_ID_REGEX.test(room)) return null;
         return room;
@@ -130,8 +130,8 @@ function extractRoomFromUrl(url) {
 // Pending deep-link room (set before window is ready)
 let pendingDeepLinkRoom = null;
 
-// Check if launched with a wavloom:// URL (Windows/Linux pass it as argv)
-const deepLinkArg = process.argv.find(a => a.startsWith('wavloom://'));
+// Check if launched with a freally:// URL (Windows/Linux pass it as argv)
+const deepLinkArg = process.argv.find(a => a.startsWith('freally://'));
 if (deepLinkArg) {
     pendingDeepLinkRoom = extractRoomFromUrl(deepLinkArg);
 }
@@ -144,7 +144,7 @@ if (!gotLock) {
 } else {
     app.on('second-instance', (_event, argv) => {
         // Forward deep-link room param from second instance
-        const url = argv.find(a => a.startsWith('wavloom://'));
+        const url = argv.find(a => a.startsWith('freally://'));
         const room = url ? extractRoomFromUrl(url) : null;
         if (mainWindow) {
             if (mainWindow.isMinimized()) mainWindow.restore();
@@ -211,7 +211,7 @@ function createWindow() {
         titleBarStyle: isMac ? 'hiddenInset' : undefined, // macOS: hide title but keep traffic lights
         transparent: !isMac,                            // transparent only on Windows/Linux (splash)
         trafficLightPosition: isMac ? { x: 12, y: 12 } : undefined,
-        icon: path.join(__dirname, '..', 'src', 'images', 'wavloom_app_icon.png'),
+        icon: path.join(__dirname, '..', 'src', 'images', 'freally_app_icon.png'),
         show: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -357,7 +357,7 @@ function createWindow() {
     });
 }
 
-// macOS: handle wavloom:// URLs via open-url event
+// macOS: handle freally:// URLs via open-url event
 app.on('open-url', (event, url) => {
     event.preventDefault();
     const room = extractRoomFromUrl(url);

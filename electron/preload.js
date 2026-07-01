@@ -58,7 +58,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         showItemInFolder: (filePath) => ipcRenderer.invoke('shell:showItemInFolder', filePath),
     },
 
-    // Deep-link collab invites (wavloom://join?room=xxx)
+    // Deep-link collab invites (freally://join?room=xxx)
     deeplink: {
         onRoom: (callback) => {
             ipcRenderer.on('deeplink:room', (_event, room) => callback(room));

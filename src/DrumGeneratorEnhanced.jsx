@@ -1723,7 +1723,7 @@ const DrumGeneratorEnhanced = React.forwardRef(({
                                 Editing Clip
                             </span>
                             <button
-                                onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('wavloom-close-drum-clip-edit')); }}
+                                onClick={() => { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('freally-close-drum-clip-edit')); }}
                                 style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: 'transparent', color: isDark ? '#ccc' : '#555', cursor: 'pointer' }}
                             >
                                 Close

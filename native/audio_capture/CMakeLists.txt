@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
-project(wavloom_audio_capture)
+project(freally_audio_capture)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Use dynamic CRT (/MD) for consistency with other WavLoom native addons
+# Use dynamic CRT (/MD) for consistency with other Freally native addons
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE STRING "" FORCE)
 endif()

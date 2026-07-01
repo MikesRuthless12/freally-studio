@@ -9,11 +9,11 @@ import { resolve } from 'path';
 
 const read = (relPath) => readFileSync(resolve(__dirname, relPath), 'utf-8');
 
-// ── WavLoomAppComplete ���────────────────────────────────────────────────────
+// ── FreallyAppComplete ���────────────────────────────────────────────────────
 
-describe('WavLoomAppComplete — critical implementation', () => {
+describe('FreallyAppComplete — critical implementation', () => {
     let src;
-    beforeAll(() => { src = read('WavLoomAppComplete.jsx'); });
+    beforeAll(() => { src = read('FreallyAppComplete.jsx'); });
 
     // Global state
     it('should have globalKey, globalScale, globalTempo state', () => {

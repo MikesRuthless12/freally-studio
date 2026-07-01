@@ -1,6 +1,6 @@
 /**
  * Rock — English Reference Translation Phrase Bank
- * WavLoom Studio Lyric Engine
+ * Freally Studio Lyric Engine
  */
 module.exports = {
   themes: [

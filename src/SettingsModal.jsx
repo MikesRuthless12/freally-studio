@@ -3,7 +3,7 @@ import { isElectron } from './electronBridge.js';
 import { ACCENT_THEMES, SOLID_ACCENT_KEYS, GRADIENT_ACCENT_KEYS } from './accentThemes.js';
 import { useTranslation } from './i18n/I18nContext.jsx';
 
-const SETTINGS_KEY = 'wavloom_settings';
+const SETTINGS_KEY = 'freally_settings';
 
 const DEFAULT_SETTINGS = {
     showTooltips: true,
@@ -102,7 +102,7 @@ export function applyTooltipSetting(enabled) {
     }
 }
 
-const NATIVE_RATE = window._wavloomNativeSampleRate || 48000;
+const NATIVE_RATE = window._freallyNativeSampleRate || 48000;
 
 const SAMPLE_RATES = [
     { label: `Auto (${NATIVE_RATE.toLocaleString()} Hz)`, value: 0 },

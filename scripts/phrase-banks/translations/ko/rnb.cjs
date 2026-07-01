@@ -1,6 +1,6 @@
 /**
  * Korean (ko) R&B Phrase Bank
- * Korean R&B / K-R&B influenced lyrics for WavLoom Studio lyric engine.
+ * Korean R&B / K-R&B influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

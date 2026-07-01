@@ -5,7 +5,7 @@
  * noteOn / noteOff / CC messages, and channel filtering.
  */
 
-// General MIDI drum map  (note number → WavLoom drum element id)
+// General MIDI drum map  (note number → Freally drum element id)
 export const GM_DRUM_MAP = {
     35: 'kick',       // Acoustic Bass Drum
     36: 'kick',       // Bass Drum 1

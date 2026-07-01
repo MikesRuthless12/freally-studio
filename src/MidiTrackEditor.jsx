@@ -10,7 +10,7 @@ import { useTranslation } from './i18n/I18nContext.jsx';
 /**
  * MidiTrackEditor — Modal piano-roll editor for a single MIDI track.
  * Opens as an overlay (like DrumSampleEditor) when double-clicking a MIDI track strip in the mixer.
- * Pattern data and instrument state are owned by parent (WavLoomAppComplete).
+ * Pattern data and instrument state are owned by parent (FreallyAppComplete).
  */
 const MidiTrackEditor = ({
     track,             // { id, name, color, clips, instrumentId, instrumentName, octave }

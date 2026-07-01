@@ -1,4 +1,4 @@
-# WavLoom MIDI Generator - Simplified Edition
+# Freally MIDI Generator - Simplified Edition
 
 A clean, focused MIDI drum pattern generator inspired by Unison Drum Monkey.
 

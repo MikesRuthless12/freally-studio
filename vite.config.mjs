@@ -36,8 +36,8 @@ export default defineConfig(({ mode }) => {
                 registerType: 'autoUpdate',
                 includeAssets: ['favicon.png', 'icon-192.png', 'icon-512.png'],
                 manifest: {
-                    name: 'WavLoom Studio',
-                    short_name: 'WavLoom',
+                    name: 'Freally Studio',
+                    short_name: 'Freally',
                     description: 'Browser-based DAW with AI-powered pattern generation',
                     theme_color: '#0a0a0f',
                     background_color: '#0a0a0f',

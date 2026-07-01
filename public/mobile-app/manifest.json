@@ -1,7 +1,7 @@
 {
-    "name": "WavLoom Mobile",
-    "short_name": "WavLoom",
-    "description": "Wireless monitoring for WavLoom Studio",
+    "name": "Freally Mobile",
+    "short_name": "Freally",
+    "description": "Wireless monitoring for Freally Studio",
     "start_url": ".",
     "display": "standalone",
     "orientation": "portrait",

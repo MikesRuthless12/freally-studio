@@ -42,8 +42,8 @@ code {
   }
 }
 
-/* WAVLOOM STUDIO title hover ripple animation */
-@keyframes wavloom-wave {
+/* FREALLY STUDIO title hover ripple animation */
+@keyframes freally-wave {
   0% {
     transform: translateY(0) scale(1) rotate(0deg);
     filter: brightness(1) drop-shadow(0 0 0px currentColor);
@@ -71,7 +71,7 @@ code {
 }
 
 /* Letter shine: each letter brightens to white with glow, sweeping left to right every 12s */
-@keyframes wavloom-shine {
+@keyframes freally-shine {
   0%, 92% {
     filter: brightness(1) drop-shadow(0 0 0px currentColor);
   }
@@ -83,43 +83,43 @@ code {
   }
 }
 
-.wavloom-letter {
+.freally-letter {
   transition: transform 0.2s ease, filter 0.2s ease, text-shadow 0.2s ease;
   will-change: transform, filter;
-  animation: wavloom-shine 12s ease-in-out infinite;
+  animation: freally-shine 12s ease-in-out infinite;
 }
 
 /* Stagger the shine sweep left to right */
-.wavloom-letter:nth-child(1)  { animation-delay: 0s; }
-.wavloom-letter:nth-child(2)  { animation-delay: 0.05s; }
-.wavloom-letter:nth-child(3)  { animation-delay: 0.10s; }
-.wavloom-letter:nth-child(4)  { animation-delay: 0.15s; }
-.wavloom-letter:nth-child(5)  { animation-delay: 0.20s; }
-.wavloom-letter:nth-child(6)  { animation-delay: 0.25s; }
-.wavloom-letter:nth-child(7)  { animation-delay: 0.30s; }
-.wavloom-letter:nth-child(8)  { animation-delay: 0.35s; }
-.wavloom-letter:nth-child(9)  { animation-delay: 0.40s; }
-.wavloom-letter:nth-child(10) { animation-delay: 0.45s; }
-.wavloom-letter:nth-child(11) { animation-delay: 0.50s; }
-.wavloom-letter:nth-child(12) { animation-delay: 0.55s; }
-.wavloom-letter:nth-child(13) { animation-delay: 0.60s; }
-.wavloom-letter:nth-child(14) { animation-delay: 0.65s; }
+.freally-letter:nth-child(1)  { animation-delay: 0s; }
+.freally-letter:nth-child(2)  { animation-delay: 0.05s; }
+.freally-letter:nth-child(3)  { animation-delay: 0.10s; }
+.freally-letter:nth-child(4)  { animation-delay: 0.15s; }
+.freally-letter:nth-child(5)  { animation-delay: 0.20s; }
+.freally-letter:nth-child(6)  { animation-delay: 0.25s; }
+.freally-letter:nth-child(7)  { animation-delay: 0.30s; }
+.freally-letter:nth-child(8)  { animation-delay: 0.35s; }
+.freally-letter:nth-child(9)  { animation-delay: 0.40s; }
+.freally-letter:nth-child(10) { animation-delay: 0.45s; }
+.freally-letter:nth-child(11) { animation-delay: 0.50s; }
+.freally-letter:nth-child(12) { animation-delay: 0.55s; }
+.freally-letter:nth-child(13) { animation-delay: 0.60s; }
+.freally-letter:nth-child(14) { animation-delay: 0.65s; }
 
 /* On hover, override with the bounce ripple wave effect */
-.wavloom-title-hover:hover .wavloom-letter {
-  animation: wavloom-wave 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards !important;
+.freally-title-hover:hover .freally-letter {
+  animation: freally-wave 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards !important;
 }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(1)  { animation-delay: 0s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(2)  { animation-delay: 0.04s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(3)  { animation-delay: 0.08s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(4)  { animation-delay: 0.12s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(5)  { animation-delay: 0.16s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(6)  { animation-delay: 0.20s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(7)  { animation-delay: 0.24s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(8)  { animation-delay: 0.28s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(9)  { animation-delay: 0.32s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(10) { animation-delay: 0.36s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(11) { animation-delay: 0.40s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(12) { animation-delay: 0.44s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(13) { animation-delay: 0.48s !important; }
-.wavloom-title-hover:hover .wavloom-letter:nth-child(14) { animation-delay: 0.52s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(1)  { animation-delay: 0s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(2)  { animation-delay: 0.04s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(3)  { animation-delay: 0.08s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(4)  { animation-delay: 0.12s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(5)  { animation-delay: 0.16s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(6)  { animation-delay: 0.20s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(7)  { animation-delay: 0.24s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(8)  { animation-delay: 0.28s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(9)  { animation-delay: 0.32s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(10) { animation-delay: 0.36s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(11) { animation-delay: 0.40s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(12) { animation-delay: 0.44s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(13) { animation-delay: 0.48s !important; }
+.freally-title-hover:hover .freally-letter:nth-child(14) { animation-delay: 0.52s !important; }

@@ -1,6 +1,6 @@
 /**
  * Chinese (zh) Indie Phrase Bank
- * Chinese indie / 独立音乐 influenced lyrics for WavLoom Studio lyric engine.
+ * Chinese indie / 独立音乐 influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

@@ -298,12 +298,12 @@ export default function DetailPanel({
     const handleDropFromBrowser = useCallback((e) => {
         e.preventDefault();
         setDropHighlight(false);
-        const effectType = e.dataTransfer.getData('application/x-wavloom-effect');
+        const effectType = e.dataTransfer.getData('application/x-freally-effect');
         if (effectType && trackId) handleAddEffect(effectType);
     }, [trackId, handleAddEffect]);
 
     const handleDragOverFromBrowser = useCallback((e) => {
-        if (e.dataTransfer.types.includes('application/x-wavloom-effect')) {
+        if (e.dataTransfer.types.includes('application/x-freally-effect')) {
             e.preventDefault(); setDropHighlight(true);
         }
     }, []);

@@ -73,7 +73,7 @@ function App() {
 
 1. **Start dev server:**
    ```bash
-   cd /home/ubuntu/wavloom-project
+   cd /home/ubuntu/freally-project
    npm install
    npm run dev
    ```

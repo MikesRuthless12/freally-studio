@@ -480,7 +480,7 @@ export function exportLyrics(song, format, metadata = {}) {
         }
         case 'project': {
             const content = JSON.stringify(formatAsProject(song.sections, song.metadata), null, 2);
-            downloadFile(content, `lyrics-${Date.now()}.wavloom-lyrics`, 'application/json');
+            downloadFile(content, `lyrics-${Date.now()}.freally-lyrics`, 'application/json');
             break;
         }
         default:

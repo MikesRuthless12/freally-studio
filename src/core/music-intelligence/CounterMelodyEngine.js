@@ -12,7 +12,7 @@
  *  4. Passing tones — weak beats use scale-passing tones between chord tones
  *  5. Interval scoring — prefers consonant intervals (3rds, 6ths, 10ths)
  *
- * All output uses the standard WavLoom note format:
+ * All output uses the standard Freally note format:
  *   { time, duration, note, velocity, layer: 'counter' }
  *
  * Steps per bar: 32  |  Velocity: 0.0–1.0  |  MIDI note: 0–127

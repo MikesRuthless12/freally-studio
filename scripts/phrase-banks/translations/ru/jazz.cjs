@@ -1,6 +1,6 @@
 /**
  * Russian (ru) Jazz Phrase Bank
- * Russian jazz / джаз influenced lyrics for WavLoom Studio lyric engine.
+ * Russian jazz / джаз influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

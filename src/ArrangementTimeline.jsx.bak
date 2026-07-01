@@ -2188,7 +2188,7 @@ export default function ArrangementTimeline({
                                                 return;
                                             }
                                             // Case 2: Effect drag from Browser
-                                            if (e.dataTransfer.types.includes('application/x-wavloom-effect')) {
+                                            if (e.dataTransfer.types.includes('application/x-freally-effect')) {
                                                 e.preventDefault();
                                                 e.dataTransfer.dropEffect = 'copy';
                                                 return;
@@ -2219,7 +2219,7 @@ export default function ArrangementTimeline({
                                                 return;
                                             }
                                             // Case 2: Effect drop from Browser → add effect to this row's track
-                                            const effectType = e.dataTransfer.getData('application/x-wavloom-effect');
+                                            const effectType = e.dataTransfer.getData('application/x-freally-effect');
                                             if (effectType && effectsManager) {
                                                 e.preventDefault();
                                                 const fx = AudioEffect.create(effectType);

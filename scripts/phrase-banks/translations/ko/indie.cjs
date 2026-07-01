@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Indie Phrase Bank
- * Korean indie / K-Indie influenced lyrics for WavLoom Studio lyric engine.
+ * Korean indie / K-Indie influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Gospel Phrase Bank
- * Korean gospel / CCM influenced lyrics for WavLoom Studio lyric engine.
+ * Korean gospel / CCM influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

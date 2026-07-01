@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import WavLoomApp from './WavLoomAppComplete.jsx'
+import FreallyApp from './FreallyAppComplete.jsx'
 import SplashScreen from './SplashScreen.jsx'
 import { loadSettings } from './SettingsModal.jsx'
 import { I18nProvider } from './i18n/I18nContext.jsx'
 import './index.css'
-import './wavloom-daw-theme.css'
+import './freally-daw-theme.css'
 import { installElectronFsPolyfill } from './electronFsPolyfill.js'
 
 // Patch File System Access API with Electron native dialogs (no-op in browser)
@@ -71,7 +71,7 @@ function AppRoot() {
             {showSplash && <SplashScreen onFinished={() => setShowSplash(false)} />}
             {!showSplash && (
                 <I18nProvider>
-                    <WavLoomApp />
+                    <FreallyApp />
                 </I18nProvider>
             )}
         </>

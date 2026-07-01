@@ -330,7 +330,7 @@ const LoomSauceSectionHeader = ({ label, bypassed, onToggleBypass, theme, t: tPr
 };
 
 // ─────────────────── Loom Sauce Custom UI ─────────────────────
-const LOOMSAUCE_USER_PRESETS_KEY = 'wavloom_loomsauce_presets';
+const LOOMSAUCE_USER_PRESETS_KEY = 'freally_loomsauce_presets';
 
 function loadUserPresets() {
     try {

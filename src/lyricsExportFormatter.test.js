@@ -60,9 +60,9 @@ describe('formatAsTXT', () => {
 // ── formatAsLRC ───────────────────────────────────��────────────────────────
 
 describe('formatAsLRC', () => {
-    it('should include WavLoom generator tag', () => {
+    it('should include Freally generator tag', () => {
         const result = formatAsLRC(sampleSections);
-        expect(result).toContain('[by:WavLoom Lyric Engine]');
+        expect(result).toContain('[by:Freally Lyric Engine]');
     });
 
     it('should include metadata when provided', () => {
@@ -104,7 +104,7 @@ describe('formatAsLRC', () => {
 
     it('should handle empty metadata', () => {
         const result = formatAsLRC(sampleSections, {});
-        expect(result).toContain('[by:WavLoom Lyric Engine]');
+        expect(result).toContain('[by:Freally Lyric Engine]');
     });
 });
 
@@ -118,7 +118,7 @@ describe('formatAsJSON', () => {
 
     it('should include generator metadata', () => {
         const parsed = JSON.parse(formatAsJSON(sampleSections));
-        expect(parsed.generator).toBe('WavLoom Lyric Engine');
+        expect(parsed.generator).toBe('Freally Lyric Engine');
         expect(parsed.version).toBe('1.0.0');
     });
 
@@ -157,7 +157,7 @@ describe('formatAsJSON', () => {
 describe('formatAsProject', () => {
     it('should return object with correct type', () => {
         const result = formatAsProject(sampleSections);
-        expect(result.type).toBe('wavloom-lyrics');
+        expect(result.type).toBe('freally-lyrics');
         expect(result.version).toBe(1);
     });
 

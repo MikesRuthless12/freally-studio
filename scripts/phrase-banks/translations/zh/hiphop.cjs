@@ -1,5 +1,5 @@
 /**
- * WavLoom Lyric Engine — Chinese (Simplified) Hip-Hop Phrase Bank
+ * Freally Lyric Engine — Chinese (Simplified) Hip-Hop Phrase Bank
  * Chinese hip-hop / rap influenced lyrics covering all 14 moods.
  */
 module.exports = {

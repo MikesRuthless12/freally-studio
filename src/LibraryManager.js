@@ -1,6 +1,6 @@
 class LibraryManager {
     constructor() {
-        this.dbName = 'WavLoomDB';
+        this.dbName = 'FreallyDB';
         this.version = 2; // Bump version for new store
         this.db = null;
         this.init();

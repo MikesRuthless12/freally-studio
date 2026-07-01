@@ -1,6 +1,6 @@
 /**
  * Chinese (zh) Folk Phrase Bank
- * Chinese folk / 民谣 influenced lyrics for WavLoom Studio lyric engine.
+ * Chinese folk / 民谣 influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

@@ -143,7 +143,7 @@ export class MobileLinkEngine {
         this._brokerNoticeHandler = cb;
         if (cb && this._active) {
             try {
-                cb('WavLoom MobileLink uses the public PeerJS broker. Session metadata may be visible to that broker. Use a private signaling server for sensitive sessions.');
+                cb('Freally MobileLink uses the public PeerJS broker. Session metadata may be visible to that broker. Use a private signaling server for sensitive sessions.');
             } catch (_) {}
         }
     }
@@ -231,7 +231,7 @@ export class MobileLinkEngine {
                 // B6: surface broker notice once.
                 if (this._brokerNoticeHandler) {
                     try {
-                        this._brokerNoticeHandler('WavLoom MobileLink uses the public PeerJS broker. Session metadata may be visible to that broker. Use a private signaling server for sensitive sessions.');
+                        this._brokerNoticeHandler('Freally MobileLink uses the public PeerJS broker. Session metadata may be visible to that broker. Use a private signaling server for sensitive sessions.');
                     } catch (_) {}
                 }
 

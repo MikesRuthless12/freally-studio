@@ -1,5 +1,5 @@
 /**
- * Translation generation script for WavLoom Studio i18n
+ * Translation generation script for Freally Studio i18n
  * Generates missing translations for nb, da, fi, cs, ro locales
  */
 const fs = require('fs');
@@ -632,7 +632,7 @@ const nbTranslations = {
   "suggest.empty": "Tom",
 
   // tour.* (extended)
-  "tour.welcomeDesc": "WavLoom er en AI-drevet beatmaker som genererer fulle trommemønstre, akkordprogresjoner, melodier og basslinjer — alt i nettleseren din. La oss gå gjennom hvordan du bruker den!",
+  "tour.welcomeDesc": "Freally er en AI-drevet beatmaker som genererer fulle trommemønstre, akkordprogresjoner, melodier og basslinjer — alt i nettleseren din. La oss gå gjennom hvordan du bruker den!",
   "tour.welcomeAction": "Trykk Neste for å starte omvisningen, eller bruk piltastene for å navigere.",
   "tour.chooseGenre": "Velg sjanger",
   "tour.chooseGenreDesc": "Begynn med å velge en sjanger. Dette setter det musikalske grunnlaget — trommemønstre, akkordprogresjoner og melodier vil alle matche den valgte stilen din.",
@@ -674,7 +674,7 @@ const nbTranslations = {
   "tour.collaborationDesc": "Opprett eller bli med i et rom for å samarbeide direkte med andre produsenter via peer-to-peer. Del en lenke, chat, følg hverandres faner og lås spor for å unngå konflikter.",
   "tour.collaborationAction": "Klikk \ud83d\udc65-knappen for å åpne vertskontroller. Opprett et rom og del lenken!",
   "tour.keyboardShortcuts": "Tastatursnarveier",
-  "tour.keyboardShortcutsDesc": "WavLoom har omfattende tastatursnarveier for alt: avspilling (mellomrom), generering (G), fanebytte (1-8), angre (Ctrl+Z) og mange flere. Mestre dem for raskere arbeidsflyt.",
+  "tour.keyboardShortcutsDesc": "Freally har omfattende tastatursnarveier for alt: avspilling (mellomrom), generering (G), fanebytte (1-8), angre (Ctrl+Z) og mange flere. Mestre dem for raskere arbeidsflyt.",
   "tour.keyboardShortcutsAction": "Klikk ?-knappen eller trykk ? for å se alle tastatursnarveier.",
   "tour.gettingStarted": "KOM I GANG",
   "tour.back": "Tilbake",

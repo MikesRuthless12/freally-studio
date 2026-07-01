@@ -50,12 +50,12 @@ function loadNativeAddon() {
     // Try multiple paths for the compiled .node file
     const searchPaths = isDev
         ? [
-            path.join(__dirname, '..', 'native', 'build', 'Release', 'wavloom_vst3_host.node'),
-            path.join(__dirname, '..', 'native', 'build', 'Debug', 'wavloom_vst3_host.node'),
-            path.join(__dirname, '..', 'native', 'build', 'wavloom_vst3_host.node'),
+            path.join(__dirname, '..', 'native', 'build', 'Release', 'freally_vst3_host.node'),
+            path.join(__dirname, '..', 'native', 'build', 'Debug', 'freally_vst3_host.node'),
+            path.join(__dirname, '..', 'native', 'build', 'freally_vst3_host.node'),
         ]
         : [
-            path.join(process.resourcesPath, 'native', 'wavloom_vst3_host.node'),
+            path.join(process.resourcesPath, 'native', 'freally_vst3_host.node'),
         ];
 
     for (const addonPath of searchPaths) {

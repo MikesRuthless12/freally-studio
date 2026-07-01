@@ -1,6 +1,6 @@
 /**
  * Russian (ru) Indie Phrase Bank
- * Russian indie / инди influenced lyrics for WavLoom Studio lyric engine.
+ * Russian indie / инди influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

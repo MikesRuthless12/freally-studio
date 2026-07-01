@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Country Phrase Bank
- * Korean country / trot-influenced lyrics for WavLoom Studio lyric engine.
+ * Korean country / trot-influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

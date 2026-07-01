@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Metal Phrase Bank
- * Korean metal / K-Metal influenced lyrics for WavLoom Studio lyric engine.
+ * Korean metal / K-Metal influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

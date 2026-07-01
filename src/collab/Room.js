@@ -26,10 +26,10 @@ export function getOrCreateRoom() {
 }
 
 export function createInviteLink(roomId, secret) {
-    // In Electron, use wavloom:// protocol so the link opens the desktop app.
+    // In Electron, use freally:// protocol so the link opens the desktop app.
     // Secret is appended in the fragment so it isn't sent to brokers/loggers.
     if (window.electronAPI?.isElectron) {
-        const base = `wavloom://join?room=${encodeURIComponent(roomId)}`;
+        const base = `freally://join?room=${encodeURIComponent(roomId)}`;
         return secret ? `${base}#s=${encodeURIComponent(secret)}` : base;
     }
     // Build a clean URL: origin + pathname + ?room=ID + #s=SECRET.

@@ -80,7 +80,7 @@ const FileExplorerPanel = ({ onGenerateFromFolder, onFolderSelect, onDragSample,
                     id: file.id
                 }))
             }));
-            localStorage.setItem('wavloom_folders', JSON.stringify(serialized));
+            localStorage.setItem('freally_folders', JSON.stringify(serialized));
         } catch (e) {
             console.error("Failed to save folder state", e);
         }
@@ -106,7 +106,7 @@ const FileExplorerPanel = ({ onGenerateFromFolder, onFolderSelect, onDragSample,
      * Load folders from localStorage
      */
     const loadFolders = () => {
-        const saved = localStorage.getItem('wavloom_folders');
+        const saved = localStorage.getItem('freally_folders');
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);

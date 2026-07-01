@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Folk Phrase Bank
- * Korean folk / 민요 influenced lyrics for WavLoom Studio lyric engine.
+ * Korean folk / 민요 influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

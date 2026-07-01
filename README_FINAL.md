@@ -1,4 +1,4 @@
-# 🌊 WavLoom Studio v2.0 - Complete Professional DAW
+# 🌊 Freally Studio v2.0 - Complete Professional DAW
 
 **Browser-based Digital Audio Workstation with Professional MIDI Generation**
 
@@ -8,8 +8,8 @@
 
 ```bash
 # 1. Extract the project
-unzip WavLoom-Final-Integrated.zip
-cd wavloom-project
+unzip Freally-Final-Integrated.zip
+cd freally-project
 
 # 2. Install dependencies
 pnpm install
@@ -114,7 +114,7 @@ npm run dev
 ## 📂 Project Structure
 
 ```
-wavloom-project/
+freally-project/
 ├── src/
 │   ├── AppIntegrated.jsx          # Main integrated app
 │   ├── TabbedMIDIGenerator.jsx    # NEW: 3-tab MIDI generator
@@ -331,7 +331,7 @@ pnpm install
 
 ## 🎉 Start Making Music!
 
-**WavLoom Studio v2.0** gives you professional music production tools right in your browser. No installation, no plugins, just pure creativity.
+**Freally Studio v2.0** gives you professional music production tools right in your browser. No installation, no plugins, just pure creativity.
 
 ### Quick Workflow:
 1. **Generate** drums, chords, melody in their tabs
@@ -350,4 +350,4 @@ Personal use and development.
 
 ---
 
-**WavLoom Studio** - Professional Music Production in Your Browser 🌊🎵
+**Freally Studio** - Professional Music Production in Your Browser 🌊🎵

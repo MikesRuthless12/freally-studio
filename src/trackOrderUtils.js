@@ -1,6 +1,6 @@
 /**
- * Track ordering utilities for WavLoom Studio.
- * Shared between WavLoomAppComplete, ArrangementTimeline, and MixerPanel.
+ * Track ordering utilities for Freally Studio.
+ * Shared between FreallyAppComplete, ArrangementTimeline, and MixerPanel.
  */
 
 export const DEFAULT_CORE_ORDER = [

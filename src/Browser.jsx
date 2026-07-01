@@ -65,8 +65,8 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     const [folderFiles, setFolderFiles] = useState({}); // Map folderName -> files[]
     // Expose folderFiles globally so arrangement bounce can search for matching MIDI
     useEffect(() => {
-        window.__wavloomFolderFiles = folderFiles;
-        return () => { window.__wavloomFolderFiles = null; };
+        window.__freallyFolderFiles = folderFiles;
+        return () => { window.__freallyFolderFiles = null; };
     }, [folderFiles]);
     const [searchQuery, setSearchQuery] = useState('');
     const [contextMenu, setContextMenu] = useState(null);
@@ -330,7 +330,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     };
 
     const handleExtractMIDI = async (item, targetStr) => {
-        console.log("--- WavLoom Browser V3 (FORCE_RELOAD CHECK) ---");
+        console.log("--- Freally Browser V3 (FORCE_RELOAD CHECK) ---");
         if (!onExtractMIDI) return;
 
         setContextMenu(null);
@@ -3144,7 +3144,7 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                                                     key={fx.type}
                                                     draggable
                                                     onDragStart={(e) => {
-                                                        e.dataTransfer.setData('application/x-wavloom-effect', fx.type);
+                                                        e.dataTransfer.setData('application/x-freally-effect', fx.type);
                                                         e.dataTransfer.effectAllowed = 'copy';
                                                     }}
                                                     style={{

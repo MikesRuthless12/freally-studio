@@ -8,18 +8,18 @@
   "creator": {
     "name": "Mike",
     "expertise": "Music production and software engineering — equally strong in both, with deep experience building browser-based audio tools and understanding the creative workflow of beatmakers and producers",
-    "background": "I've been making beats and producing music for years while simultaneously building software. That dual perspective led me to create WavLoom Studio — a browser-based DAW that generates MIDI patterns for drums, chords, melody, and bass. I've already built a fully functional prototype with React, Web Audio API, and real-time P2P collaboration. Now I'm ready to turn it into a commercial product that beatmakers and producers actually pay for."
+    "background": "I've been making beats and producing music for years while simultaneously building software. That dual perspective led me to create Freally Studio — a browser-based DAW that generates MIDI patterns for drums, chords, melody, and bass. I've already built a fully functional prototype with React, Web Audio API, and real-time P2P collaboration. Now I'm ready to turn it into a commercial product that beatmakers and producers actually pay for."
   },
   "purpose": {
     "whoYouHelp": "Independent beatmakers, music producers, and artists who want to create professional-quality beats and musical ideas quickly without expensive software or steep learning curves",
     "problemYouSolve": "Most DAWs are either too expensive (FL Studio, Ableton, Logic) or too complex for quick ideation. Producers who want to sketch out beat ideas, chord progressions, melodies, and basslines have to wrestle with heavyweight desktop software just to capture a musical thought. There's no fast, accessible, browser-based tool that generates intelligent musical patterns they can export and use in their main DAW.",
-    "desiredTransformation": "Producers open WavLoom, hit Generate, and within seconds have a full beat with drums, chords, melody, and bass that actually sounds good — all musically coherent and in key. They export the MIDI or audio and drop it into their main DAW to finish. What used to take 30 minutes of noodling now takes 30 seconds of inspiration.",
-    "whyYou": "I'm both the producer and the engineer. I know what makes a beat feel right because I've made thousands of them. I know what makes software feel right because I've built production-grade web applications. Most music software is built by engineers who don't produce, or producers who can't code. I'm building from both sides, and that's why WavLoom's generated patterns actually sound musical — not random."
+    "desiredTransformation": "Producers open Freally, hit Generate, and within seconds have a full beat with drums, chords, melody, and bass that actually sounds good — all musically coherent and in key. They export the MIDI or audio and drop it into their main DAW to finish. What used to take 30 minutes of noodling now takes 30 seconds of inspiration.",
+    "whyYou": "I'm both the producer and the engineer. I know what makes a beat feel right because I've made thousands of them. I know what makes software feel right because I've built production-grade web applications. Most music software is built by engineers who don't produce, or producers who can't code. I'm building from both sides, and that's why Freally's generated patterns actually sound musical — not random."
   },
   "product": {
-    "name": "WavLoom Studio",
-    "oneLiner": "WavLoom Studio helps producers create full beats in seconds with AI-powered pattern generation in the browser.",
-    "howItWorks": "A producer opens WavLoom in their browser, selects a genre (Hip-Hop, Pop, EDM, etc.), sets a key and tempo, and hits 'Global Generate.' The app instantly creates a coherent full arrangement — drums, chord progression, melody, and bassline — all musically aware and in key. They can tweak individual parts on the piano roll, regenerate specific tracks, adjust mood and complexity, then export as MIDI or WAV/MP3 to drop into their main DAW. They can also collaborate in real-time with other producers via P2P.",
+    "name": "Freally Studio",
+    "oneLiner": "Freally Studio helps producers create full beats in seconds with AI-powered pattern generation in the browser.",
+    "howItWorks": "A producer opens Freally in their browser, selects a genre (Hip-Hop, Pop, EDM, etc.), sets a key and tempo, and hits 'Global Generate.' The app instantly creates a coherent full arrangement — drums, chord progression, melody, and bassline — all musically aware and in key. They can tweak individual parts on the piano roll, regenerate specific tracks, adjust mood and complexity, then export as MIDI or WAV/MP3 to drop into their main DAW. They can also collaborate in real-time with other producers via P2P.",
     "keyCapabilities": [
       "One-click full beat generation across 4 tracks (drums, chords, melody, bass) with genre-aware, key-aware, musically coherent patterns",
       "Individual track regeneration and editing on piano rolls and drum sequencers",
@@ -28,14 +28,14 @@
       "Extensive genre library with sub-genres, mood modifiers, and complexity controls"
     ],
     "platform": "web",
-    "marketDifferentiation": "Unlike FL Studio, Ableton, or Logic which are heavyweight desktop DAWs costing $99-$799, WavLoom runs in the browser and generates musically intelligent patterns instantly. Unlike simple beat generators or loop libraries, WavLoom creates original, coherent arrangements across all four musical elements (drums, chords, melody, bass) that work together. It's not a toy — it's a professional ideation tool that understands music theory.",
+    "marketDifferentiation": "Unlike FL Studio, Ableton, or Logic which are heavyweight desktop DAWs costing $99-$799, Freally runs in the browser and generates musically intelligent patterns instantly. Unlike simple beat generators or loop libraries, Freally creates original, coherent arrangements across all four musical elements (drums, chords, melody, bass) that work together. It's not a toy — it's a professional ideation tool that understands music theory.",
     "magicMoment": "A producer selects 'Hip-Hop' and 'Dark' mood, hits Global Generate, and hears a complete beat with booming 808s, moody chords, a haunting melody, and a deep bassline — all in key, all rhythmically coherent — within 2 seconds. They immediately think 'I can build a whole track from this' and drag the MIDI into their DAW."
   },
   "audience": {
     "primaryUser": "Jay, 24, independent beatmaker who sells beats on BeatStars and YouTube. He uses FL Studio as his main DAW but spends too much time on the initial beat idea. He wants something that gives him a creative starting point fast so he can focus on arrangement and mixing. He's on his laptop, often working in coffee shops, and loves tools he can access from the browser without installing anything.",
     "secondaryUsers": [
       "Artists/rappers who want to sketch out beat ideas before bringing them to their producer — they don't know music theory but want something that sounds good quickly",
-      "Music educators who use WavLoom to teach students about chord progressions, melody writing, and arrangement by generating examples in different genres",
+      "Music educators who use Freally to teach students about chord progressions, melody writing, and arrangement by generating examples in different genres",
       "Hobbyist producers who make beats for fun and want an accessible, low-commitment way to create music without investing in expensive software"
     ],
     "currentAlternatives": "FL Studio ($99-$499, powerful but expensive and complex), Ableton Live ($99-$749, steep learning curve), BandLab (free browser DAW but no intelligent generation), Splice/Loopcloud (sample libraries, not original generation), YouTube type beat tutorials (manual, time-consuming), GarageBand (free but Apple-only and no smart generation), or just noodling on a MIDI keyboard until something clicks (slow, hit-or-miss)",
@@ -44,9 +44,9 @@
   "business": {
     "revenueModel": "freemium",
     "initialGoal": "100 Discord community members and 10 paying subscribers within 90 days of commercial launch, validating that producers will pay for AI-powered beat generation",
-    "sixMonthVision": "500+ Discord community members, 50+ paying subscribers generating ~$500/month MRR, WavLoom recognized in beatmaker communities as the go-to browser-based ideation tool. Featured in at least one music production YouTube channel or blog.",
+    "sixMonthVision": "500+ Discord community members, 50+ paying subscribers generating ~$500/month MRR, Freally recognized in beatmaker communities as the go-to browser-based ideation tool. Featured in at least one music production YouTube channel or blog.",
     "constraints": "Building solo with Claude Code as primary development partner. Budget is limited — prefer free tiers and low-cost infrastructure. Already have a working prototype built with React + Vite, need to evolve it into a commercial product with Next.js, SQLite database, Polar payments, and serial number licensing. Self-hosting on a VPS to control costs.",
-    "goToMarket": "Discord-first community building. Create a WavLoom Discord server where producers can test the free version, share beats they've made with it, give feedback, and connect with each other. Use Discord as the primary feedback loop and word-of-mouth engine. Post beat-making content on YouTube, TikTok, and Instagram Reels showing WavLoom in action. Engage in existing beatmaker communities on Reddit (r/makinghiphop, r/WeAreTheMusicMakers) and Discord servers."
+    "goToMarket": "Discord-first community building. Create a Freally Discord server where producers can test the free version, share beats they've made with it, give feedback, and connect with each other. Use Discord as the primary feedback loop and word-of-mouth engine. Post beat-making content on YouTube, TikTok, and Instagram Reels showing Freally in action. Engage in existing beatmaker communities on Reddit (r/makinghiphop, r/WeAreTheMusicMakers) and Discord servers."
   },
   "feeling": {
     "brandPersonality": "The cool, knowledgeable producer friend who always has fire beats ready. Confident but not arrogant, creative but technical, approachable but professional. Think: a studio session with someone who knows their craft and wants to help you level up yours.",

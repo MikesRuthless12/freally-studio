@@ -535,7 +535,7 @@ const ChordGeneratorEnhanced = React.forwardRef(({ selectedFolder, sampler, them
                     {editingClipId && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                             <span style={{ fontSize: '11px', fontWeight: 600, color: ac, background: `${ac}22`, padding: '2px 8px', borderRadius: '4px' }}>Editing Clip</span>
-                            <button onClick={() => window.dispatchEvent(new CustomEvent('wavloom-close-chord-clip-edit'))} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: 'transparent', color: isDark ? '#ccc' : '#555', cursor: 'pointer' }}>Close</button>
+                            <button onClick={() => window.dispatchEvent(new CustomEvent('freally-close-chord-clip-edit'))} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: 'transparent', color: isDark ? '#ccc' : '#555', cursor: 'pointer' }}>Close</button>
                         </div>
                     )}
                 </div>

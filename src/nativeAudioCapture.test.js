@@ -36,7 +36,7 @@ vi.hoisted(() => {
 
     globalThis.window = globalThis.window || {};
     globalThis.window.AudioContext = globalThis.window.AudioContext || class MockAudioContext {};
-    globalThis.window._wavloomNativeSampleRate = 48000;
+    globalThis.window._freallyNativeSampleRate = 48000;
 });
 
 import { loadSettings, saveSettings } from './SettingsModal.jsx';
@@ -47,19 +47,19 @@ import { loadSettings, saveSettings } from './SettingsModal.jsx';
 
 describe('DEFAULT_SETTINGS includes native capture fields', () => {
     it('loadSettings() returns useNativeCapture = true by default', () => {
-        localStorage.removeItem('wavloom_settings');
+        localStorage.removeItem('freally_settings');
         const s = loadSettings();
         expect(s.useNativeCapture).toBe(true);
     });
 
     it('loadSettings() returns captureBufferSize = 256 by default', () => {
-        localStorage.removeItem('wavloom_settings');
+        localStorage.removeItem('freally_settings');
         const s = loadSettings();
         expect(s.captureBufferSize).toBe(256);
     });
 
     it('loadSettings() returns captureSampleRate = 48000 by default', () => {
-        localStorage.removeItem('wavloom_settings');
+        localStorage.removeItem('freally_settings');
         const s = loadSettings();
         expect(s.captureSampleRate).toBe(48000);
     });
@@ -70,7 +70,7 @@ describe('DEFAULT_SETTINGS includes native capture fields', () => {
 // =========================================================================
 
 describe('Settings persistence round-trip', () => {
-    beforeEach(() => localStorage.removeItem('wavloom_settings'));
+    beforeEach(() => localStorage.removeItem('freally_settings'));
 
     it('persists useNativeCapture = false and restores it', () => {
         const s = loadSettings();
@@ -109,7 +109,7 @@ describe('Settings persistence round-trip', () => {
 
     it('merges with DEFAULT_SETTINGS when stored JSON is partial', () => {
         // Simulate old settings that predate native capture
-        localStorage.setItem('wavloom_settings', JSON.stringify({ showTooltips: false }));
+        localStorage.setItem('freally_settings', JSON.stringify({ showTooltips: false }));
         const r = loadSettings();
         expect(r.showTooltips).toBe(false);
         // New fields come from defaults
@@ -119,7 +119,7 @@ describe('Settings persistence round-trip', () => {
     });
 
     it('handles corrupted localStorage gracefully', () => {
-        localStorage.setItem('wavloom_settings', '{{{bad json');
+        localStorage.setItem('freally_settings', '{{{bad json');
         const r = loadSettings();
         // Falls back to defaults
         expect(r.useNativeCapture).toBe(true);

@@ -1,6 +1,6 @@
 /**
  * Korean (ko) Latin Phrase Bank
- * Korean Latin / reggaeton / salsa influenced lyrics for WavLoom Studio lyric engine.
+ * Korean Latin / reggaeton / salsa influenced lyrics for Freally Studio lyric engine.
  */
 module.exports = {
   themes: [

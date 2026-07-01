@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from './i18n/I18nContext';
 import { isElectron, getPlatform } from './electronBridge';
 
-const RECENT_PROJECTS_KEY = 'wavloom_recent_projects';
+const RECENT_PROJECTS_KEY = 'freally_recent_projects';
 const isMac = getPlatform() === 'darwin';
 const MOD = isMac ? '⌘' : 'Ctrl';
 const MAX_RECENT = 10;
@@ -143,7 +143,7 @@ const MenuToolbar = ({
         if (isElectron() && window.electronAPI?.fs?.showOpenDialog) {
             const result = await window.electronAPI.fs.showOpenDialog({
                 properties: ['openFile'],
-                filters: [{ name: 'WavLoom Project', extensions: ['wlz'] }]
+                filters: [{ name: 'Freally Project', extensions: ['wlz'] }]
             });
             if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
                 const filePath = result.filePaths[0];
@@ -479,9 +479,9 @@ const MenuToolbar = ({
                         <MenuItem label={t('menu.keyboardShortcuts')} shortcut="?" onClick={onShowShortcuts} />
                         <MenuItem label={t('menu.guidedTour')} onClick={onShowTour} />
                         {separatorEl}
-                        <MenuItem label={t('menu.aboutWavLoom')} onClick={() => {
+                        <MenuItem label={t('menu.aboutFreally')} onClick={() => {
                             closeAll();
-                            alert('WavLoom Studio\nBrowser-based DAW\nhttps://wavloom.com');
+                            alert('Freally Studio\nBrowser-based DAW\nhttps://freally.com');
                         }} />
                     </div>
                 )}

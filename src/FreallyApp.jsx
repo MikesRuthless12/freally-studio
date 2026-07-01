@@ -6,7 +6,7 @@ import MelodyBassGenerator from './MelodyBassGenerator';
 import { PatternGenerator } from './PatternGenerator';
 import './App.css';
 
-const WavLoomApp = () => {
+const FreallyApp = () => {
     const [theme, setTheme] = useState('dark');
     const [activeGenerator, setActiveGenerator] = useState('drums');
     const [key, setKey] = useState('C');
@@ -125,14 +125,14 @@ const WavLoomApp = () => {
     };
 
     return (
-        <div className={`wavloom-app ${isDark ? 'dark' : 'light'}`}>
+        <div className={`freally-app ${isDark ? 'dark' : 'light'}`}>
             {/* Header */}
-            <div className="wavloom-header">
-                <div className="wavloom-logo">
-                    🌊 WavLoom MIDI Generator
+            <div className="freally-header">
+                <div className="freally-logo">
+                    🌊 Freally MIDI Generator
                 </div>
 
-                <div className="wavloom-controls">
+                <div className="freally-controls">
                     {/* Global Settings */}
                     <div className="global-settings">
                         <select value={key} onChange={(e) => setKey(e.target.value)}>
@@ -171,7 +171,7 @@ const WavLoomApp = () => {
             </div>
 
             {/* Main Content */}
-            <div className="wavloom-main">
+            <div className="freally-main">
                 {/* File Explorer */}
                 <FileExplorerPanel
                     onGenerateFromFolder={handleGenerateFromFolder}
@@ -217,7 +217,7 @@ const WavLoomApp = () => {
             </div>
 
             {/* Footer */}
-            <div className="wavloom-footer">
+            <div className="freally-footer">
                 <div className="footer-info">
                     <span>Genre: {genre}</span>
                     <span>•</span>
@@ -235,4 +235,4 @@ const WavLoomApp = () => {
     );
 };
 
-export default WavLoomApp;
+export default FreallyApp;

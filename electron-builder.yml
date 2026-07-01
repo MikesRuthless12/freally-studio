@@ -1,15 +1,15 @@
-appId: com.havocsoftware.wavloom
-productName: WavLoom Studio
+appId: com.havocsoftware.freally
+productName: Freally Studio
 copyright: Copyright (c) Havoc Software
 
 # User-facing filenames say 0.20.02; internal package.json version is 0.20.2
 # (electron-builder requires valid semver — no leading zero).
-artifactName: WavLoom-Studio-0.20.02-${arch}.${ext}
+artifactName: Freally-Studio-0.20.02-${arch}.${ext}
 
 protocols:
-  - name: WavLoom Collab
+  - name: Freally Collab
     schemes:
-      - wavloom
+      - freally
 
 directories:
   buildResources: build
@@ -38,13 +38,13 @@ win:
   target:
     - target: nsis
       arch: [x64]
-  icon: src/images/wavloom_app_icon.png
+  icon: src/images/freally_app_icon.png
 
 mac:
   target:
     - target: dmg
       arch: [x64, arm64]
-  icon: src/images/wavloom_app_icon.png
+  icon: src/images/freally_app_icon.png
   category: public.app-category.music
 
 linux:
@@ -53,12 +53,12 @@ linux:
       arch: [x64]
     - target: deb
       arch: [x64]
-  icon: src/images/wavloom_app_icon.png
+  icon: src/images/freally_app_icon.png
   category: AudioVideo
   mimeTypes:
-    - x-scheme-handler/wavloom
+    - x-scheme-handler/freally
   desktop:
-    MimeType: x-scheme-handler/wavloom
+    MimeType: x-scheme-handler/freally
 
 nsis:
   oneClick: false

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   WAVLOOM STUDIO — Professional DAW Theme
+   FREALLY STUDIO — Professional DAW Theme
    Inspired by FL Studio & Ableton Live hardware aesthetics
 
    This stylesheet provides consistent, professional styling for ALL
@@ -16,12 +16,12 @@
    GLOBAL FOUNDATION
    ============================================ */
 
-.wavloom-app,
-.wavloom-app * {
+.freally-app,
+.freally-app * {
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-.wavloom-app {
+.freally-app {
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
     text-rendering: optimizeLegibility !important;
@@ -31,7 +31,7 @@
    DARK THEME — Extended Variables
    FL Studio industrial aesthetic
    ============================================ */
-.wavloom-app.dark {
+.freally-app.dark {
     /* --- Surface Hierarchy --- */
     --bg-primary: #1a1a20;
     --bg-secondary: #222228;
@@ -90,7 +90,7 @@
    LIGHT THEME — Extended Variables
    Ableton-inspired clean precision
    ============================================ */
-.wavloom-app.light {
+.freally-app.light {
     /* --- Surface Hierarchy --- */
     --bg-primary: #f8f8fa;
     --bg-secondary: #efeff2;
@@ -152,7 +152,7 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 /* --- Base Button Reset --- */
-.wavloom-app button {
+.freally-app button {
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     text-rendering: optimizeLegibility !important;
     -webkit-font-smoothing: antialiased !important;
@@ -165,7 +165,7 @@
    This gives every button the "Rescan Plugins" look.
    Exceptions: transparent/ghost buttons, menu items, close buttons,
    drum grid cells, mixer faders, circular buttons (record, power). */
-.wavloom-app button:not([style*="background: none"]):not([style*="background:none"]):not([style*="background: transparent"]):not([style*="background:transparent"]):not([style*="border-radius: 50%"]):not(.drum-cell):not(.mixer-fader) {
+.freally-app button:not([style*="background: none"]):not([style*="background:none"]):not([style*="background: transparent"]):not([style*="background:transparent"]):not([style*="border-radius: 50%"]):not(.drum-cell):not(.mixer-fader) {
     background: var(--accent-gradient, var(--theme-gradient, linear-gradient(135deg, #ff6b6b 0%, #ff9f43 100%))) !important;
     color: #fff !important;
     border-color: transparent !important;
@@ -182,7 +182,7 @@
    Light mode: dark border ring + slight dim */
 
 /* HOVER — all buttons universally */
-.wavloom-app button:hover:not(:disabled) {
+.freally-app button:hover:not(:disabled) {
     filter: brightness(1.6) !important;
     outline: 2px solid rgba(255, 255, 255, 0.45) !important;
     outline-offset: -1px !important;
@@ -191,27 +191,27 @@
 }
 
 /* Light theme hover — darker outline instead of bright */
-.wavloom-app.light button:hover:not(:disabled) {
+.freally-app.light button:hover:not(:disabled) {
     filter: brightness(1.15) saturate(1.2) !important;
     outline: 2px solid rgba(0, 0, 0, 0.3) !important;
     outline-offset: -1px !important;
 }
 
 /* ACTIVE / PRESSED — all buttons universally */
-.wavloom-app button:active:not(:disabled) {
+.freally-app button:active:not(:disabled) {
     filter: brightness(0.7) !important;
     outline: 2px solid rgba(255, 255, 255, 0.2) !important;
     outline-offset: -1px !important;
     transform: translateY(1px) !important;
 }
 
-.wavloom-app.light button:active:not(:disabled) {
+.freally-app.light button:active:not(:disabled) {
     filter: brightness(0.85) !important;
     outline: 2px solid rgba(0, 0, 0, 0.15) !important;
 }
 
 /* DISABLED — clearly greyed out and unclickable */
-.wavloom-app button:disabled {
+.freally-app button:disabled {
     opacity: 0.3 !important;
     cursor: not-allowed !important;
     filter: grayscale(0.8) brightness(0.6) !important;
@@ -219,10 +219,10 @@
 }
 
 /* --- Transparent/Ghost Buttons (menu items, close buttons) --- */
-.wavloom-app button[style*="background: none"],
-.wavloom-app button[style*="background:none"],
-.wavloom-app button[style*="background: transparent"],
-.wavloom-app button[style*="background:transparent"] {
+.freally-app button[style*="background: none"],
+.freally-app button[style*="background:none"],
+.freally-app button[style*="background: transparent"],
+.freally-app button[style*="background:transparent"] {
     background: none !important;
     color: inherit !important;
     text-shadow: none !important;
@@ -232,7 +232,7 @@
 }
 
 /* --- Menu bar top-level buttons stay flat --- */
-.wavloom-app [style*="height: 28px"][style*="gap: 2px"] > div > button {
+.freally-app [style*="height: 28px"][style*="gap: 2px"] > div > button {
     background: none !important;
     color: inherit !important;
     text-shadow: none !important;
@@ -240,13 +240,13 @@
     border-radius: 3px !important;
 }
 
-.wavloom-app [style*="height: 28px"][style*="gap: 2px"] > div > button:hover {
+.freally-app [style*="height: 28px"][style*="gap: 2px"] > div > button:hover {
     background: rgba(255, 255, 255, 0.1) !important;
     color: var(--accent, #ff6b6b) !important;
 }
 
 /* --- Menu dropdown items stay flat --- */
-.wavloom-app [style*="position: absolute"][style*="top: 100%"] button {
+.freally-app [style*="position: absolute"][style*="top: 100%"] button {
     background: transparent !important;
     color: inherit !important;
     text-shadow: none !important;
@@ -254,7 +254,7 @@
     border-radius: 0 !important;
 }
 
-.wavloom-app [style*="position: absolute"][style*="top: 100%"] button:hover:not(:disabled) {
+.freally-app [style*="position: absolute"][style*="top: 100%"] button:hover:not(:disabled) {
     background: var(--accent-glow, rgba(255, 107, 107, 0.15)) !important;
     color: var(--accent, #ff6b6b) !important;
 }
@@ -264,7 +264,7 @@
    ║  SELECT DROPDOWNS — Recessed hardware-control look                   ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app select {
+.freally-app select {
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     -webkit-font-smoothing: antialiased !important;
     text-rendering: optimizeLegibility !important;
@@ -276,23 +276,23 @@
     cursor: pointer !important;
 }
 
-.wavloom-app select:hover {
+.freally-app select:hover {
     border-color: var(--text-tertiary) !important;
 }
 
-.wavloom-app select:focus {
+.freally-app select:focus {
     border-color: var(--input-border-focus) !important;
     box-shadow: var(--shadow-inset), 0 0 0 2px rgba(var(--accent-r, 255), var(--accent-g, 107), var(--accent-b, 107), 0.15) !important;
 }
 
 /* Select option styling */
-.wavloom-app select option {
+.freally-app select option {
     background: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     padding: 6px 8px !important;
 }
 
-.wavloom-app select optgroup {
+.freally-app select optgroup {
     font-weight: 700 !important;
     font-style: normal !important;
     color: var(--label-color-emphasis) !important;
@@ -303,13 +303,13 @@
    ║  TEXT & NUMBER INPUTS — Recessed, inset field look                   ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app input[type="text"],
-.wavloom-app input[type="number"],
-.wavloom-app input[type="search"],
-.wavloom-app input[type="url"],
-.wavloom-app input[type="email"],
-.wavloom-app input[type="password"],
-.wavloom-app textarea {
+.freally-app input[type="text"],
+.freally-app input[type="number"],
+.freally-app input[type="search"],
+.freally-app input[type="url"],
+.freally-app input[type="email"],
+.freally-app input[type="password"],
+.freally-app textarea {
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     -webkit-font-smoothing: antialiased !important;
     text-rendering: optimizeLegibility !important;
@@ -322,29 +322,29 @@
     transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-.wavloom-app input[type="text"]:hover,
-.wavloom-app input[type="number"]:hover,
-.wavloom-app input[type="search"]:hover,
-.wavloom-app textarea:hover {
+.freally-app input[type="text"]:hover,
+.freally-app input[type="number"]:hover,
+.freally-app input[type="search"]:hover,
+.freally-app textarea:hover {
     border-color: var(--text-tertiary) !important;
 }
 
-.wavloom-app input[type="text"]:focus,
-.wavloom-app input[type="number"]:focus,
-.wavloom-app input[type="search"]:focus,
-.wavloom-app textarea:focus {
+.freally-app input[type="text"]:focus,
+.freally-app input[type="number"]:focus,
+.freally-app input[type="search"]:focus,
+.freally-app textarea:focus {
     border-color: var(--input-border-focus) !important;
     box-shadow: var(--shadow-inset), 0 0 0 2px rgba(var(--accent-r, 255), var(--accent-g, 107), var(--accent-b, 107), 0.15) !important;
 }
 
-.wavloom-app input::placeholder,
-.wavloom-app textarea::placeholder {
+.freally-app input::placeholder,
+.freally-app textarea::placeholder {
     color: var(--input-placeholder) !important;
 }
 
 /* Number input spinner buttons */
-.wavloom-app input[type="number"]::-webkit-inner-spin-button,
-.wavloom-app input[type="number"]::-webkit-outer-spin-button {
+.freally-app input[type="number"]::-webkit-inner-spin-button,
+.freally-app input[type="number"]::-webkit-outer-spin-button {
     opacity: 0.5;
 }
 
@@ -353,7 +353,7 @@
    ║  RANGE INPUTS / SLIDERS — Pro fader look                            ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app input[type="range"] {
+.freally-app input[type="range"] {
     -webkit-appearance: none !important;
     appearance: none !important;
     height: 4px !important;
@@ -364,7 +364,7 @@
 }
 
 /* Track */
-.wavloom-app input[type="range"]::-webkit-slider-runnable-track {
+.freally-app input[type="range"]::-webkit-slider-runnable-track {
     height: 4px;
     border-radius: 2px;
     background: var(--input-border);
@@ -372,7 +372,7 @@
 }
 
 /* Thumb */
-.wavloom-app input[type="range"]::-webkit-slider-thumb {
+.freally-app input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none !important;
     appearance: none !important;
     width: 14px !important;
@@ -386,25 +386,25 @@
     transition: box-shadow 0.12s ease, transform 0.1s ease !important;
 }
 
-.wavloom-app input[type="range"]::-webkit-slider-thumb:hover {
+.freally-app input[type="range"]::-webkit-slider-thumb:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
     transform: scale(1.15) !important;
 }
 
-.wavloom-app input[type="range"]::-webkit-slider-thumb:active {
+.freally-app input[type="range"]::-webkit-slider-thumb:active {
     transform: scale(0.95) !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* Firefox track & thumb */
-.wavloom-app input[type="range"]::-moz-range-track {
+.freally-app input[type="range"]::-moz-range-track {
     height: 4px;
     border-radius: 2px;
     background: var(--input-border);
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.wavloom-app input[type="range"]::-moz-range-thumb {
+.freally-app input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
@@ -420,7 +420,7 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 /* Target the small uppercase labels used across all generator panels */
-.wavloom-app label {
+.freally-app label {
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     -webkit-font-smoothing: antialiased !important;
     text-rendering: optimizeLegibility !important;
@@ -432,34 +432,34 @@
    ║  SCROLLBARS — Thin, professional, non-intrusive                      ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app ::-webkit-scrollbar {
+.freally-app ::-webkit-scrollbar {
     width: 7px;
     height: 7px;
 }
 
-.wavloom-app ::-webkit-scrollbar-track {
+.freally-app ::-webkit-scrollbar-track {
     background: var(--scrollbar-track);
     border-radius: 4px;
 }
 
-.wavloom-app ::-webkit-scrollbar-thumb {
+.freally-app ::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
     border-radius: 4px;
     border: 1px solid transparent;
     background-clip: padding-box;
 }
 
-.wavloom-app ::-webkit-scrollbar-thumb:hover {
+.freally-app ::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
     background-clip: padding-box;
 }
 
-.wavloom-app ::-webkit-scrollbar-corner {
+.freally-app ::-webkit-scrollbar-corner {
     background: var(--scrollbar-track);
 }
 
 /* Firefox scrollbar styling */
-.wavloom-app * {
+.freally-app * {
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
@@ -469,12 +469,12 @@
    ║  FOCUS STATES — Visible but not garish                               ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app *:focus-visible {
+.freally-app *:focus-visible {
     outline: 2px solid var(--accent-color, var(--accent, #ff6b6b)) !important;
     outline-offset: 1px !important;
 }
 
-.wavloom-app button:focus:not(:focus-visible) {
+.freally-app button:focus:not(:focus-visible) {
     outline: none !important;
 }
 
@@ -483,12 +483,12 @@
    ║  CHECKBOX & RADIO — Styled to match DAW aesthetic                    ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app input[type="checkbox"] {
+.freally-app input[type="checkbox"] {
     accent-color: var(--accent-color, var(--accent, #ff6b6b)) !important;
     cursor: pointer !important;
 }
 
-.wavloom-app input[type="radio"] {
+.freally-app input[type="radio"] {
     accent-color: var(--accent-color, var(--accent, #ff6b6b)) !important;
     cursor: pointer !important;
 }
@@ -499,7 +499,7 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 /* Tab buttons in the main tab bar get slightly different treatment */
-.wavloom-app [data-tour-id="tour-tabs"] button {
+.freally-app [data-tour-id="tour-tabs"] button {
     text-transform: uppercase !important;
     letter-spacing: 0.8px !important;
     font-weight: 700 !important;
@@ -507,7 +507,7 @@
     transition: all 0.15s ease !important;
 }
 
-.wavloom-app [data-tour-id="tour-tabs"] button:hover:not(:disabled) {
+.freally-app [data-tour-id="tour-tabs"] button:hover:not(:disabled) {
     transform: translateY(-0.5px) !important;
 }
 
@@ -516,7 +516,7 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 /* All modals get frosted backdrop */
-.wavloom-app [style*="position: fixed"][style*="background: rgba(0"] {
+.freally-app [style*="position: fixed"][style*="background: rgba(0"] {
     backdrop-filter: blur(6px) !important;
     -webkit-backdrop-filter: blur(6px) !important;
 }
@@ -527,17 +527,17 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 /* The global settings row selects */
-.wavloom-app [data-tour-id="tour-genre"] select,
-.wavloom-app [data-tour-id="tour-mood"] select,
-.wavloom-app [data-tour-id="tour-key-scale"] select {
+.freally-app [data-tour-id="tour-genre"] select,
+.freally-app [data-tour-id="tour-mood"] select,
+.freally-app [data-tour-id="tour-key-scale"] select {
     font-weight: 600 !important;
     font-size: 11px !important;
     letter-spacing: 0.3px !important;
 }
 
 /* BPM display uses monospace for that hardware readout feel */
-.wavloom-app [data-tour-id="tour-bpm"] div[style*="cursor: ns-resize"],
-.wavloom-app [data-tour-id="tour-bpm"] input[type="number"] {
+.freally-app [data-tour-id="tour-bpm"] div[style*="cursor: ns-resize"],
+.freally-app [data-tour-id="tour-bpm"] input[type="number"] {
     font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace !important;
     font-variant-numeric: tabular-nums !important;
     letter-spacing: -0.5px !important;
@@ -582,8 +582,8 @@
 
 /* Native tooltips can't be styled, but we ensure consistent font on
    any custom tooltip elements */
-.wavloom-app [class*="tooltip"],
-.wavloom-app [class*="Tooltip"] {
+.freally-app [class*="tooltip"],
+.freally-app [class*="Tooltip"] {
     font-family: 'DM Sans', sans-serif !important;
     font-size: 11px !important;
     letter-spacing: 0.2px !important;
@@ -595,8 +595,8 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 /* Any element that shows numeric readouts should use monospace */
-.wavloom-app [style*="fontWeight: '900'"][style*="textAlign: 'center'"],
-.wavloom-app [style*="font-weight: 900"][style*="text-align: center"] {
+.freally-app [style*="fontWeight: '900'"][style*="textAlign: 'center'"],
+.freally-app [style*="font-weight: 900"][style*="text-align: center"] {
     font-variant-numeric: tabular-nums !important;
 }
 
@@ -605,12 +605,12 @@
    ║  SELECTION & HIGHLIGHT COLORS                                        ║
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
-.wavloom-app ::selection {
+.freally-app ::selection {
     background: var(--accent-color, var(--accent, #ff6b6b));
     color: #fff;
 }
 
-.wavloom-app ::-moz-selection {
+.freally-app ::-moz-selection {
     background: var(--accent-color, var(--accent, #ff6b6b));
     color: #fff;
 }
@@ -622,7 +622,7 @@
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
-    .wavloom-app * {
+    .freally-app * {
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
     }
@@ -634,7 +634,7 @@
    ╚═══════════════════════════════════════════════════════════════════════╝ */
 
 @media print {
-    .wavloom-app {
+    .freally-app {
         background: white !important;
         color: black !important;
     }

@@ -1,7 +1,7 @@
-// WavLoom Mobile — Minimal Service Worker
+// Freally Mobile — Minimal Service Worker
 // Provides PWA installability and basic offline caching
 
-const CACHE_NAME = 'wavloom-mobile-v1';
+const CACHE_NAME = 'freally-mobile-v1';
 const CACHED_URLS = [
     './',
     './index.html',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
-const STORAGE_KEY = 'wavloom-teleprompter-settings';
+const STORAGE_KEY = 'freally-teleprompter-settings';
 const RTL_LANGUAGES = new Set(['Arabic', 'Hebrew', 'Persian', 'Urdu']);
 
 const SECTION_COLORS = {

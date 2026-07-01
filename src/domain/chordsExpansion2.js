@@ -1,5 +1,5 @@
 // chordsExpansion2.js - Massive chord progression expansion (~35,000+ progressions)
-// Auto-generated expansion for WavLoom Studio
+// Auto-generated expansion for Freally Studio
 // All roman numerals are from the valid set of 33 symbols defined in ROMAN_TO_CHORD
 
 export const CHORD_PROGRESSIONS_EXPANSION2 = {

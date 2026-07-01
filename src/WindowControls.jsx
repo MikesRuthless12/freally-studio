@@ -101,7 +101,7 @@ const WindowControls = ({ theme }) => {
         const left = (window.screen.width - width) / 2;
         const top = (window.screen.height - height) / 2;
         const features = `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`;
-        const newWindow = window.open(url, 'WavLoomStudio', features);
+        const newWindow = window.open(url, 'FreallyStudio', features);
         if (newWindow) {
             setPopoutWindow(newWindow);
         }

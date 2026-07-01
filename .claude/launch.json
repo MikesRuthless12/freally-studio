@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "wavloom-dev",
+      "name": "freally-dev",
       "runtimeExecutable": "node",
       "runtimeArgs": ["node_modules/vite/bin/vite.js", "--port", "5174", "--host"],
       "port": 5174,
@@ -11,7 +11,7 @@
       }
     },
     {
-      "name": "wavloom-preview",
+      "name": "freally-preview",
       "runtimeExecutable": "node",
       "runtimeArgs": ["node_modules/vite/bin/vite.js", "preview", "--port", "4173"],
       "port": 4173

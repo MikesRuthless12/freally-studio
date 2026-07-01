@@ -100,7 +100,7 @@ function detectSystemLanguage() {
 export function I18nProvider({ children }) {
     const [language, setLanguageState] = useState(() => {
         try {
-            const settings = localStorage.getItem('wavloom_settings');
+            const settings = localStorage.getItem('freally_settings');
             if (settings) {
                 const parsed = JSON.parse(settings);
                 // Accept a stored code, normalizing old/region forms (pt->pt-BR, zh->zh-CN)
@@ -128,10 +128,10 @@ export function I18nProvider({ children }) {
         setLanguageState(langCode);
         // Also persist to settings
         try {
-            const raw = localStorage.getItem('wavloom_settings');
+            const raw = localStorage.getItem('freally_settings');
             const settings = raw ? JSON.parse(raw) : {};
             settings.languageCode = langCode;
-            localStorage.setItem('wavloom_settings', JSON.stringify(settings));
+            localStorage.setItem('freally_settings', JSON.stringify(settings));
         } catch (e) { /* ignore */ }
     }, []);
 

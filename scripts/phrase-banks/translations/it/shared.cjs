@@ -1,6 +1,6 @@
 /**
  * Shared Italian Phrase Bank — Mood Modifiers, Hook Templates, Punchlines, etc.
- * Used across all genres by the WavLoom lyric engine.
+ * Used across all genres by the Freally lyric engine.
  */
 module.exports = {
   moodModifiers: {

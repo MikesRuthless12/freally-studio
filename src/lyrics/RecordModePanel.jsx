@@ -298,7 +298,7 @@ export default function RecordModePanel({
         });
     }, [song, genre, mood, hookMode, rhymeScheme]);
 
-    // Save lyrics to .wavloom-lyrics file
+    // Save lyrics to .freally-lyrics file
     const handleSave = useCallback(() => {
         if (!song) return;
         const projectData = formatAsProject(song.sections, song.metadata || {
@@ -306,10 +306,10 @@ export default function RecordModePanel({
             rhymeScheme, creativity, usePunchlines,
         });
         const content = JSON.stringify(projectData, null, 2);
-        downloadFile(content, `lyrics-${Date.now()}.wavloom-lyrics`, 'application/json');
+        downloadFile(content, `lyrics-${Date.now()}.freally-lyrics`, 'application/json');
     }, [song, genre, mood, songKey, scale, bpm, structureKey, rhymeScheme, creativity, usePunchlines]);
 
-    // Load lyrics from .wavloom-lyrics file
+    // Load lyrics from .freally-lyrics file
     const handleLoad = useCallback(() => {
         fileInputRef.current?.click();
     }, []);
@@ -321,7 +321,7 @@ export default function RecordModePanel({
         reader.onload = (evt) => {
             try {
                 const data = JSON.parse(evt.target.result);
-                if (data.type === 'wavloom-lyrics' && data.sections) {
+                if (data.type === 'freally-lyrics' && data.sections) {
                     // Reconstruct song object from project file
                     const sections = data.sections.map(s => ({
                         type: s.type,
@@ -419,7 +419,7 @@ export default function RecordModePanel({
             <input
                 ref={fileInputRef}
                 type="file"
-                accept=".wavloom-lyrics,.json"
+                accept=".freally-lyrics,.json"
                 style={{ display: 'none' }}
                 onChange={handleFileSelect}
             />

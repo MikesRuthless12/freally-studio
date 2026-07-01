@@ -244,7 +244,7 @@ function togglePercPower(drumStates, percEnabled) {
 /**
  * Apply energy level to a drum pattern.
  *
- * @param {object} pattern - WavLoom drum state object (keyed by drum element ID)
+ * @param {object} pattern - Freally drum state object (keyed by drum element ID)
  * @param {number} energyLevel - 0.0 to 1.0
  * @param {object} [options]
  * @param {number} [options.seed] - For deterministic results

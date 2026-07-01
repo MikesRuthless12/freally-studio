@@ -103,15 +103,15 @@ function migrateClipsToTimeline(audioTracks, arrangement) {
     }));
 }
 
-const WavLoomAppComplete = () => {
+const FreallyAppComplete = () => {
     const { t } = useTranslation();
 
     // Theme
-    const [theme, setTheme] = useState(() => localStorage.getItem('wavloom-theme') || 'dark');
+    const [theme, setTheme] = useState(() => localStorage.getItem('freally-theme') || 'dark');
     const isDark = theme === 'dark';
 
     // Accent color theme
-    const [accentTheme, setAccentTheme] = useState(() => localStorage.getItem('wavloom-accent') || DEFAULT_ACCENT_THEME);
+    const [accentTheme, setAccentTheme] = useState(() => localStorage.getItem('freally-accent') || DEFAULT_ACCENT_THEME);
     const [showAccentPicker, setShowAccentPicker] = useState(false);
     const accentPickerRef = useRef(null);
     const accent = getAccentTheme(accentTheme);
@@ -162,11 +162,11 @@ const WavLoomAppComplete = () => {
 
     // Persist theme + accent to localStorage and inject CSS custom properties
     useEffect(() => {
-        localStorage.setItem('wavloom-theme', theme);
+        localStorage.setItem('freally-theme', theme);
     }, [theme]);
 
     useEffect(() => {
-        localStorage.setItem('wavloom-accent', accentTheme);
+        localStorage.setItem('freally-accent', accentTheme);
         const acTheme = getAccentTheme(accentTheme);
         const root = document.documentElement;
         root.style.setProperty('--accent', acTheme.accent);
@@ -960,7 +960,7 @@ const WavLoomAppComplete = () => {
 
     const loadVST3OnTrack = useCallback(async (trackId, pluginInfo, isInstrument) => {
         if (!window.electronAPI?.vst3Host) {
-            addToast('VST3 plugins require the desktop (Electron) version of WavLoom', 'warning');
+            addToast('VST3 plugins require the desktop (Electron) version of Freally', 'warning');
             return;
         }
 
@@ -1475,7 +1475,7 @@ const WavLoomAppComplete = () => {
                 // Check for .wlz autosave in userData (Electron)
                 if (window.electronAPI?.app?.getPath && window.electronAPI?.fs?.exists) {
                     const userDataDir = await window.electronAPI.app.getPath('userData');
-                    const wlzPath = userDataDir + '/wavloom-autosave.wlz';
+                    const wlzPath = userDataDir + '/freally-autosave.wlz';
                     const exists = await window.electronAPI.fs.exists(wlzPath);
                     if (exists) {
                         const stat = await window.electronAPI.fs.stat(wlzPath);
@@ -1488,14 +1488,14 @@ const WavLoomAppComplete = () => {
                     }
                 }
                 // Fallback: check localStorage (legacy / browser mode)
-                const raw = localStorage.getItem('wavloom_autosave');
+                const raw = localStorage.getItem('freally_autosave');
                 if (raw) {
                     const data = JSON.parse(raw);
                     if (data.timestamp && (Date.now() - data.timestamp) < 24 * 60 * 60 * 1000) {
                         setAutosaveTimestamp(data.timestamp);
                         setShowAutosaveBanner(true);
                     } else {
-                        localStorage.removeItem('wavloom_autosave');
+                        localStorage.removeItem('freally_autosave');
                     }
                 }
             } catch (e) { console.warn('[AutoSave] Failed to read autosave:', e); }
@@ -1992,7 +1992,7 @@ const WavLoomAppComplete = () => {
         } catch (_) { /* ignore */ }
     }, []);
 
-    // Handle deep-link collab invites (wavloom://join?room=xxx)
+    // Handle deep-link collab invites (freally://join?room=xxx)
     useEffect(() => {
         if (!window.electronAPI?.deeplink?.onRoom) return;
         window.electronAPI.deeplink.onRoom((room) => {
@@ -2054,7 +2054,7 @@ const WavLoomAppComplete = () => {
 
     // PWA Install Prompt listener
     useEffect(() => {
-        const dismissed = localStorage.getItem('wavloom_install_dismissed');
+        const dismissed = localStorage.getItem('freally_install_dismissed');
         if (dismissed) return;
 
         const handler = (e) => {
@@ -2090,7 +2090,7 @@ const WavLoomAppComplete = () => {
     const handleInstallDismiss = () => {
         setShowInstallBtn(false);
         setInstallPrompt(null);
-        localStorage.setItem('wavloom_install_dismissed', 'true');
+        localStorage.setItem('freally_install_dismissed', 'true');
     };
 
     // Auto-start onboarding tour on first visit after 1s delay
@@ -3867,14 +3867,14 @@ const WavLoomAppComplete = () => {
         const warmAudio = () => {
             if (samplerRef.current && samplerRef.current.audioContext.state === 'suspended') {
                 samplerRef.current.audioContext.resume().then(() => {
-                    console.log("[WavLoom] Global AudioContext pre-warmed for zero-latency playback.");
+                    console.log("[Freally] Global AudioContext pre-warmed for zero-latency playback.");
                     // Auto-suspend after 3s if no audio activity started
                     // (setAudioActive(true) clears this via its own resume path)
                     idleTimer = setTimeout(() => {
                         const s = samplerRef.current;
                         if (s && !s._audioActive && s.audioContext.state === 'running') {
                             s.audioContext.suspend().catch(() => {});
-                            console.log("[WavLoom] AudioContext suspended (idle after pre-warm).");
+                            console.log("[Freally] AudioContext suspended (idle after pre-warm).");
                         }
                     }, 3000);
                 }).catch(e => console.error("Audio warmup skipped:", e));
@@ -4555,7 +4555,7 @@ const WavLoomAppComplete = () => {
                 }
                 return null;
             };
-            const folderFiles = window.__wavloomFolderFiles || {};
+            const folderFiles = window.__freallyFolderFiles || {};
             for (const files of Object.values(folderFiles)) {
                 midiItem = findMidi(files);
                 if (midiItem) break;
@@ -4855,7 +4855,7 @@ const WavLoomAppComplete = () => {
 
         setIsExporting(true);
         try {
-            const pName = projectName || 'WavLoom';
+            const pName = projectName || 'Freally';
             const downloads = [];
 
             // MIDI export
@@ -6270,8 +6270,8 @@ const WavLoomAppComplete = () => {
     // Listen for drum clip edit close event
     useEffect(() => {
         const handler = () => setEditingDrumClipId(null);
-        window.addEventListener('wavloom-close-drum-clip-edit', handler);
-        return () => window.removeEventListener('wavloom-close-drum-clip-edit', handler);
+        window.addEventListener('freally-close-drum-clip-edit', handler);
+        return () => window.removeEventListener('freally-close-drum-clip-edit', handler);
     }, []);
 
     // ─── Chord Clip handlers ───
@@ -6299,8 +6299,8 @@ const WavLoomAppComplete = () => {
 
     useEffect(() => {
         const handler = () => setEditingChordClipId(null);
-        window.addEventListener('wavloom-close-chord-clip-edit', handler);
-        return () => window.removeEventListener('wavloom-close-chord-clip-edit', handler);
+        window.addEventListener('freally-close-chord-clip-edit', handler);
+        return () => window.removeEventListener('freally-close-chord-clip-edit', handler);
     }, []);
 
     // ─── Melody Clip handlers ───
@@ -6328,8 +6328,8 @@ const WavLoomAppComplete = () => {
 
     useEffect(() => {
         const handler = () => setEditingMelodyClipId(null);
-        window.addEventListener('wavloom-close-melody-clip-edit', handler);
-        return () => window.removeEventListener('wavloom-close-melody-clip-edit', handler);
+        window.addEventListener('freally-close-melody-clip-edit', handler);
+        return () => window.removeEventListener('freally-close-melody-clip-edit', handler);
     }, []);
 
     // ─── Bass Clip handlers ───
@@ -6357,8 +6357,8 @@ const WavLoomAppComplete = () => {
 
     useEffect(() => {
         const handler = () => setEditingBassClipId(null);
-        window.addEventListener('wavloom-close-bass-clip-edit', handler);
-        return () => window.removeEventListener('wavloom-close-bass-clip-edit', handler);
+        window.addEventListener('freally-close-bass-clip-edit', handler);
+        return () => window.removeEventListener('freally-close-bass-clip-edit', handler);
     }, []);
 
     const handleDrumSampleLoad = useCallback((has) => {
@@ -6451,9 +6451,9 @@ const WavLoomAppComplete = () => {
                     const { blob } = await pm.saveProject(projectState, () => {});
                     const arrayBuffer = await blob.arrayBuffer();
                     const userDataDir = await window.electronAPI.app.getPath('userData');
-                    await window.electronAPI.fs.writeFile(userDataDir + '/wavloom-autosave.wlz', arrayBuffer);
+                    await window.electronAPI.fs.writeFile(userDataDir + '/freally-autosave.wlz', arrayBuffer);
                     // Also store active tab in a lightweight sidecar
-                    localStorage.setItem('wavloom_autosave_meta', JSON.stringify({ activeTab, timestamp: Date.now() }));
+                    localStorage.setItem('freally_autosave_meta', JSON.stringify({ activeTab, timestamp: Date.now() }));
                 } else {
                     // Browser fallback: JSON to localStorage (no samples)
                     const snapshot = JSON.stringify({
@@ -6469,7 +6469,7 @@ const WavLoomAppComplete = () => {
                         effects: effectsManagerRef.current ? effectsManagerRef.current.serialize() : null,
                     });
                     if (snapshot.length < 5 * 1024 * 1024) {
-                        localStorage.setItem('wavloom_autosave', snapshot);
+                        localStorage.setItem('freally_autosave', snapshot);
                     }
                 }
             } catch (e) { console.warn('[AutoSave] Save failed:', e); }
@@ -6486,11 +6486,11 @@ const WavLoomAppComplete = () => {
                 const { data, error } = await window.electronAPI.fs.readFile(autosavePath);
                 if (!error && data) {
                     const blob = new Blob([data]);
-                    const file = new File([blob], 'wavloom-autosave.wlz', { type: 'application/zip' });
+                    const file = new File([blob], 'freally-autosave.wlz', { type: 'application/zip' });
                     await handleLoadProject(file, autosavePath);
                     // Restore active tab from sidecar meta
                     try {
-                        const meta = JSON.parse(localStorage.getItem('wavloom_autosave_meta') || '{}');
+                        const meta = JSON.parse(localStorage.getItem('freally_autosave_meta') || '{}');
                         if (meta.activeTab) setActiveTab(meta.activeTab);
                     } catch (_) {}
                 }
@@ -6499,7 +6499,7 @@ const WavLoomAppComplete = () => {
             }
 
             // Browser fallback: restore from localStorage JSON
-            const raw = localStorage.getItem('wavloom_autosave');
+            const raw = localStorage.getItem('freally_autosave');
             if (!raw) return;
             const d = JSON.parse(raw);
 
@@ -6556,14 +6556,14 @@ const WavLoomAppComplete = () => {
                 else if (bassRef.current) bassRef.current.loadState(d.patterns?.bass, instrumentNames.bass);
             }, 200);
 
-            localStorage.removeItem('wavloom_autosave');
+            localStorage.removeItem('freally_autosave');
             setShowAutosaveBanner(false);
         } catch (e) { console.error('[AutoSave] Restore failed:', e); }
     };
 
     const handleDismissAutosave = async () => {
-        localStorage.removeItem('wavloom_autosave');
-        localStorage.removeItem('wavloom_autosave_meta');
+        localStorage.removeItem('freally_autosave');
+        localStorage.removeItem('freally_autosave_meta');
         // Delete .wlz autosave file if it exists
         if (autosavePath && window.electronAPI?.fs?.writeFile) {
             try {
@@ -6665,7 +6665,7 @@ const WavLoomAppComplete = () => {
                     const handle = await window.showSaveFilePicker({
                         suggestedName: filename,
                         types: [{
-                            description: 'WavLoom Project',
+                            description: 'Freally Project',
                             accept: { 'application/zip': ['.wlz'] }
                         }]
                     });
@@ -6692,8 +6692,8 @@ const WavLoomAppComplete = () => {
             addRecentProject(projectName || 'Untitled', filename);
 
             // Clear autosave after successful manual save
-            localStorage.removeItem('wavloom_autosave');
-            localStorage.removeItem('wavloom_autosave_meta');
+            localStorage.removeItem('freally_autosave');
+            localStorage.removeItem('freally_autosave_meta');
 
             // Notify collaborators that we saved
             if (collab.broadcastSaveNotification) {
@@ -7332,7 +7332,7 @@ const WavLoomAppComplete = () => {
                             </div>
 
                             <h1 key={accentTheme} data-tour-id="tour-welcome" onDoubleClick={(e) => { e.stopPropagation(); if (isElectron() && window.electronAPI?.window?.maximize) window.electronAPI.window.maximize(); }}
-                                className="wavloom-title-hover"
+                                className="freally-title-hover"
                                 style={{
                                 margin: 0,
                                 fontSize: '22px',
@@ -7342,8 +7342,8 @@ const WavLoomAppComplete = () => {
                                 cursor: 'default',
                                 display: 'flex',
                             }}>
-                                {'WAVLOOM STUDIO'.split('').map((char, i) => (
-                                    <span key={i} className="wavloom-letter" style={{
+                                {'FREALLY STUDIO'.split('').map((char, i) => (
+                                    <span key={i} className="freally-letter" style={{
                                         display: 'inline-block',
                                         backgroundImage: accent.type === 'gradient' ? acGrad : 'none',
                                         WebkitBackgroundClip: accent.type === 'gradient' ? 'text' : 'unset',
@@ -9939,4 +9939,4 @@ const ShortcutRow = ({ keys, action, isDark }) => (
     </div>
 );
 
-export default WavLoomAppComplete;
+export default FreallyAppComplete;

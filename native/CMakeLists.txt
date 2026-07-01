@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.15)
+
+# macOS universal binary (x86_64 + arm64): lets a single Apple-Silicon CI runner
+# emit a correct Intel .node, so the release can drop the chronically-unschedulable
+# macOS-13 Intel runner. Must precede project() (compiler/arch detection); FORCE
+# overrides cmake-js's default host-arch -DCMAKE_OSX_ARCHITECTURES.
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "" FORCE)
+endif()
+
 project(freally_vst3_host)
 
 set(CMAKE_CXX_STANDARD 17)

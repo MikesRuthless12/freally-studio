@@ -50,8 +50,12 @@ jobs:
       matrix:
         include:
           - { platform: windows-latest, eb: "--win --x64" }
-          - { platform: macos-14, eb: "--mac --arm64" }
-          - { platform: macos-13, eb: "--mac --x64" }
+          # macOS-14 (Apple Silicon) builds BOTH mac arches. electron-builder.yml
+          # declares the dmg target arch:[x64,arm64], and the native VST3 addon now
+          # compiles universal (x86_64;arm64), so the Intel dmg is correct too. This
+          # replaces a dedicated macOS-13 leg — that Intel runner is chronically
+          # unschedulable (a prior release hung 24h waiting on it).
+          - { platform: macos-14, eb: "--mac --x64 --arm64" }
           - { platform: ubuntu-22.04, eb: "--linux --x64" }
     runs-on: ${{ matrix.platform }}
     steps:

@@ -25,7 +25,10 @@ jobs:
   deploy:
     name: deploy docs/ to GitHub Pages
     runs-on: ubuntu-22.04
-    timeout-minutes: 5
+    # deploy-pages polls the Pages API until the deployment goes live; that
+    # backend step occasionally runs past 5m and tripped the timeout (run
+    # 28533090834). 10m gives margin — the actual upload is ~20s.
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

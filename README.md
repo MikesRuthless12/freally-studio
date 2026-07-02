@@ -2,6 +2,8 @@
 
 Professional browser-based DAW with comprehensive music production features.
 
+**Completely free — every feature, for everyone. No Pro tier, no subscriptions, no payments, no ads.**
+
 ---
 
 ## 🚀 Quick Start
@@ -66,7 +68,7 @@ FL Studio-style professional mixer:
 ### 🎹 MIDI Sequencer (In Development)
 - 35+ music genres with professional characteristics
 - Pattern learning from imported MIDI/samples
-- Pro-level drum, melody, and chord generation
+- Professional drum, melody, and chord generation
 - C0-C8 full range support
 - Grid snapping (1/4, 1/8, 1/16, 1/32)
 - 1-8 bar patterns
@@ -96,7 +98,6 @@ freally-project/
 ├── package.json
 ├── vite.config.js
 ├── index.html
-├── FEATURES_IMPLEMENTED.md          # Complete feature list
 └── README.md                        # This file
 ```
 
@@ -291,19 +292,6 @@ pnpm install
 
 ---
 
-## 🚀 Future Enhancements
-
-- VST Plugin Support
-- Cloud Storage Integration
-- Collaboration Features
-- Mobile App Version
-- Advanced Automation
-- More Plugin Types
-- MIDI Export/Import
-- Audio Track Bouncing
-
----
-
 ## 🛡️ Quality, Security & Stability
 
 Freally Studio went through a comprehensive security + correctness audit pass
@@ -336,7 +324,6 @@ Test status: **844 / 844 passing** across 33 test files.
 
 **Freally Studio v2.0** - Professional Music Production in Your Browser 🎵
 
-For detailed feature documentation, see `FEATURES_IMPLEMENTED.md`
 For change history, see [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ---

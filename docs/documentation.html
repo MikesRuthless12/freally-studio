@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Freally Studio — Documentation</title>
+    <meta
+      name="description"
+      content="Step-by-step user guide for Freally Studio — install, generate beats, mix, export, and troubleshoot."
+    />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Supplemental styles not covered by shared .doc-* classes */
+      .doc-body section .section-sub {
+        color: var(--muted);
+        font-size: 0.97rem;
+        margin: 0 0 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .doc-body ol li code,
+      .doc-body ul li code {
+        font-family: "SFMono-Regular", ui-monospace, "Cascadia Code", Consolas, monospace;
+        font-size: 0.9em;
+        background: rgba(110, 168, 254, 0.1);
+        border: 1px solid rgba(110, 168, 254, 0.2);
+        border-radius: 5px;
+        padding: 1px 6px;
+        color: var(--accent);
+      }
+
+      .tip-box {
+        margin-top: 18px;
+        padding: 14px 16px;
+        background: rgba(110, 168, 254, 0.06);
+        border: 1px solid rgba(110, 168, 254, 0.2);
+        border-radius: 10px;
+        color: #c7d1e0;
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
+
+      .tip-box strong {
+        color: var(--accent);
+      }
+
+      .shortcut-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 16px;
+        margin-top: 8px;
+      }
+
+      .shortcut-grid code {
+        font-family: "SFMono-Regular", ui-monospace, "Cascadia Code", Consolas, monospace;
+        font-size: 0.88em;
+        background: rgba(110, 168, 254, 0.1);
+        border: 1px solid rgba(110, 168, 254, 0.2);
+        border-radius: 5px;
+        padding: 2px 8px;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      .shortcut-grid span {
+        color: #c7d1e0;
+        font-size: 0.95rem;
+        align-self: center;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <img class="logo" src="icon.png" alt="Freally Studio icon" width="96" height="96" />
+      <h1>Documentation</h1>
+      <p class="sub">Step-by-step guides for every part of Freally Studio.</p>
+    </header>
+
+    <div class="doc-layout">
+
+      <!-- Sticky sidebar table of contents -->
+      <aside class="doc-toc">
+        <nav aria-label="Page sections">
+          <span class="toc-label">On this page</span>
+          <a href="#getting-started">1. Getting Started</a>
+          <a href="#first-project">2. Your First Project</a>
+          <a href="#chord-progression">3. Chord Progressions</a>
+          <a href="#melody-bassline">4. Melody &amp; Bassline</a>
+          <a href="#drums-patterns">5. Drums &amp; Patterns</a>
+          <a href="#sample-library">6. Sample Library</a>
+          <a href="#arrangement">7. Arrangement View</a>
+          <a href="#mix-master">8. Mixing &amp; Mastering</a>
+          <a href="#render-export">9. Render &amp; Export</a>
+          <a href="#collaborate">10. Collaborate</a>
+          <a href="#settings">11. Settings</a>
+          <a href="#tips-troubleshooting">12. Tips &amp; Troubleshooting</a>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <main class="doc-body">
+
+        <!-- 1. Getting Started -->
+        <section id="getting-started">
+          <h2>1. Getting Started / Install</h2>
+          <p class="section-sub">Download and launch Freally Studio in under two minutes.</p>
+          <ol>
+            <li>
+              <strong>Download the installer</strong> for your OS from the
+              <a href="index.html" style="color:var(--accent);text-decoration:none;">Releases page</a>:
+              Windows (.exe), macOS Apple Silicon (.dmg), macOS Intel (.dmg), or Linux (.AppImage / .deb).
+            </li>
+            <li>
+              <strong>Run the installer.</strong> On Windows, double-click the <code>.exe</code> and follow the prompts.
+              On macOS, open the <code>.dmg</code>, drag Freally Studio to your Applications folder, then double-click it.
+              On Linux, make the AppImage executable (<code>chmod +x Freally*.AppImage</code>) and run it, or install the
+              <code>.deb</code> with <code>sudo dpkg -i</code>.
+            </li>
+            <li>
+              <strong>Allow audio access</strong> when prompted. Freally Studio needs microphone/audio device access to play and record sound.
+            </li>
+            <li>
+              <strong>Click anywhere on the app</strong> when it first opens. This is required to resume the Web Audio context in your browser or Electron shell.
+            </li>
+            <li>
+              <strong>Verify playback works</strong> by pressing <code>Space</code> on an empty project — the transport should start (no sound yet, but no errors in the title bar).
+            </li>
+          </ol>
+          <div class="tip-box">
+            <strong>Browser build:</strong> If you're running from source, install dependencies with <code>pnpm install</code> (or <code>npm install</code>), then start the dev server with <code>pnpm dev</code> and open <code>http://localhost:5173</code> in Chrome or Edge. Firefox is supported but Chrome gives the best Web Audio performance.
+          </div>
+        </section>
+
+        <!-- 2. First Project -->
+        <section id="first-project">
+          <h2>2. Create Your First Project</h2>
+          <p class="section-sub">Set up a new session and pick your musical key, scale, and tempo.</p>
+          <ol>
+            <li>
+              <strong>Open Freally Studio.</strong> A blank project loads automatically — no file dialog needed.
+            </li>
+            <li>
+              <strong>Set your Genre</strong> using the Genre selector in the top control bar. There are 35+ options spanning Trap, Hip Hop, House, Techno, Drum &amp; Bass, Jazz, and more. Your choice shapes the patterns that Freally Studio generates.
+            </li>
+            <li>
+              <strong>Set your Key</strong> (C through B, with sharps) and <strong>Scale</strong> (Major, Minor, Dorian, Pentatonic Minor, Blues, etc.). All generators stay in key automatically.
+            </li>
+            <li>
+              <strong>Set your Bars</strong> — choose 1, 2, 4, or 8 bars for the loop length of each generated pattern.
+            </li>
+            <li>
+              <strong>Pick your Grid Resolution</strong>: <code>1/16</code> for standard patterns, <code>1/32</code> for finer rhythmic detail (uses slightly more CPU).
+            </li>
+            <li>
+              <strong>You're ready.</strong> Projects save state automatically in your browser's IndexedDB storage, so your samples and arrangements persist between sessions without manual saving.
+            </li>
+          </ol>
+        </section>
+
+        <!-- 3. Chord Progressions -->
+        <section id="chord-progression">
+          <h2>3. Generate a Chord Progression</h2>
+          <p class="section-sub">Create a professional chord progression matched to your genre, key, and scale.</p>
+          <ol>
+            <li>
+              <strong>Click the Chords tab</strong> in the MIDI Generator panel.
+            </li>
+            <li>
+              <strong>Load an instrument sample</strong> (optional but recommended):
+              click the instrument panel in the Chords tab, browse to an audio file (WAV, MP3, OGG, or FLAC),
+              and select it. Alternatively, drag a file from the File Explorer panel directly onto the instrument panel.
+            </li>
+            <li>
+              <strong>Confirm your Genre, Key, Scale, and Bars</strong> in the top control bar.
+            </li>
+            <li>
+              <strong>Click GENERATE.</strong> Freally Studio builds a chord progression that fits the genre and scale. The chord grid populates with color-coded blocks showing chord names, durations, and positions.
+            </li>
+            <li>
+              <strong>Preview the progression</strong> by pressing <code>Space</code> in the generator view to hear it loop.
+            </li>
+            <li>
+              <strong>Edit individual chords</strong> in the grid if needed — click a chord block to adjust its root, inversion, or duration.
+            </li>
+            <li>
+              <strong>Drag the pattern to the Arrangement view</strong> once you're happy — grab the generated clip and drop it onto a chord track in the timeline.
+            </li>
+          </ol>
+        </section>
+
+        <!-- 4. Melody / Bassline -->
+        <section id="melody-bassline">
+          <h2>4. Generate a Melody / Bassline</h2>
+          <p class="section-sub">Generate a scale-aware melody or a bassline that follows your chord progression.</p>
+          <ol>
+            <li>
+              <strong>Click the Melody tab</strong> in the MIDI Generator panel.
+            </li>
+            <li>
+              <strong>Load an instrument sample</strong> for melody playback by clicking the instrument panel or dragging a sample file onto it (WAV, MP3, OGG, FLAC supported).
+            </li>
+            <li>
+              <strong>Confirm your Genre, Key, Scale, Bars, and Octave.</strong> The Octave control (C0–C8) lets you target the right register for a lead melody versus a bassline.
+            </li>
+            <li>
+              <strong>Click GENERATE.</strong> Freally Studio produces a melodic line or bassline using scale-aware note selection and genre-specific phrasing. The note grid populates with individual note blocks.
+            </li>
+            <li>
+              <strong>Preview and edit</strong> — press <code>Space</code> to hear it loop. Click individual notes in the grid to move, resize, or delete them.
+            </li>
+            <li>
+              <strong>For a bassline:</strong> set the Octave to C1 or C2, choose a bass-heavy sample (e.g., an 808 or sub bass), and generate. The melody generator produces bassline-appropriate patterns when the register is low.
+            </li>
+            <li>
+              <strong>Drag the pattern to the Arrangement view</strong> onto a melody or bass track in the timeline.
+            </li>
+          </ol>
+        </section>
+
+        <!-- 5. Drums / Patterns -->
+        <section id="drums-patterns">
+          <h2>5. Generate Drums / a Pattern</h2>
+          <p class="section-sub">Build a complete drum pattern with 8 elements across 35+ genre presets.</p>
+          <ol>
+            <li>
+              <strong>Click the Drums tab</strong> in the MIDI Generator panel.
+            </li>
+            <li>
+              <strong>Load samples for each drum element</strong> (optional):
+              <ol type="a">
+                <li>Click a drum element label (Kick, Snare, Clap, Hi-Hat Open, Hi-Hat Closed, Tom, Crash, or Ride).</li>
+                <li>Browse to an audio file and select it, or drag a sample file from the File Explorer panel directly onto the drum slot.</li>
+                <li>A waveform preview appears in the slot confirming the sample is loaded.</li>
+              </ol>
+            </li>
+            <li>
+              <strong>Set Genre, Key, Scale, and Bars</strong> in the top control bar. The genre especially drives which rhythmic patterns are used (e.g., Trap produces rolling hi-hats; House produces four-on-the-floor kicks).
+            </li>
+            <li>
+              <strong>Click GENERATE.</strong> A 16-step (or 32-step) grid fills with hits for each drum element according to genre-specific professional patterns, variations, and fills.
+            </li>
+            <li>
+              <strong>Edit the pattern</strong> by clicking grid cells to toggle individual hits on or off.
+            </li>
+            <li>
+              <strong>Preview</strong> by pressing <code>Space</code>. The pattern loops so you can audition edits in real time.
+            </li>
+            <li>
+              <strong>Drag the drum clip to the Arrangement view</strong> onto a drum track in the timeline.
+            </li>
+          </ol>
+        </section>
+
+        <!-- 6. Sample Library -->
+        <section id="sample-library">
+          <h2>6. Use the Sample Library</h2>
+          <p class="section-sub">Import, browse, tag, and preview your audio files in the built-in File Explorer.</p>
+          <ol>
+            <li>
+              <strong>Open the File Explorer panel</strong> by clicking the folder icon in the left sidebar. It shows a collapsible folder tree of your imported sample folders.
+            </li>
+            <li>
+              <strong>Import a folder:</strong> click the <strong>+</strong> button at the top of the File Explorer. A system folder picker opens. Select a folder containing your audio files (WAV, MP3, OGG, FLAC). Freally Studio indexes it and shows all files in the tree.
+            </li>
+            <li>
+              <strong>Navigate the tree</strong> — click folder names to expand or collapse them. File count badges show how many audio files are in each folder.
+            </li>
+            <li>
+              <strong>Preview a sample</strong> — click any audio file in the tree to hear it play back immediately. A stop button appears while it plays. A waveform preview renders in the panel.
+            </li>
+            <li>
+              <strong>Use the search bar</strong> to filter by filename across all imported folders.
+            </li>
+            <li>
+              <strong>Drag a sample to a generator</strong> — drag any file from the Explorer directly onto a drum slot, the Chords instrument panel, or the Melody instrument panel to load it.
+            </li>
+            <li>
+              <strong>Analyze a folder for auto-generation:</strong> right-click a folder in the tree and choose <strong>Analyze &amp; Generate</strong>. Freally Studio detects the key, BPM, genre, and scale from the files inside and pre-sets the top control bar. Then click GENERATE to create a matching pattern.
+            </li>
+            <li>
+              <strong>Samples persist</strong> across sessions — IndexedDB caches your imports, so you don't need to re-import after restarting the app.
+            </li>
+          </ol>
+          <div class="tip-box">
+            <strong>Best results with folder analysis:</strong> use folders with 5 or more files of a single style. Name folders with genre keywords (e.g., "Trap Dark" or "Lo-Fi Chill") to help the analyzer. Avoid mixing wildly different genres in one folder.
+          </div>
+        </section>
+
+        <!-- 7. Arrangement View -->
+        <section id="arrangement">
+          <h2>7. Edit on the Arrangement View</h2>
+          <p class="section-sub">Arrange clips on a multi-track timeline, set loop regions, and build your full song structure.</p>
+          <ol>
+            <li>
+              <strong>Switch to Arrangement view</strong> by clicking the Arrangement icon (timeline icon) in the main navigation.
+            </li>
+            <li>
+              <strong>Drag clips from the generator panels</strong> onto the timeline tracks. Clips show sample names above them and waveform previews inside.
+            </li>
+            <li>
+              <strong>Reposition clips</strong> by dragging them left or right on the timeline.
+            </li>
+            <li>
+              <strong>Set a loop region:</strong> drag the loop markers at the top of the timeline to define the start and end of your loop. Press <code>Ctrl+L</code> to toggle looping on or off.
+            </li>
+            <li>
+              <strong>Press <code>Space</code></strong> to play or stop. Press <code>Ctrl+Space</code> to jump back to the start and play from the beginning.
+            </li>
+            <li>
+              <strong>Right-click a clip</strong> for context options: duplicate, delete, rename, or open in the clip editor.
+            </li>
+            <li>
+              <strong>Duplicate a clip</strong> by selecting it and pressing <code>Ctrl+D</code>.
+            </li>
+            <li>
+              <strong>Delete a selected clip</strong> with the <code>Delete</code> key.
+            </li>
+            <li>
+              <strong>Use keyboard shortcuts</strong> to set loop boundaries quickly:
+              press <code>[</code> to mark the current playhead position as the loop start,
+              and <code>]</code> to mark the loop end.
+            </li>
+          </ol>
+          <div class="tip-box">
+            <strong>Shortcut reference:</strong>
+            <div class="shortcut-grid">
+              <code>Space</code><span>Play / Stop</span>
+              <code>Ctrl+Space</code><span>Play from start</span>
+              <code>Ctrl+L</code><span>Toggle loop</span>
+              <code>[</code><span>Set loop start</span>
+              <code>]</code><span>Set loop end</span>
+              <code>Ctrl+D</code><span>Duplicate selected clip</span>
+              <code>Delete</code><span>Remove selected clip</span>
+              <code>Escape</code><span>Exit full screen</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. Mix & Master -->
+        <section id="mix-master">
+          <h2>8. Mixing &amp; Mastering</h2>
+          <p class="section-sub">Balance levels, pan instruments, add effects, and polish the master bus.</p>
+          <ol>
+            <li>
+              <strong>Switch to Mixer view</strong> by clicking the Mixer icon in the main navigation. The FL Studio-style vertical channel strip layout appears.
+            </li>
+            <li>
+              <strong>Adjust channel volume</strong> by dragging the vertical fader on each strip. VU meters show real-time peak levels.
+            </li>
+            <li>
+              <strong>Pan a channel</strong> using the pan knob at the top of each strip. Spread drums wide, keep kick and bass centered for a full stereo image.
+            </li>
+            <li>
+              <strong>Solo or mute a channel</strong> with the S (Solo) and M (Mute) buttons. LED indicators show which channels are active. Soloing a channel lets you hear it in isolation.
+            </li>
+            <li>
+              <strong>Add effects to a channel:</strong> click the <strong>+</strong> button in the channel's plugin rack. A plugin menu appears — choose from the available effects (EQ, compressor, reverb, delay, and more).
+            </li>
+            <li>
+              <strong>Adjust effect parameters</strong> in the plugin panel that opens below the rack slot. Drag knobs or type values to dial in your sound.
+            </li>
+            <li>
+              <strong>Apply the 3-band EQ</strong> directly to any clip via the Audio Clip Editor — right-click a clip in the Arrangement and choose Edit to access trim, fade, normalize, reverse, EQ, and filter controls.
+            </li>
+            <li>
+              <strong>Process the master channel</strong> using the dedicated Master strip on the far right of the mixer. Apply a limiter or master EQ here to control final output level and prevent clipping.
+            </li>
+            <li>
+              <strong>Color-code channels</strong> by right-clicking a channel header and selecting a color — this helps you visually organize drums, bass, melody, and effects busses.
+            </li>
+          </ol>
+        </section>
+
+        <!-- 9. Render & Export -->
+        <section id="render-export">
+          <h2>9. Render &amp; Export Your Track</h2>
+          <p class="section-sub">Export your beat or individual stems as WAV, MP3, or MIDI.</p>
+          <ol>
+            <li>
+              <strong>Set your loop region</strong> in the Arrangement view to define what gets exported. Make sure the loop markers bracket the section you want.
+            </li>
+            <li>
+              <strong>Open the Export dialog</strong> by clicking the Export button in the top toolbar (or via File → Export).
+            </li>
+            <li>
+              <strong>Choose your export format:</strong>
+              <ol type="a">
+                <li><strong>WAV</strong> — high-quality, lossless audio. Best for dropping into a DAW.</li>
+                <li><strong>MP3</strong> — compressed audio for sharing online.</li>
+                <li><strong>MIDI</strong> — exports the MIDI pattern from the active generator for use in any DAW or instrument.</li>
+              </ol>
+            </li>
+            <li>
+              <strong>Select stem export or full mix.</strong> Exporting individual stems gives you one file per track (drums, chords, melody, bass), which is useful for post-processing in an external DAW.
+            </li>
+            <li>
+              <strong>Click Export / Download.</strong> The file downloads to your default Downloads folder.
+            </li>
+          </ol>
+          <div class="tip-box">
+            <strong>Tip:</strong> Export in WAV at 44100 Hz / 24-bit for the best quality when you plan to master the track further in another DAW. Keep individual sample files under 10 MB for smooth real-time playback during the session.
+          </div>
+        </section>
+
+        <!-- 10. Collaborate -->
+        <section id="collaborate">
+          <h2>10. Collaborate</h2>
+          <p class="section-sub">Work on a session with another person in real time over a P2P connection.</p>
+          <ol>
+            <li>
+              <strong>Open the Collaborate panel</strong> from the top navigation or toolbar.
+            </li>
+            <li>
+              <strong>Create a room</strong> by clicking <strong>New Session</strong>. Freally Studio generates a secure room link and a 6-digit PIN.
+            </li>
+            <li>
+              <strong>Share the room link and PIN</strong> with your collaborator. The PIN is delivered as a URL fragment and never leaves the browser — the server cannot see it.
+            </li>
+            <li>
+              <strong>Your collaborator opens the link</strong> in their browser and enters the PIN when prompted. Once authenticated, they join the session.
+            </li>
+            <li>
+              <strong>Both users can now edit</strong> the arrangement, tweak patterns, and adjust settings. Changes sync peer-to-peer in real time.
+            </li>
+            <li>
+              <strong>Mobile link:</strong> if you want to join from a phone, open the room link on the mobile browser. The same 6-digit PIN is required. Note that mobile is a companion / controller view — full production is best on desktop.
+            </li>
+            <li>
+              <strong>End the session</strong> by closing the Collaborate panel or navigating away. The room expires automatically after the last participant leaves.
+            </li>
+          </ol>
+          <div class="tip-box">
+            <strong>Note:</strong> Freally Studio is completely free — every feature, including real-time collaboration, for everyone. No Pro tier, no subscriptions, no payments, no ads.
+          </div>
+        </section>
+
+        <!-- 11. Settings -->
+        <section id="settings">
+          <h2>11. Settings</h2>
+          <p class="section-sub">Customize Freally Studio to match your workflow and hardware.</p>
+          <ol>
+            <li>
+              <strong>Toggle Dark / Light theme</strong> by clicking the sun/moon button in the app header. All panels and generators adapt automatically. Your preference is saved across sessions.
+            </li>
+            <li>
+              <strong>Change audio output device</strong> in Settings → Audio. Select your interface, headphones, or speakers from the dropdown. Freally Studio uses the Web Audio API and respects your OS default unless you override it here.
+            </li>
+            <li>
+              <strong>Set sample rate</strong> in Settings → Audio. The recommended values are 44100 Hz or 48000 Hz. Mismatched sample rates can cause pitch drift.
+            </li>
+            <li>
+              <strong>View app version and build info</strong> in Settings → About. The project creation date (February 15th, 2026) is recorded here alongside the current version number.
+            </li>
+            <li>
+              <strong>Clear sample cache</strong> in Settings → Storage if the app becomes slow or you want to free disk space. Your project arrangement is not affected — only cached audio files are removed (you will need to re-import samples).
+            </li>
+          </ol>
+        </section>
+
+        <!-- 12. Tips & Troubleshooting -->
+        <section id="tips-troubleshooting">
+          <h2>12. Tips &amp; Troubleshooting</h2>
+          <p class="section-sub">Common issues and performance tips to keep your sessions running smoothly.</p>
+          <ol>
+            <li>
+              <strong>No audio playback:</strong> click anywhere on the app page to resume the Web Audio context (browsers require a user gesture before audio can start). Also verify your OS volume is not muted and that the correct output device is selected in Settings → Audio.
+            </li>
+            <li>
+              <strong>Sample won't load:</strong> confirm the file is an audio format (WAV, MP3, OGG, or FLAC). Keep individual files under 10 MB. If a file fails silently, try converting it to WAV first.
+            </li>
+            <li>
+              <strong>Folder analysis gives wrong key or genre:</strong> the detector works best with 5+ files of a consistent style. Try right-clicking a more specific sub-folder. You can also override the detected values manually in the top control bar before generating.
+            </li>
+            <li>
+              <strong>App is slow or stuttering during playback:</strong> switch the Grid Resolution to <code>1/16</code> (instead of <code>1/32</code>), limit active tracks to 8–16, close unused browser tabs, and use WAV files (they decode faster than MP3). If running from source, ensure you are using the production build (<code>pnpm build</code>) rather than the dev server for best performance.
+            </li>
+            <li>
+              <strong>Dev server port already in use:</strong> run <code>pnpm dev --port 3000</code> (or any other free port) to start on a different port.
+            </li>
+            <li>
+              <strong>Dependencies failed to install:</strong> delete <code>node_modules</code> and <code>pnpm-lock.yaml</code>, then run <code>pnpm install</code> again to get a clean install.
+            </li>
+            <li>
+              <strong>Generated patterns don't match your style:</strong> try a more specific genre, adjust the key and scale to match your reference track, or use Folder Analysis on a folder of samples from the style you want. Then regenerate.
+            </li>
+            <li>
+              <strong>Performance best practices:</strong>
+              <ul>
+                <li>Use WAV files for best decode performance.</li>
+                <li>Keep samples under 10 MB each.</li>
+                <li>Use <code>1/16</code> grid resolution over <code>1/32</code> when high note density is not needed.</li>
+                <li>Limit your project to 8–16 active tracks for smooth real-time playback.</li>
+                <li>Close the File Explorer panel when not in use to free rendering resources.</li>
+              </ul>
+            </li>
+          </ol>
+          <div class="tip-box">
+            <strong>Still stuck?</strong> Visit the <a href="https://github.com/MikesRuthless12/Freally-Studio" style="color:var(--accent);">GitHub repository</a> to open an issue, or join the community Discord for live help from other producers.
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <footer>
+      <p>© 2026 Mike Weaver / Havoc Software — All Rights Reserved · local-first · privacy-conscious</p>
+      <p>
+        <a href="https://github.com/MikesRuthless12/Freally-Studio">GitHub</a> ·
+        <a href="https://github.com/MikesRuthless12/Freally-Studio/releases">All releases</a> ·
+        <a href="https://github.com/MikesRuthless12/Freally-Studio/blob/master/LICENSE">License</a> ·
+        <a href="documentation.html" aria-current="page">Documentation</a>
+      </p>
+    </footer>
+
+    <script>
+  (function () {
+    var links = document.querySelectorAll('.doc-toc a');
+    var sections = [];
+    links.forEach(function (a) {
+      var id = a.getAttribute('href').replace('#', '');
+      var el = document.getElementById(id);
+      if (el) sections.push({ id: id, el: el, a: a });
+    });
+    function onScroll() {
+      var active = sections[0];
+      for (var i = 0; i < sections.length; i++) {
+        if (sections[i].el.getBoundingClientRect().top <= 120) { active = sections[i]; }
+      }
+      links.forEach(function (a) { a.classList.remove('active'); });
+      if (active) active.a.classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+  </body>
+</html>

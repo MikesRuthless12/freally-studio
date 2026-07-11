@@ -33,6 +33,7 @@ export class SoftClipper extends AudioEffect {
         waveshaper.oversample = '4x';
         this._registerNode(waveshaper);
         this._waveshaper = waveshaper;
+        this._curveKey = null; // fresh node, no curve assigned yet
 
         const postGain = ctx.createGain();
         this._registerNode(postGain);
@@ -55,6 +56,12 @@ export class SoftClipper extends AudioEffect {
     }
 
     _updateCurve(drive, knee) {
+        // Skip identical re-assignments: saves an 8192-sample rebuild on the
+        // param re-apply at build time, and OfflineAudioContext back ends may
+        // reject assigning a WaveShaper curve twice.
+        const curveKey = `${drive}|${knee}`;
+        if (this._curveKey === curveKey) return;
+        this._curveKey = curveKey;
         const samples = 8192;
         const curve = new Float32Array(samples);
         const driveAmount = 1 + drive * 20;

@@ -1,6 +1,15 @@
 // DrumSynthEngine.js — Hidden Drum Synthesis Studio Engine
 // Professional drum sound design via Web Audio API synthesis
 
+import DrumVoice, { mulberry32 } from './synth/DrumVoice.js';
+import { kickConfig } from './synth/recipes/kick.js';
+import { oneShot808 } from './synth/recipes/808.js';
+import { snareConfig } from './synth/recipes/snare.js';
+import { hatsConfig } from './synth/recipes/hats.js';
+import { clapConfig } from './synth/recipes/clap.js';
+import { rimConfig, percConfig } from './synth/recipes/percussion.js';
+import { FinishingChain, presetForDrumType, normalizeBuffer } from './synth/FinishingChain.js';
+
 const DRUM_TYPES = ['kick', '808', 'snare', 'ghostSnare', 'clap', 'rimShot', 'closedHat', 'openHat', 'percussion'];
 
 const DRUM_LABELS = {
@@ -13,11 +22,14 @@ const PARAM_DEFS = {
     kick: [
         { key: 'pitch', label: 'Pitch', min: 30, max: 200, default: 55 },
         { key: 'pitchDecay', label: 'P.Decay', min: 0.01, max: 0.5, default: 0.08 },
-        { key: 'startPitch', label: 'Click', min: 80, max: 400, default: 150 },
+        { key: 'startPitch', label: 'Start Hz', min: 80, max: 400, default: 150 },
         { key: 'decay', label: 'Decay', min: 0.1, max: 1.5, default: 0.5 },
         { key: 'drive', label: 'Drive', min: 0, max: 1, default: 0.2 },
         { key: 'tone', label: 'Tone', min: 0, max: 1, default: 0.5 },
         { key: 'attack', label: 'Attack', min: 0, max: 0.02, default: 0.001 },
+        { key: 'click', label: 'Click', min: 0, max: 1, default: 0.6 },
+        { key: 'clickType', label: 'Click Type', min: 0, max: 1, default: 0 },
+        { key: 'subAmount', label: 'Sub', min: 0, max: 1, default: 0.5 },
         { key: 'volume', label: 'Volume', min: 0, max: 1, default: 0.8 },
     ],
     '808': [
@@ -28,6 +40,7 @@ const PARAM_DEFS = {
         { key: 'startPitch', label: 'Start Hz', min: 60, max: 300, default: 120 },
         { key: 'sustain', label: 'Sustain', min: 0, max: 1, default: 0.6 },
         { key: 'tone', label: 'Tone', min: 0, max: 1, default: 0.3 },
+        { key: 'glide', label: 'Glide', min: 30, max: 120, default: 60 },
         { key: 'volume', label: 'Volume', min: 0, max: 1, default: 0.85 },
     ],
     snare: [
@@ -38,6 +51,7 @@ const PARAM_DEFS = {
         { key: 'tone', label: 'Tone', min: 0, max: 1, default: 0.5 },
         { key: 'snap', label: 'Snap', min: 0, max: 1, default: 0.5 },
         { key: 'body', label: 'Body', min: 0, max: 1, default: 0.6 },
+        { key: 'mode909', label: '909 Mode', min: 0, max: 1, default: 0 },
         { key: 'reverb', label: 'Reverb', min: 0, max: 1, default: 0 },
         { key: 'volume', label: 'Volume', min: 0, max: 1, default: 0.8 },
     ],
@@ -117,22 +131,22 @@ function getDefaults(type) {
 // ─── Genre-aware presets ───
 const PRESETS = {
     kick: [
-        { name: 'Trap Kick', genre: 'Trap', params: { pitch: 48, pitchDecay: 0.06, startPitch: 180, decay: 0.45, drive: 0.3, tone: 0.4, attack: 0.001, volume: 0.85 } },
-        { name: 'Boom Bap Kick', genre: 'Boom Bap', params: { pitch: 65, pitchDecay: 0.05, startPitch: 140, decay: 0.35, drive: 0.15, tone: 0.65, attack: 0.002, volume: 0.8 } },
-        { name: 'House Kick', genre: 'House', params: { pitch: 50, pitchDecay: 0.04, startPitch: 160, decay: 0.55, drive: 0.1, tone: 0.5, attack: 0.001, volume: 0.82 } },
-        { name: 'Techno Kick', genre: 'Techno', params: { pitch: 45, pitchDecay: 0.03, startPitch: 200, decay: 0.6, drive: 0.25, tone: 0.3, attack: 0.001, volume: 0.88 } },
-        { name: 'DnB Kick', genre: 'DnB', params: { pitch: 55, pitchDecay: 0.04, startPitch: 170, decay: 0.3, drive: 0.2, tone: 0.55, attack: 0.001, volume: 0.83 } },
-        { name: 'Lo-Fi Kick', genre: 'Lo-Fi', params: { pitch: 60, pitchDecay: 0.07, startPitch: 120, decay: 0.4, drive: 0.35, tone: 0.7, attack: 0.003, volume: 0.7 } },
-        { name: 'Drill Kick', genre: 'Drill', params: { pitch: 42, pitchDecay: 0.05, startPitch: 190, decay: 0.5, drive: 0.35, tone: 0.35, attack: 0.001, volume: 0.87 } },
-        { name: 'Cinematic Kick', genre: 'Cinematic', params: { pitch: 35, pitchDecay: 0.1, startPitch: 120, decay: 1.2, drive: 0.15, tone: 0.3, attack: 0.002, volume: 0.9 } },
+        { name: 'Trap Kick', genre: 'Trap', params: { pitch: 48, pitchDecay: 0.06, startPitch: 180, decay: 0.45, drive: 0.3, tone: 0.4, attack: 0.001, click: 0.7, clickType: 0, subAmount: 0.6, volume: 0.85 } },
+        { name: 'Boom Bap Kick', genre: 'Boom Bap', params: { pitch: 65, pitchDecay: 0.05, startPitch: 120, decay: 0.35, drive: 0.15, tone: 0.55, attack: 0.001, click: 0.55, clickType: 1, subAmount: 0.65, volume: 0.8 } },
+        { name: 'House Kick', genre: 'House', params: { pitch: 50, pitchDecay: 0.04, startPitch: 160, decay: 0.55, drive: 0.1, tone: 0.5, attack: 0.001, click: 0.65, clickType: 0, subAmount: 0.45, volume: 0.82 } },
+        { name: 'Techno Kick', genre: 'Techno', params: { pitch: 45, pitchDecay: 0.03, startPitch: 200, decay: 0.6, drive: 0.25, tone: 0.3, attack: 0.001, click: 0.75, clickType: 0, subAmount: 0.5, volume: 0.88 } },
+        { name: 'DnB Kick', genre: 'DnB', params: { pitch: 55, pitchDecay: 0.04, startPitch: 170, decay: 0.3, drive: 0.2, tone: 0.55, attack: 0.001, click: 0.8, clickType: 0, subAmount: 0.45, volume: 0.83 } },
+        { name: 'Lo-Fi Kick', genre: 'Lo-Fi', params: { pitch: 60, pitchDecay: 0.07, startPitch: 120, decay: 0.4, drive: 0.35, tone: 0.7, attack: 0.001, click: 0.35, clickType: 1, subAmount: 0.4, volume: 0.7 } },
+        { name: 'Drill Kick', genre: 'Drill', params: { pitch: 42, pitchDecay: 0.05, startPitch: 190, decay: 0.5, drive: 0.35, tone: 0.35, attack: 0.001, click: 0.7, clickType: 0, subAmount: 0.65, volume: 0.87 } },
+        { name: 'Cinematic Kick', genre: 'Cinematic', params: { pitch: 40, pitchDecay: 0.1, startPitch: 120, decay: 1.2, drive: 0.15, tone: 0.3, attack: 0.001, click: 0.5, clickType: 1, subAmount: 0.7, volume: 0.9 } },
     ],
     '808': [
-        { name: 'Trap 808', genre: 'Trap', params: { pitch: 36, decay: 1.8, distortion: 0.15, pitchDecay: 0.15, startPitch: 140, sustain: 0.65, tone: 0.3, volume: 0.85 } },
-        { name: 'Drill 808', genre: 'Drill', params: { pitch: 32, decay: 2.2, distortion: 0.25, pitchDecay: 0.2, startPitch: 130, sustain: 0.7, tone: 0.25, volume: 0.88 } },
-        { name: 'Phonk 808', genre: 'Phonk', params: { pitch: 38, decay: 1.5, distortion: 0.65, pitchDecay: 0.12, startPitch: 150, sustain: 0.5, tone: 0.45, volume: 0.9 } },
-        { name: 'Cloud 808', genre: 'Cloud Rap', params: { pitch: 34, decay: 2.5, distortion: 0.05, pitchDecay: 0.18, startPitch: 110, sustain: 0.8, tone: 0.2, volume: 0.8 } },
-        { name: 'Deep Sub', genre: 'Deep House', params: { pitch: 30, decay: 1.2, distortion: 0.0, pitchDecay: 0.1, startPitch: 80, sustain: 0.5, tone: 0.15, volume: 0.82 } },
-        { name: 'Lo-Fi Sub', genre: 'Lo-Fi', params: { pitch: 42, decay: 1.0, distortion: 0.2, pitchDecay: 0.12, startPitch: 100, sustain: 0.4, tone: 0.4, volume: 0.75 } },
+        { name: 'Trap 808', genre: 'Trap', params: { pitch: 36, decay: 1.8, distortion: 0.15, pitchDecay: 0.15, startPitch: 140, sustain: 0.65, tone: 0.3, glide: 80, volume: 0.85 } },
+        { name: 'Drill 808', genre: 'Drill', params: { pitch: 32, decay: 2.2, distortion: 0.25, pitchDecay: 0.2, startPitch: 130, sustain: 0.7, tone: 0.25, glide: 100, volume: 0.88 } },
+        { name: 'Phonk 808', genre: 'Phonk', params: { pitch: 38, decay: 1.5, distortion: 0.65, pitchDecay: 0.12, startPitch: 150, sustain: 0.5, tone: 0.45, glide: 60, volume: 0.9 } },
+        { name: 'Cloud 808', genre: 'Cloud Rap', params: { pitch: 34, decay: 2.5, distortion: 0.05, pitchDecay: 0.18, startPitch: 110, sustain: 0.8, tone: 0.2, glide: 120, volume: 0.8 } },
+        { name: 'Deep Sub', genre: 'Deep House', params: { pitch: 30, decay: 1.2, distortion: 0.0, pitchDecay: 0.1, startPitch: 80, sustain: 0.5, tone: 0.15, glide: 40, volume: 0.82 } },
+        { name: 'Lo-Fi Sub', genre: 'Lo-Fi', params: { pitch: 42, decay: 1.0, distortion: 0.2, pitchDecay: 0.12, startPitch: 100, sustain: 0.4, tone: 0.4, glide: 50, volume: 0.75 } },
     ],
     snare: [
         { name: 'Trap Snare', genre: 'Trap', params: { pitch: 180, noiseAmt: 0.8, decay: 0.22, noiseDecay: 0.2, tone: 0.45, snap: 0.7, body: 0.5, volume: 0.8 } },
@@ -140,14 +154,16 @@ const PRESETS = {
         { name: 'House Snare', genre: 'House', params: { pitch: 220, noiseAmt: 0.65, decay: 0.15, noiseDecay: 0.12, tone: 0.55, snap: 0.6, body: 0.55, volume: 0.75 } },
         { name: 'DnB Snare', genre: 'DnB', params: { pitch: 190, noiseAmt: 0.85, decay: 0.25, noiseDecay: 0.22, tone: 0.5, snap: 0.8, body: 0.65, volume: 0.82 } },
         { name: 'Rock Snare', genre: 'Rock', params: { pitch: 170, noiseAmt: 0.5, decay: 0.3, noiseDecay: 0.25, tone: 0.7, snap: 0.5, body: 0.8, volume: 0.85 } },
-        { name: 'Lo-Fi Snare', genre: 'Lo-Fi', params: { pitch: 210, noiseAmt: 0.5, decay: 0.15, noiseDecay: 0.1, tone: 0.7, snap: 0.3, body: 0.5, volume: 0.65 } },
-        { name: 'Techno Snare', genre: 'Techno', params: { pitch: 240, noiseAmt: 0.75, decay: 0.12, noiseDecay: 0.1, tone: 0.4, snap: 0.65, body: 0.4, volume: 0.78 } },
+        { name: 'Lo-Fi Snare', genre: 'Lo-Fi', params: { pitch: 210, noiseAmt: 0.5, decay: 0.15, noiseDecay: 0.1, tone: 0.45, snap: 0.4, body: 0.5, volume: 0.65 } },
+        { name: 'Techno Snare', genre: 'Techno', params: { pitch: 240, noiseAmt: 0.75, decay: 0.12, noiseDecay: 0.1, tone: 0.4, snap: 0.65, body: 0.4, mode909: 1, volume: 0.78 } },
     ],
     ghostSnare: [
-        { name: 'Soft Ghost', genre: 'Hip Hop', params: { pitch: 250, noiseAmt: 0.3, decay: 0.06, noiseDecay: 0.05, tone: 0.6, snap: 0.2, body: 0.25, volume: 0.35 } },
-        { name: 'Jazz Brush', genre: 'Jazz', params: { pitch: 350, noiseAmt: 0.5, decay: 0.08, noiseDecay: 0.07, tone: 0.7, snap: 0.15, body: 0.2, volume: 0.3 } },
-        { name: 'R&B Ghost', genre: 'R&B', params: { pitch: 280, noiseAmt: 0.35, decay: 0.07, noiseDecay: 0.06, tone: 0.65, snap: 0.25, body: 0.3, volume: 0.38 } },
-        { name: 'Trap Ghost', genre: 'Trap', params: { pitch: 220, noiseAmt: 0.4, decay: 0.05, noiseDecay: 0.04, tone: 0.5, snap: 0.3, body: 0.3, volume: 0.4 } },
+        // volumes ≈ 2× pre-A04 values: ghosts now trigger at velocity 0.55,
+        // so preset volume × velocity lands at the old loudness
+        { name: 'Soft Ghost', genre: 'Hip Hop', params: { pitch: 250, noiseAmt: 0.3, decay: 0.06, noiseDecay: 0.05, tone: 0.6, snap: 0.2, body: 0.25, volume: 0.6 } },
+        { name: 'Jazz Brush', genre: 'Jazz', params: { pitch: 350, noiseAmt: 0.5, decay: 0.08, noiseDecay: 0.07, tone: 0.7, snap: 0.15, body: 0.2, volume: 0.55 } },
+        { name: 'R&B Ghost', genre: 'R&B', params: { pitch: 280, noiseAmt: 0.35, decay: 0.07, noiseDecay: 0.06, tone: 0.65, snap: 0.25, body: 0.3, volume: 0.65 } },
+        { name: 'Trap Ghost', genre: 'Trap', params: { pitch: 220, noiseAmt: 0.4, decay: 0.05, noiseDecay: 0.04, tone: 0.5, snap: 0.3, body: 0.3, volume: 0.7 } },
     ],
     clap: [
         { name: 'Trap Clap', genre: 'Trap', params: { tone: 1200, decay: 0.18, spread: 0.03, layers: 3, filterQ: 2, noiseColor: 0.5, tail: 0.12, volume: 0.78 } },
@@ -170,10 +186,11 @@ const PRESETS = {
         { name: 'DnB CH', genre: 'DnB', params: { pitch: 440, decay: 0.035, hpFreq: 8500, tone: 0.45, metallic: 0.7, noiseAmt: 0.5, bandpass: 11000, volume: 0.6 } },
     ],
     openHat: [
-        { name: 'Trap OH', genre: 'Trap', params: { pitch: 420, decay: 0.4, hpFreq: 7500, tone: 0.5, metallic: 0.65, noiseAmt: 0.55, bandpass: 10000, volume: 0.55 } },
-        { name: 'House OH', genre: 'House', params: { pitch: 380, decay: 0.35, hpFreq: 7000, tone: 0.5, metallic: 0.55, noiseAmt: 0.55, bandpass: 10000, volume: 0.52 } },
-        { name: 'DnB OH', genre: 'DnB', params: { pitch: 440, decay: 0.3, hpFreq: 8000, tone: 0.45, metallic: 0.7, noiseAmt: 0.5, bandpass: 11000, volume: 0.55 } },
-        { name: 'Techno OH', genre: 'Techno', params: { pitch: 450, decay: 0.25, hpFreq: 9000, tone: 0.4, metallic: 0.6, noiseAmt: 0.45, bandpass: 12000, volume: 0.58 } },
+        // decays retuned to the v2 spec range (300–800 ms)
+        { name: 'Trap OH', genre: 'Trap', params: { pitch: 420, decay: 0.45, hpFreq: 7500, tone: 0.5, metallic: 0.65, noiseAmt: 0.55, bandpass: 10000, volume: 0.55 } },
+        { name: 'House OH', genre: 'House', params: { pitch: 380, decay: 0.4, hpFreq: 7000, tone: 0.5, metallic: 0.55, noiseAmt: 0.55, bandpass: 10000, volume: 0.52 } },
+        { name: 'DnB OH', genre: 'DnB', params: { pitch: 440, decay: 0.35, hpFreq: 8000, tone: 0.45, metallic: 0.7, noiseAmt: 0.5, bandpass: 11000, volume: 0.55 } },
+        { name: 'Techno OH', genre: 'Techno', params: { pitch: 450, decay: 0.3, hpFreq: 9000, tone: 0.4, metallic: 0.6, noiseAmt: 0.45, bandpass: 12000, volume: 0.58 } },
     ],
     percussion: [
         { name: 'Conga', genre: 'Latin', params: { pitch: 300, decay: 0.2, pitchDecay: 0.05, noiseAmt: 0.15, tone: 0.6, waveform: 0, filterFreq: 3000, volume: 0.7 } },
@@ -207,72 +224,62 @@ class DrumSynthEngine {
         return buf;
     }
 
-    createDistortion(amount) {
-        const n = 256;
-        const curve = new Float32Array(n);
-        const k = amount * 50;
-        for (let i = 0; i < n; i++) {
-            const x = (i * 2) / n - 1;
-            curve[i] = ((3 + k) * x * 57.2958) / (180 + k * Math.abs(x));
-        }
-        const ws = this.ctx.createWaveShaper();
-        ws.curve = curve;
-        ws.oversample = '4x';
-        return ws;
-    }
-
-    getWaveType(v) { return ['sine', 'triangle', 'sawtooth', 'square'][Math.round(v) % 4]; }
-
     /**
-     * Create a synthetic cavern-like impulse response for reverb
-     * @param {number} duration - Reverb tail length in seconds (0.5 - 4.0)
-     * @param {number} decay - Exponential decay rate (higher = faster decay)
-     * @param {number} density - Early reflection density
+     * Synthesized drum reverb IRs (TASK-A09).
+     * 'room'  — 0.35 s exponential decay, dense early reflections in the
+     *           first 25 ms, highpass 200 Hz.
+     * 'plate' — 0.9 s, highpass 400 Hz, brighter diffuse density.
      */
-    createReverbIR(duration = 2.5, decay = 2.0, density = 0.8) {
+    createReverbIR(kind = 'room') {
         const sr = this.ctx.sampleRate;
-        const len = Math.ceil(sr * duration);
+        const spec = kind === 'plate'
+            ? { duration: 0.9, hpFreq: 400, early: false }
+            : { duration: 0.35, hpFreq: 200, early: true };
+        const decayRate = Math.log(1000) / spec.duration; // −60 dB at duration
+        const len = Math.ceil(sr * spec.duration);
         const buf = this.ctx.createBuffer(2, len, sr);
-        const dataL = buf.getChannelData(0);
-        const dataR = buf.getChannelData(1);
 
-        for (let i = 0; i < len; i++) {
-            const t = i / sr;
-            // Exponential decay envelope (cavern = slow decay)
-            const env = Math.exp(-t * decay);
-            // Diffuse random noise as the IR body
-            const noiseL = (Math.random() * 2 - 1) * env;
-            const noiseR = (Math.random() * 2 - 1) * env;
-
-            // Early reflections: discrete echoes in first 80ms
-            let earlyL = 0, earlyR = 0;
-            const earlyRefTimes = [0.012, 0.024, 0.037, 0.052, 0.068];
-            for (const refTime of earlyRefTimes) {
-                const refSample = Math.floor(refTime * sr);
-                if (i === refSample) {
-                    earlyL = (0.6 + Math.random() * 0.4) * density;
-                    earlyR = (0.6 + Math.random() * 0.4) * density;
+        for (let ch = 0; ch < 2; ch++) {
+            const data = buf.getChannelData(ch);
+            for (let i = 0; i < len; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-(i / sr) * decayRate);
+            }
+            if (spec.early) {
+                // dense early reflections in the first 25 ms
+                for (let r = 0; r < 14; r++) {
+                    const at = Math.floor(Math.random() * 0.025 * sr);
+                    data[at] += (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.5);
                 }
             }
-
-            dataL[i] = noiseL * density + earlyL;
-            dataR[i] = noiseR * density + earlyR;
+            // in-place RBJ biquad highpass shapes the IR's low end
+            const w0 = (2 * Math.PI * spec.hpFreq) / sr;
+            const alpha = Math.sin(w0) / (2 * 0.707);
+            const cosw0 = Math.cos(w0);
+            const a0 = 1 + alpha;
+            const b0 = (1 + cosw0) / 2 / a0, b1 = -(1 + cosw0) / a0, b2 = (1 + cosw0) / 2 / a0;
+            const a1 = (-2 * cosw0) / a0, a2 = (1 - alpha) / a0;
+            let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+            for (let i = 0; i < len; i++) {
+                const x = data[i];
+                const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+                x2 = x1; x1 = x; y2 = y1; y1 = y;
+                data[i] = y;
+            }
         }
-
         return buf;
     }
 
     /**
      * Create a convolver reverb node.
-     * Cached so we don't regenerate the IR on every call.
+     * IRs are cached per kind so they aren't regenerated on every hit.
      */
-    createReverb(wetAmount = 0.5) {
-        // Cache the IR buffer for reuse
-        if (!this._reverbIR) {
-            this._reverbIR = this.createReverbIR(3.0, 1.5, 0.85);
+    createReverb(wetAmount = 0.15, kind = 'room') {
+        if (!this._reverbIRs) this._reverbIRs = {};
+        if (!this._reverbIRs[kind]) {
+            this._reverbIRs[kind] = this.createReverbIR(kind);
         }
         const convolver = this.ctx.createConvolver();
-        convolver.buffer = this._reverbIR;
+        convolver.buffer = this._reverbIRs[kind];
 
         // Wet gain
         const wetGain = this.ctx.createGain();
@@ -303,167 +310,55 @@ class DrumSynthEngine {
     }
 
     // ─── Individual synthesizers ───
+    // p.seed (integer) enables the seeded round-robin jitter (TASK-A10);
+    // preview() injects a fresh seed per hit for live variation.
     synthKick(dest, time, p) {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(p.startPitch, time);
-        osc.frequency.exponentialRampToValueAtTime(p.pitch, time + p.pitchDecay);
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(p.volume, time + p.attack);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-        if (p.drive > 0.05) {
-            const dist = this.createDistortion(p.drive);
-            osc.connect(dist); dist.connect(gain);
-        } else { osc.connect(gain); }
-        // Tone: LP filter
-        const lp = this.ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = 200 + p.tone * 4000;
-        gain.connect(lp); lp.connect(dest);
-        osc.start(time); osc.stop(time + p.decay + 0.05);
+        new DrumVoice(this.ctx, kickConfig(p)).trigger(dest, time, { seed: p.seed ?? null });
     }
 
+    // 808 runs on the v2 recipe (TASK-A03): two-stage saturation, 25 Hz
+    // highpass, soft-clipped mono out. Melodic/glide path lives in
+    // src/synth/recipes/808.js (Melodic808Engine).
     synth808(dest, time, p) {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(p.startPitch, time);
-        osc.frequency.exponentialRampToValueAtTime(p.pitch, time + p.pitchDecay);
-        gain.gain.setValueAtTime(p.volume, time);
-        gain.gain.setValueAtTime(p.volume * p.sustain, time + p.pitchDecay);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-        if (p.distortion > 0.05) {
-            const dist = this.createDistortion(p.distortion);
-            osc.connect(dist); dist.connect(gain);
-        } else { osc.connect(gain); }
-        const lp = this.ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.value = 120 + p.tone * 2000;
-        gain.connect(lp); lp.connect(dest);
-        osc.start(time); osc.stop(time + p.decay + 0.05);
+        oneShot808(this.ctx, dest, time, p);
     }
 
+    // Snare runs on the v2 layered recipe (TASK-A04): detuned body pair,
+    // snap noise, comb-filtered rattle. Ghost = same recipe, low velocity.
     synthSnare(dest, time, p) {
-        // Body
-        const osc = this.ctx.createOscillator();
-        const oscGain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(p.pitch, time);
-        oscGain.gain.setValueAtTime(p.body * p.volume, time);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-        osc.connect(oscGain); oscGain.connect(dest);
-        osc.start(time); osc.stop(time + p.decay + 0.05);
-        // Noise snap
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this.getNoiseBuffer();
-        const nf = this.ctx.createBiquadFilter();
-        nf.type = 'bandpass';
-        nf.frequency.value = 1000 + p.tone * 6000;
-        nf.Q.value = 0.5 + p.snap * 3;
-        const nGain = this.ctx.createGain();
-        nGain.gain.setValueAtTime(p.noiseAmt * p.volume, time);
-        nGain.gain.exponentialRampToValueAtTime(0.001, time + p.noiseDecay);
-        noise.connect(nf); nf.connect(nGain); nGain.connect(dest);
-        noise.start(time); noise.stop(time + p.noiseDecay + 0.05);
+        new DrumVoice(this.ctx, snareConfig(p)).trigger(dest, time, { seed: p.seed ?? null });
     }
 
-    synthGhostSnare(dest, time, p) { this.synthSnare(dest, time, p); }
+    synthGhostSnare(dest, time, p) {
+        new DrumVoice(this.ctx, snareConfig(p)).trigger(dest, time, { velocity: 0.55, seed: p.seed ?? null });
+    }
 
+    // Clap, rim and percussion run on the v2 recipes (TASK-A06/A07).
     synthClap(dest, time, p) {
-        const layers = Math.round(p.layers);
-        for (let i = 0; i < layers; i++) {
-            const d = i * p.spread;
-            const n = this.ctx.createBufferSource();
-            n.buffer = this.getNoiseBuffer();
-            const f = this.ctx.createBiquadFilter();
-            f.type = 'bandpass';
-            f.frequency.value = p.tone;
-            f.Q.value = p.filterQ;
-            const g = this.ctx.createGain();
-            const amp = (i === layers - 1 ? 1 : 0.7) * p.volume;
-            g.gain.setValueAtTime(amp, time + d);
-            g.gain.exponentialRampToValueAtTime(0.001, time + d + p.decay + p.tail);
-            n.connect(f); f.connect(g); g.connect(dest);
-            n.start(time + d); n.stop(time + d + p.decay + p.tail + 0.05);
-        }
+        const random = p.seed != null ? mulberry32(p.seed) : Math.random;
+        new DrumVoice(this.ctx, clapConfig(p, { random })).trigger(dest, time, { seed: p.seed ?? null });
     }
 
     synthRim(dest, time, p) {
-        const osc = this.ctx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(p.pitch, time);
-        const hp = this.ctx.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = p.hpFreq; hp.Q.value = p.filterQ;
-        const g = this.ctx.createGain();
-        g.gain.setValueAtTime(p.click * p.volume, time);
-        g.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-        osc.connect(hp); hp.connect(g); g.connect(dest);
-        osc.start(time); osc.stop(time + p.decay + 0.02);
-        // Body tone
-        const osc2 = this.ctx.createOscillator();
-        osc2.type = 'sine'; osc2.frequency.value = p.pitch * 0.5;
-        const g2 = this.ctx.createGain();
-        g2.gain.setValueAtTime(p.body * p.volume * 0.5, time);
-        g2.gain.exponentialRampToValueAtTime(0.001, time + p.decay * 0.8);
-        osc2.connect(g2); g2.connect(dest);
-        osc2.start(time); osc2.stop(time + p.decay + 0.02);
+        new DrumVoice(this.ctx, rimConfig(p)).trigger(dest, time, { seed: p.seed ?? null });
     }
 
-    synthHat(dest, time, p) {
-        // Metallic oscillators
-        const fundamental = p.pitch || 400;
-        const ratios = [2, 3, 4.16, 5.43, 6.79, 8.21];
-        const bp = this.ctx.createBiquadFilter();
-        bp.type = 'bandpass'; bp.frequency.value = p.bandpass; bp.Q.value = 0.5;
-        const hp = this.ctx.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = p.hpFreq;
-        const g = this.ctx.createGain();
-        g.gain.setValueAtTime(p.metallic * p.volume, time);
-        g.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-        bp.connect(hp); hp.connect(g); g.connect(dest);
-        ratios.forEach(r => {
-            const o = this.ctx.createOscillator();
-            o.type = 'square'; o.frequency.value = fundamental * r;
-            o.connect(bp); o.start(time); o.stop(time + p.decay + 0.02);
-        });
-        // Noise layer
-        if (p.noiseAmt > 0.05) {
-            const n = this.ctx.createBufferSource();
-            n.buffer = this.getNoiseBuffer();
-            const nHp = this.ctx.createBiquadFilter();
-            nHp.type = 'highpass'; nHp.frequency.value = p.hpFreq;
-            const nG = this.ctx.createGain();
-            nG.gain.setValueAtTime(p.noiseAmt * p.volume, time);
-            nG.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-            n.connect(nHp); nHp.connect(nG); nG.connect(dest);
-            n.start(time); n.stop(time + p.decay + 0.02);
+    // Hats run on the v2 metallic-bank recipe (TASK-A05). Closed hats choke
+    // open hats — the voices are tracked here in the trigger path.
+    synthHat(dest, time, p, open = false) {
+        const voice = new DrumVoice(this.ctx, hatsConfig(p, { open }));
+        if (open) {
+            this._openHats = (this._openHats || []).filter(v => v !== voice);
+            this._openHats.push(voice);
+        } else if (this._openHats && this._openHats.length) {
+            this._openHats.forEach(v => v.choke(time));
+            this._openHats = [];
         }
+        voice.trigger(dest, time, { seed: p.seed ?? null });
     }
 
     synthPerc(dest, time, p) {
-        const osc = this.ctx.createOscillator();
-        osc.type = this.getWaveType(p.waveform);
-        osc.frequency.setValueAtTime(p.pitch * 1.5, time);
-        osc.frequency.exponentialRampToValueAtTime(p.pitch, time + p.pitchDecay);
-        const lp = this.ctx.createBiquadFilter();
-        lp.type = 'lowpass'; lp.frequency.value = p.filterFreq;
-        const g = this.ctx.createGain();
-        g.gain.setValueAtTime(p.volume * (1 - p.noiseAmt), time);
-        g.gain.exponentialRampToValueAtTime(0.001, time + p.decay);
-        osc.connect(lp); lp.connect(g); g.connect(dest);
-        osc.start(time); osc.stop(time + p.decay + 0.05);
-        if (p.noiseAmt > 0.05) {
-            const n = this.ctx.createBufferSource();
-            n.buffer = this.getNoiseBuffer();
-            const nf = this.ctx.createBiquadFilter();
-            nf.type = 'bandpass'; nf.frequency.value = p.filterFreq; nf.Q.value = 1;
-            const nG = this.ctx.createGain();
-            nG.gain.setValueAtTime(p.noiseAmt * p.volume, time);
-            nG.gain.exponentialRampToValueAtTime(0.001, time + p.decay * 0.8);
-            n.connect(nf); nf.connect(nG); nG.connect(dest);
-            n.start(time); n.stop(time + p.decay + 0.05);
-        }
+        new DrumVoice(this.ctx, percConfig(p)).trigger(dest, time, { seed: p.seed ?? null });
     }
 
     // Route to correct synth — applies reverb for applicable types
@@ -476,7 +371,8 @@ class DrumSynthEngine {
 
         let synthDest = dest;
         if (useReverb) {
-            const reverb = this.createReverb(p.reverb);
+            // drum sends default to the room IR; wet capped at 0.15
+            const reverb = this.createReverb(Math.min(p.reverb, 1) * 0.15, 'room');
             reverb.output.connect(dest);
             synthDest = reverb.input;
         }
@@ -488,17 +384,26 @@ class DrumSynthEngine {
             case 'ghostSnare': this.synthGhostSnare(synthDest, time, p); break;
             case 'clap': this.synthClap(synthDest, time, p); break;
             case 'rimShot': this.synthRim(synthDest, time, p); break;
-            case 'closedHat': this.synthHat(synthDest, time, p); break;
-            case 'openHat': this.synthHat(synthDest, time, p); break;
+            case 'closedHat': this.synthHat(synthDest, time, p, false); break;
+            case 'openHat': this.synthHat(synthDest, time, p, true); break;
             case 'percussion': this.synthPerc(synthDest, time, p); break;
         }
     }
 
-    // Preview: play through speakers
-    preview(type, params) {
+    // Preview: play through speakers (finished by default, like exports)
+    preview(type, params, { finish = true, chainPreset = null } = {}) {
         if (this._idleSuspendTimer) clearTimeout(this._idleSuspendTimer);
         if (this.ctx.state === 'suspended') this.ctx.resume();
-        this.synthesize(type, this.ctx.destination, this.ctx.currentTime, params);
+        let dest = this.ctx.destination;
+        if (finish) {
+            const chain = new FinishingChain(this.ctx, chainPreset || presetForDrumType(type));
+            chain.output.connect(this.ctx.destination);
+            dest = chain.input;
+            setTimeout(() => chain.dispose(), 6000); // after the one-shot rings out
+        }
+        // fresh round-robin seed per live hit (TASK-A10)
+        const seed = params?.seed ?? Math.floor(Math.random() * 0xffffffff);
+        this.synthesize(type, dest, this.ctx.currentTime, { ...params, seed });
         // Suspend context after preview to prevent idle static on Realtek drivers
         // — but NOT if SamplerEngine is actively playing (shared context)
         this._idleSuspendTimer = setTimeout(() => {
@@ -509,8 +414,10 @@ class DrumSynthEngine {
         }, 4000);
     }
 
-    // Render to offline buffer for export
-    async renderToBuffer(type, params, duration = 2.0) {
+    // Render to offline buffer for export. With finish on (default), the
+    // synth routes through the per-drum FinishingChain (TASK-A08) and the
+    // result is normalized to −0.3 dBFS; finish off = legacy −6 dB render.
+    async renderToBuffer(type, params, duration = 2.0, { finish = true, chainPreset = null } = {}) {
         const sr = 44100;
         const p = { ...getDefaults(type), ...params };
         // Extend duration for reverb tail
@@ -527,31 +434,41 @@ class DrumSynthEngine {
             nb.getChannelData(0).set(old.getChannelData(0));
             this._offlineNoise = nb;
         }
+        let synthDest = offline.destination;
+        let chain = null;
+        if (finish) {
+            chain = new FinishingChain(offline, chainPreset || presetForDrumType(type));
+            chain.output.connect(offline.destination);
+            synthDest = chain.input;
+        }
         const origCtx = this.ctx;
         const origNoise = this._noiseBuffer;
-        const origReverbIR = this._reverbIR;
+        const origReverbIRs = this._reverbIRs;
         this.ctx = offline;
         this._noiseBuffer = this._offlineNoise || null;
-        this._reverbIR = null; // Force regeneration for offline context
-        this.synthesize(type, offline.destination, 0, params);
+        this._reverbIRs = null; // Force regeneration for offline context
+        this.synthesize(type, synthDest, 0, params);
         this.ctx = origCtx;
         this._noiseBuffer = origNoise;
-        this._reverbIR = origReverbIR;
+        this._reverbIRs = origReverbIRs;
         const rendered = await offline.startRendering();
-        // Normalize to -6dB headroom
-        const data = rendered.getChannelData(0);
-        let peak = 0;
-        for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
-        if (peak > 0) {
-            const target = 0.5012; // -6dB
-            const scale = target / peak;
-            for (let i = 0; i < data.length; i++) data[i] *= scale;
+        if (finish) {
+            normalizeBuffer(rendered, -0.3);
+        } else {
+            // Legacy normalize to -6dB headroom (first channel drives the scale)
+            const data = rendered.getChannelData(0);
+            let peak = 0;
+            for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
+            if (peak > 0) {
+                const scale = 0.5012 / peak; // -6dB
+                for (let i = 0; i < data.length; i++) data[i] *= scale;
+            }
         }
         // Trim trailing silence
+        const data = rendered.getChannelData(0);
         let end = data.length - 1;
         while (end > 0 && Math.abs(data[end]) < 0.0001) end--;
         end = Math.min(data.length, end + Math.ceil(sr * 0.02)); // 20ms fade-out tail
-        const trimmed = offline.createBuffer ? rendered : rendered; // keep full if short
         return { buffer: rendered, trimEnd: end };
     }
 

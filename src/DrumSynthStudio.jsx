@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { DrumSynthEngine, DRUM_TYPES, DRUM_LABELS, PARAM_DEFS, PRESETS, getDefaults } from './DrumSynthEngine';
 import Knob from './Knob';
 import './DrumSynthStudio.css';
 import { hexToRgba } from './accentThemes';
 import { useTranslation } from './i18n/I18nContext.jsx';
+import { analyzeBuffer, loudnessMatchGain, spectrumForDisplay } from './synth/ReferenceAB.js';
 
 const engine = new DrumSynthEngine();
 
@@ -74,6 +75,17 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
     const [filename, setFilename] = useState('Kick_01.wav');
     const [waveformData, setWaveformData] = useState(null);
     const [isRendering, setIsRendering] = useState(false);
+    // Finishing chain (TASK-A08): default ON, 'auto' picks the per-drum chain
+    const [finishOn, setFinishOn] = useState(true);
+    const [chainPreset, setChainPreset] = useState('auto');
+    const finishOpts = { finish: finishOn, chainPreset: chainPreset === 'auto' ? null : chainPreset };
+
+    // Reference A/B panel (TASK-A13)
+    const [refBuffer, setRefBuffer] = useState(null);
+    const [refName, setRefName] = useState('');
+    const [blindSwap, setBlindSwap] = useState(false);
+    const [revealed, setRevealed] = useState(false);
+    const abCanvasRef = useRef(null);
 
     // Remember the last used directory handle for convenience
     const [lastDirHandle, setLastDirHandle] = useState(null);
@@ -111,12 +123,12 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
         renderTimerRef.current = setTimeout(async () => {
             try {
                 const maxDur = drumType === '808' ? 3.0 : drumType === 'kick' ? 1.5 : 1.0;
-                const { buffer } = await engine.renderToBuffer(drumType, params, maxDur);
+                const { buffer } = await engine.renderToBuffer(drumType, params, maxDur, finishOpts);
                 setWaveformData(buffer.getChannelData(0));
             } catch (e) { console.error('Render error:', e); }
         }, 150);
         return () => clearTimeout(renderTimerRef.current);
-    }, [params, drumType]);
+    }, [params, drumType, finishOn, chainPreset]);
 
     // Draw waveform
     useEffect(() => {
@@ -166,14 +178,86 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
     }, [waveformData, isDark, acSec]);
 
     // Audition
-    const handleAudition = () => { engine.preview(drumType, params); };
+    const handleAudition = () => { engine.preview(drumType, params, finishOpts); };
+
+    // ─── Reference A/B (TASK-A13) ───
+    const refData = useMemo(
+        () => (refBuffer ? refBuffer.getChannelData(0) : null), [refBuffer]);
+    const synthAnalysis = useMemo(
+        () => (waveformData ? analyzeBuffer(waveformData, 44100) : null), [waveformData]);
+    const refAnalysis = useMemo(
+        () => (refBuffer ? analyzeBuffer(refData, refBuffer.sampleRate) : null),
+        [refBuffer, refData]);
+
+    const handleRefDrop = useCallback(async (e) => {
+        e.preventDefault();
+        const file = e.dataTransfer?.files?.[0];
+        if (!file) return;
+        try {
+            const arrayBuf = await file.arrayBuffer();
+            const decoded = await engine.ctx.decodeAudioData(arrayBuf);
+            setRefBuffer(decoded);
+            setRefName(file.name);
+            setBlindSwap(Math.random() < 0.5);
+            setRevealed(false);
+        } catch (err) {
+            console.error('Reference decode failed:', err);
+        }
+    }, []);
+
+    // Plays the exact rendered buffer (what the analysis measured), with the
+    // reference loudness-matched to the synth render (equal RMS).
+    const playAB = useCallback((side) => {
+        const playRef = (side === 'B') !== blindSwap;
+        if (engine.ctx.state === 'suspended') engine.ctx.resume();
+        const src = engine.ctx.createBufferSource();
+        const gain = engine.ctx.createGain();
+        if (playRef) {
+            if (!refBuffer) return;
+            src.buffer = refBuffer;
+            gain.gain.value = waveformData ? loudnessMatchGain(waveformData, refData) : 1;
+        } else {
+            if (!waveformData) return;
+            const buf = engine.ctx.createBuffer(1, waveformData.length, 44100);
+            buf.getChannelData(0).set(waveformData);
+            src.buffer = buf;
+            gain.gain.value = 1;
+        }
+        src.connect(gain);
+        gain.connect(engine.ctx.destination);
+        src.start();
+    }, [blindSwap, refBuffer, refData, waveformData]);
+
+    // Spectrum overlay: synth (accent) vs reference (gray)
+    useEffect(() => {
+        const canvas = abCanvasRef.current;
+        if (!canvas || !waveformData) return;
+        const ctx2d = canvas.getContext('2d');
+        const w = canvas.width = canvas.offsetWidth * 2;
+        const h = canvas.height = 120;
+        ctx2d.clearRect(0, 0, w, h);
+        const drawSpectrum = (spec, color) => {
+            ctx2d.beginPath();
+            ctx2d.strokeStyle = color;
+            ctx2d.lineWidth = 1.5;
+            for (let i = 0; i < spec.length; i++) {
+                const x = (i / spec.length) * w;
+                const y = (-spec[i] / 80) * h; // 0 dB top → −80 dB bottom
+                if (i === 0) ctx2d.moveTo(x, y);
+                else ctx2d.lineTo(x, y);
+            }
+            ctx2d.stroke();
+        };
+        if (refBuffer) drawSpectrum(spectrumForDisplay(refData, refBuffer.sampleRate), isDark ? '#888' : '#999');
+        drawSpectrum(spectrumForDisplay(waveformData, 44100), acSec);
+    }, [waveformData, refBuffer, refData, isDark, acSec]);
 
     // Export WAV
     const handleExport = async () => {
         setIsRendering(true);
         try {
             const maxDur = drumType === '808' ? 4.0 : drumType === 'kick' ? 2.0 : 1.5;
-            const { buffer, trimEnd } = await engine.renderToBuffer(drumType, params, maxDur);
+            const { buffer, trimEnd } = await engine.renderToBuffer(drumType, params, maxDur, finishOpts);
             const blob = engine.exportWAV(buffer, trimEnd);
 
             // Native File System API save - Session Based
@@ -275,8 +359,83 @@ const DrumSynthStudio = ({ theme, onClose, accentColors}) => {
                     <div className="dss-waveform-wrap">
                         <div className="dss-waveform-header">
                             <span className="dss-waveform-label">{t('drumSynth.waveformPreview')}</span>
+                            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={finishOn}
+                                        onChange={(e) => setFinishOn(e.target.checked)}
+                                    />
+                                    Finish
+                                </label>
+                                <select
+                                    value={chainPreset}
+                                    onChange={(e) => setChainPreset(e.target.value)}
+                                    disabled={!finishOn}
+                                    style={{ fontSize: 11 }}
+                                    title="Finishing chain preset"
+                                >
+                                    <option value="auto">Auto</option>
+                                    <option value="kick">Kick</option>
+                                    <option value="808">808</option>
+                                    <option value="snare">Snare</option>
+                                    <option value="hats">Hats</option>
+                                    <option value="clap">Clap</option>
+                                    <option value="clean">Clean</option>
+                                </select>
+                            </span>
                         </div>
                         <canvas ref={canvasRef} className="dss-waveform-canvas" />
+                    </div>
+
+                    {/* Reference A/B (TASK-A13) */}
+                    <div
+                        className="dss-waveform-wrap"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleRefDrop}
+                    >
+                        <div className="dss-waveform-header">
+                            <span className="dss-waveform-label">Reference A/B</span>
+                            <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.6 }}>
+                                {refName || 'Drop a reference sample here'}
+                            </span>
+                        </div>
+                        <canvas ref={abCanvasRef} style={{ width: '100%', height: 60, display: 'block' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 11 }}>
+                            <button className="dss-btn dss-btn-ghost" onClick={() => playAB('A')} disabled={!refBuffer}>
+                                ▶ A{revealed ? (blindSwap ? ' (ref)' : ' (synth)') : ''}
+                            </button>
+                            <button className="dss-btn dss-btn-ghost" onClick={() => playAB('B')} disabled={!refBuffer}>
+                                ▶ B{revealed ? (blindSwap ? ' (synth)' : ' (ref)') : ''}
+                            </button>
+                            <button
+                                className="dss-btn dss-btn-ghost"
+                                onClick={() => { setBlindSwap(Math.random() < 0.5); setRevealed(false); }}
+                                disabled={!refBuffer}
+                                title="Re-shuffle the blind A/B assignment"
+                            >
+                                ⇄ Flip
+                            </button>
+                            <button className="dss-btn dss-btn-ghost" onClick={() => setRevealed(r => !r)} disabled={!refBuffer}>
+                                {revealed ? 'Hide' : 'Reveal'}
+                            </button>
+                            {synthAnalysis && (
+                                <span style={{ marginLeft: 'auto', opacity: 0.75 }}>
+                                    synth: sub {synthAnalysis.subEnergyPct.toFixed(0)}% ·
+                                    {' '}{(synthAnalysis.centroidHz / 1000).toFixed(2)} kHz ·
+                                    {' '}atk {synthAnalysis.attackMs.toFixed(1)} ms ·
+                                    {' '}crest {synthAnalysis.crestDb.toFixed(1)} dB
+                                    {refAnalysis && (
+                                        <>
+                                            {' '}| ref: sub {refAnalysis.subEnergyPct.toFixed(0)}% ·
+                                            {' '}{(refAnalysis.centroidHz / 1000).toFixed(2)} kHz ·
+                                            {' '}atk {refAnalysis.attackMs.toFixed(1)} ms ·
+                                            {' '}crest {refAnalysis.crestDb.toFixed(1)} dB
+                                        </>
+                                    )}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Knobs */}

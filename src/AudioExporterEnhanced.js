@@ -4,7 +4,90 @@
  */
 
 // lamejs and JSZip loaded dynamically on first use to avoid 6.5MB+ startup cost
-import { formatMixFilename, formatStemFilename, formatArrangementFilename, formatStemsZipFilename } from './filenameUtils';
+import { formatMixFilename, formatStemFilename, formatArrangementFilename, formatStemsZipFilename } from './filenameUtils.js';
+
+/**
+ * Encode WAV file — supports 8/16/24-bit PCM and 32-bit IEEE float.
+ * Standalone so other renderers (PackRenderer) can reuse it.
+ * @param {Float32Array} floatSamples - interleaved float samples (-1..1)
+ * @returns {ArrayBuffer}
+ */
+export function encodeWAV(floatSamples, sampleRate, numChannels, bitDepth) {
+    const writeString = (view, offset, str) => {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    const isFloat = bitDepth === 32;
+    const formatCode = isFloat ? 3 : 1; // 3 = IEEE float, 1 = PCM
+    const bytesPerSample = bitDepth / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    const dataSize = floatSamples.length * bytesPerSample;
+
+    // 32-bit float uses extended fmt (size=18) + fact chunk (12 bytes)
+    const fmtChunkSize = isFloat ? 18 : 16;
+    const factChunkSize = isFloat ? 12 : 0;
+    const headerSize = 12 + (8 + fmtChunkSize) + factChunkSize + 8; // RIFF(12) + fmt(8+size) + fact? + data(8)
+    const fileSize = headerSize + dataSize;
+
+    const buffer = new ArrayBuffer(fileSize);
+    const view = new DataView(buffer);
+    let offset = 0;
+
+    // RIFF header
+    writeString(view, offset, 'RIFF'); offset += 4;
+    view.setUint32(offset, fileSize - 8, true); offset += 4;
+    writeString(view, offset, 'WAVE'); offset += 4;
+
+    // fmt chunk
+    writeString(view, offset, 'fmt '); offset += 4;
+    view.setUint32(offset, fmtChunkSize, true); offset += 4;
+    view.setUint16(offset, formatCode, true); offset += 2;
+    view.setUint16(offset, numChannels, true); offset += 2;
+    view.setUint32(offset, sampleRate, true); offset += 4;
+    view.setUint32(offset, sampleRate * blockAlign, true); offset += 4;
+    view.setUint16(offset, blockAlign, true); offset += 2;
+    view.setUint16(offset, bitDepth, true); offset += 2;
+    if (isFloat) {
+        view.setUint16(offset, 0, true); offset += 2; // cbSize = 0
+    }
+
+    // fact chunk (required for non-PCM formats)
+    if (isFloat) {
+        writeString(view, offset, 'fact'); offset += 4;
+        view.setUint32(offset, 4, true); offset += 4;
+        view.setUint32(offset, floatSamples.length / numChannels, true); offset += 4;
+    }
+
+    // data chunk
+    writeString(view, offset, 'data'); offset += 4;
+    view.setUint32(offset, dataSize, true); offset += 4;
+
+    // Write samples based on bit depth
+    for (let i = 0; i < floatSamples.length; i++) {
+        const s = Math.max(-1, Math.min(1, floatSamples[i]));
+        if (bitDepth === 8) {
+            // 8-bit unsigned PCM: 0-255, 128 = silence
+            view.setUint8(offset, Math.round((s + 1) * 127.5));
+            offset += 1;
+        } else if (bitDepth === 16) {
+            // 16-bit signed PCM
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            offset += 2;
+        } else if (bitDepth === 24) {
+            // 24-bit signed PCM (3 bytes, little-endian)
+            const val = Math.round(s < 0 ? s * 0x800000 : s * 0x7FFFFF);
+            view.setUint8(offset, val & 0xFF);
+            view.setUint8(offset + 1, (val >> 8) & 0xFF);
+            view.setUint8(offset + 2, (val >> 16) & 0xFF);
+            offset += 3;
+        } else {
+            // 32-bit IEEE float
+            view.setFloat32(offset, s, true);
+            offset += 4;
+        }
+    }
+
+    return buffer;
+}
 
 export class AudioExporterEnhanced {
     constructor(sampler) {
@@ -492,81 +575,12 @@ export class AudioExporterEnhanced {
     }
 
     /**
-     * Encode WAV file — supports 8/16/24-bit PCM and 32-bit IEEE float
+     * Encode WAV file — supports 8/16/24-bit PCM and 32-bit IEEE float.
+     * Delegates to the standalone encodeWAV export.
      * @param {Float32Array} floatSamples - interleaved float samples (-1..1)
      */
     encodeWAV(floatSamples, sampleRate, numChannels, bitDepth) {
-        const isFloat = bitDepth === 32;
-        const formatCode = isFloat ? 3 : 1; // 3 = IEEE float, 1 = PCM
-        const bytesPerSample = bitDepth / 8;
-        const blockAlign = numChannels * bytesPerSample;
-        const dataSize = floatSamples.length * bytesPerSample;
-
-        // 32-bit float uses extended fmt (size=18) + fact chunk (12 bytes)
-        const fmtChunkSize = isFloat ? 18 : 16;
-        const factChunkSize = isFloat ? 12 : 0;
-        const headerSize = 12 + (8 + fmtChunkSize) + factChunkSize + 8; // RIFF(12) + fmt(8+size) + fact? + data(8)
-        const fileSize = headerSize + dataSize;
-
-        const buffer = new ArrayBuffer(fileSize);
-        const view = new DataView(buffer);
-        let offset = 0;
-
-        // RIFF header
-        this.writeString(view, offset, 'RIFF'); offset += 4;
-        view.setUint32(offset, fileSize - 8, true); offset += 4;
-        this.writeString(view, offset, 'WAVE'); offset += 4;
-
-        // fmt chunk
-        this.writeString(view, offset, 'fmt '); offset += 4;
-        view.setUint32(offset, fmtChunkSize, true); offset += 4;
-        view.setUint16(offset, formatCode, true); offset += 2;
-        view.setUint16(offset, numChannels, true); offset += 2;
-        view.setUint32(offset, sampleRate, true); offset += 4;
-        view.setUint32(offset, sampleRate * blockAlign, true); offset += 4;
-        view.setUint16(offset, blockAlign, true); offset += 2;
-        view.setUint16(offset, bitDepth, true); offset += 2;
-        if (isFloat) {
-            view.setUint16(offset, 0, true); offset += 2; // cbSize = 0
-        }
-
-        // fact chunk (required for non-PCM formats)
-        if (isFloat) {
-            this.writeString(view, offset, 'fact'); offset += 4;
-            view.setUint32(offset, 4, true); offset += 4;
-            view.setUint32(offset, floatSamples.length / numChannels, true); offset += 4;
-        }
-
-        // data chunk
-        this.writeString(view, offset, 'data'); offset += 4;
-        view.setUint32(offset, dataSize, true); offset += 4;
-
-        // Write samples based on bit depth
-        for (let i = 0; i < floatSamples.length; i++) {
-            const s = Math.max(-1, Math.min(1, floatSamples[i]));
-            if (bitDepth === 8) {
-                // 8-bit unsigned PCM: 0-255, 128 = silence
-                view.setUint8(offset, Math.round((s + 1) * 127.5));
-                offset += 1;
-            } else if (bitDepth === 16) {
-                // 16-bit signed PCM
-                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-                offset += 2;
-            } else if (bitDepth === 24) {
-                // 24-bit signed PCM (3 bytes, little-endian)
-                const val = Math.round(s < 0 ? s * 0x800000 : s * 0x7FFFFF);
-                view.setUint8(offset, val & 0xFF);
-                view.setUint8(offset + 1, (val >> 8) & 0xFF);
-                view.setUint8(offset + 2, (val >> 16) & 0xFF);
-                offset += 3;
-            } else {
-                // 32-bit IEEE float
-                view.setFloat32(offset, s, true);
-                offset += 4;
-            }
-        }
-
-        return buffer;
+        return encodeWAV(floatSamples, sampleRate, numChannels, bitDepth);
     }
 
     /**

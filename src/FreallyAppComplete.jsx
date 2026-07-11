@@ -64,6 +64,7 @@ import CpuMeter from './CpuMeter';
 import { isElectron, getPlatform } from './electronBridge';
 const DrumSynthStudio = lazy(() => import('./DrumSynthStudio'));
 const InstrumentSynthStudio = lazy(() => import('./InstrumentSynthStudio'));
+const PackFactoryPanel = lazy(() => import('./packfactory/PackFactoryPanel'));
 const LyricsTab = lazy(() => import('./lyrics/LyricsTab'));
 const LyricEngineTab = lazy(() => import('./lyrics/LyricEngineTab'));
 const RecordModePanel = lazy(() => import('./lyrics/RecordModePanel'));
@@ -9086,6 +9087,13 @@ const FreallyAppComplete = () => {
                     <div style={{ display: activeTab === 'instrsynth' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
                         <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: acSec, fontSize: 16, fontWeight: 700, background: isDark ? '#0a0e17' : '#f7f7fa' }}>{t('common.loading')}</div>}>
                             {activeTab === 'instrsynth' && <InstrumentSynthStudio theme={theme} accentColors={accent} onClose={() => setActiveTab('melody')} />}
+                        </Suspense>
+                    </div>
+
+                    {/* Pack Factory Tab (TASK-B03) */}
+                    <div style={{ display: activeTab === 'packfactory' ? 'flex' : 'none', height: '100%', overflow: 'hidden', flexDirection: 'column' }}>
+                        <Suspense fallback={<div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: acSec, fontSize: 16, fontWeight: 700, background: isDark ? '#0d0d14' : '#f7f7fa' }}>{t('common.loading')}</div>}>
+                            {activeTab === 'packfactory' && <PackFactoryPanel theme={theme} accentColors={accent} onClose={() => setActiveTab('drums')} />}
                         </Suspense>
                     </div>
 

@@ -74,6 +74,9 @@ docs/product-vision.md
 native/build/
 native/*/build/
 
+# Before/after listening checks from sound sessions — local ears only
+Video/ab-checks/
+
 # Private planning/business docs — never public; untracked but kept locally (Mike, 2026-07-01).
 # The first five duplicate the IP-scrub list above under their original WavLoom-*
 # filenames (the 2026-06 rebrand renamed those ignore entries but not the on-disk files).

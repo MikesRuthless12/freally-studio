@@ -676,6 +676,8 @@
   "instSynth.type.synthLead": "Synth Lead",
   "instSynth.type.synthArp": "Synth Arp",
   "instSynth.type.synthPluck": "Synth Pluck",
+  "instSynth.type.synthPad": "Synth Pad",
+  "menu.viewPackFactory": "Pack Factory",
   "instSynth.type.fmSynth": "FM Synth",
   "instSynth.type.electricPiano": "Electric Piano",
   "instSynth.type.flute": "Flute",

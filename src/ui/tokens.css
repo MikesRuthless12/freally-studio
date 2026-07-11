@@ -1,0 +1,74 @@
+/* tokens.css — the Freally Studio design tokens (TASK-C02)
+ *
+ * Every color in the UI must come from one of these custom properties;
+ * raw hex/rgb/hsl in a component is a build failure once TASK-C04's
+ * check-raw-colors gate flips to blocking. The default values below are
+ * the 'Freally Dark' skin (near Ableton Mid Dark). Skins (TASK-C03)
+ * override these at :root via SkinEngine — nothing else may.
+ */
+:root {
+    /* ── Surfaces: window → panel → raised → overlay ─────────────────
+       Four desaturated neutral steps. Everything chrome sits on these. */
+    --surface-0: #141414;   /* window background, deepest layer          */
+    --surface-1: #1a1a1a;   /* panels, sidebars, track lanes             */
+    --surface-2: #222222;   /* raised elements: cards, headers, inputs   */
+    --surface-3: #2a2a2a;   /* overlays: menus, dialogs, tooltips        */
+
+    /* ── Hairlines: the ONLY border weight (1px) ──────────────────── */
+    --border-hairline: #333333;
+
+    /* ── Text: one family, three emphasis levels ─────────────────── */
+    --text-1: #d0d0d0;          /* primary labels and values             */
+    --text-2: #9a9a9a;          /* secondary/dimmed labels               */
+    --text-disabled: #5c5c5c;   /* disabled controls                     */
+
+    /* ── The single accent (cyan — the one saturated chrome color) ── */
+    --accent: #37c1cf;          /* active states, focus rings, toggles   */
+    --accent-muted: #2a7d87;    /* pressed/secondary accent surfaces     */
+
+    /* ── Status colors: meaning only, never decoration ───────────── */
+    --warn: #d9a441;            /* warnings, unsaved indicators          */
+    --danger: #d85050;          /* destructive actions, record arm       */
+
+    /* ── Editor chrome ───────────────────────────────────────────── */
+    --selection: rgba(55, 193, 207, 0.22);  /* marquee + selected ranges */
+    --playhead: #d8d8d8;                    /* the playback cursor line  */
+
+    /* ── Meters: the segmented level ramp ────────────────────────── */
+    --meter-green: #58b85c;
+    --meter-yellow: #d9c04a;
+    --meter-red: #d85050;
+
+    /* ── Type scale: the ONLY font sizes (11/12/13/15) ───────────── */
+    --text-size-s: 11px;
+    --text-size-m: 12px;
+    --text-size-l: 13px;
+    --text-size-xl: 15px;
+
+    /* ── Spacing: the 4px grid ───────────────────────────────────── */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+
+    /* ── Clip palette: the ONLY saturated set ─────────────────────
+       16 hues at uniform lightness/saturation (hsl 55% / 62%) so any
+       mix of clips reads calm. Used ONLY for clip bodies and track
+       color chips — never for chrome. */
+    --clip-01: hsl(0, 55%, 62%);
+    --clip-02: hsl(22, 55%, 62%);
+    --clip-03: hsl(45, 55%, 62%);
+    --clip-04: hsl(67, 55%, 62%);
+    --clip-05: hsl(90, 55%, 62%);
+    --clip-06: hsl(112, 55%, 62%);
+    --clip-07: hsl(135, 55%, 62%);
+    --clip-08: hsl(157, 55%, 62%);
+    --clip-09: hsl(180, 55%, 62%);
+    --clip-10: hsl(202, 55%, 62%);
+    --clip-11: hsl(225, 55%, 62%);
+    --clip-12: hsl(247, 55%, 62%);
+    --clip-13: hsl(270, 55%, 62%);
+    --clip-14: hsl(292, 55%, 62%);
+    --clip-15: hsl(315, 55%, 62%);
+    --clip-16: hsl(337, 55%, 62%);
+}

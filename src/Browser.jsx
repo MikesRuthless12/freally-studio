@@ -94,6 +94,9 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
     const [factoryLoading, setFactoryLoading] = useState(false);
     const [factoryLoadProgress, setFactoryLoadProgress] = useState({ loaded: 0, total: 0, currentFile: '', status: '' });
     const [factoryLoaded, setFactoryLoaded] = useState(false);
+    // Rendered packs from the Pack Factory, stored in IndexedDB (TASK-B04)
+    const [packFolders, setPackFolders] = useState([]);
+    const packUrlsRef = useRef([]);
     const [factoryExpanded, setFactoryExpanded] = useState({});
 
     // ===== VST3 Plugin Browser State =====
@@ -929,6 +932,61 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
         if (factoryLoaded) return;
         loadFactorySamples();
     }, []);
+
+    // ===== Library Packs (rendered by the Pack Factory, TASK-B04) =====
+    // Packs live in IndexedDB and surface through the factory-tree mechanism:
+    // each file gets a blob URL so the lazy-decode + SamplerEngine path works
+    // with no filesystem detour.
+    const loadLibraryPacks = useCallback(async () => {
+        if (!window.libraryManager?.getPacks) return;
+        try {
+            const packs = await window.libraryManager.getPacks();
+            packUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+            packUrlsRef.current = [];
+            const tree = packs.map(pack => {
+                const byFolder = {};
+                for (const f of pack.files || []) {
+                    const [folderName, ...rest] = f.path.split('/');
+                    const fileName = rest.join('/') || f.path;
+                    const url = URL.createObjectURL(new Blob([f.bytes], { type: 'audio/wav' }));
+                    packUrlsRef.current.push(url);
+                    (byFolder[folderName] = byFolder[folderName] || []).push({
+                        name: fileName,
+                        path: `/Library Packs/${pack.name}/${f.path}`,
+                        kind: 'file',
+                        type: 'audio',
+                        audioBuffer: null, // decoded lazily like factory samples
+                        _audioUrl: url,
+                        isFactory: true,
+                        tags: (pack.manifest?.items || []).find(it => it.file === f.path)?.tags || [],
+                    });
+                }
+                return {
+                    name: pack.name,
+                    path: `/Library Packs/${pack.name}`,
+                    kind: 'directory',
+                    isFactory: true,
+                    children: Object.entries(byFolder).map(([folderName, files]) => ({
+                        name: folderName,
+                        path: `/Library Packs/${pack.name}/${folderName}`,
+                        kind: 'directory',
+                        isFactory: true,
+                        children: files,
+                    })),
+                };
+            });
+            setPackFolders(tree);
+        } catch (err) {
+            console.error('[Browser] Failed to load library packs:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadLibraryPacks();
+        const onPacksChanged = () => loadLibraryPacks();
+        window.addEventListener('freally:libraryPacksChanged', onPacksChanged);
+        return () => window.removeEventListener('freally:libraryPacksChanged', onPacksChanged);
+    }, [loadLibraryPacks]);
 
     const loadFactorySamples = async () => {
         setFactoryLoading(true);
@@ -2874,6 +2932,8 @@ const Browser = ({ theme, tempo, bars, currentKey, currentScale, globalIsPlaying
                         )}
                         {/* Factory Folder Tree */}
                         {factoryFolders.length > 0 && renderFactoryTree(factoryFolders)}
+                        {/* Rendered Library Packs (Pack Factory, TASK-B04) */}
+                        {packFolders.length > 0 && renderFactoryTree(packFolders)}
                         {!factoryLoading && factoryFolders.length === 0 && (
                             <div style={{ padding: '20px', textAlign: 'center', color: isDark ? '#666' : '#999', fontSize: '12px' }}>
                                 {t('browser.noFactorySamples')}

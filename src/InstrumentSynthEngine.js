@@ -1,9 +1,12 @@
 // InstrumentSynthEngine.js — Hidden Instrument Synthesis Studio Engine
 // Professional multi-instrument melodic sound design via Web Audio API synthesis
 
+import { FinishingChain, normalizeBuffer } from './synth/FinishingChain.js';
+import { Chorus } from './effects/Chorus.js';
+
 export const INSTRUMENT_TYPES = [
     'brass',
-    'synthLead', 'synthArp', 'synthPluck', 'fmSynth',
+    'synthLead', 'synthArp', 'synthPluck', 'synthPad', 'fmSynth',
     'electricPiano',
     'flute',
     'acousticGuitar',
@@ -13,7 +16,8 @@ export const INSTRUMENT_TYPES = [
 
 export const INSTRUMENT_LABELS = {
     brass: 'Brass Stab',
-    synthLead: 'Synth Lead', synthArp: 'Synth Arp', synthPluck: 'Synth Pluck', fmSynth: 'FM Synth',
+    synthLead: 'Synth Lead', synthArp: 'Synth Arp', synthPluck: 'Synth Pluck',
+    synthPad: 'Synth Pad', fmSynth: 'FM Synth',
     electricPiano: 'Electric Piano',
     flute: 'Flute',
     acousticGuitar: 'Acoustic Guitar',
@@ -37,8 +41,14 @@ const EFFECTS = [
     { key: 'drive', label: 'Drive', min: 0, max: 1, default: 0 },
     { key: 'vibratoRate', label: 'Vib Rate', min: 1, max: 12, default: 5 },
     { key: 'vibratoDepth', label: 'Vib Depth', min: 0, max: 50, default: 10 },
+    { key: 'vibratoDelay', label: 'Vib Delay', min: 0, max: 1.5, default: 0.15 },
     { key: 'chorus', label: 'Chorus', min: 0, max: 1, default: 0 },
     { key: 'volume', label: 'Volume', min: 0, max: 1, default: 0.8 }
+];
+// Unison controls for the subtractive voice (TASK-A12)
+const UNISON = [
+    { key: 'unisonVoices', label: 'Unison', min: 1, max: 7, default: 5 },
+    { key: 'subLevel', label: 'Sub Osc', min: 0, max: 1, default: 0.3 },
 ];
 
 // Combine helper
@@ -51,8 +61,18 @@ export const PARAM_DEFS = {
     cello: makeParams(ADSR, FILTERS, EFFECTS, [{ key: 'bodyRes', label: 'Body Res', min: 50, max: 500, default: 200 }]),
     uprightBass: makeParams(ADSR, FILTERS, EFFECTS, [{ key: 'pluckNoise', label: 'Pluck', min: 0, max: 1, default: 0.5 }]),
 
-    synthLead: makeParams(ADSR, FILTERS, EFFECTS, [{ key: 'detune', label: 'Detune', min: 0, max: 100, default: 15 }]),
-    synthArp: makeParams(ADSR, FILTERS, EFFECTS, [{ key: 'pulseWidth', label: 'PWM', min: 0.1, max: 0.9, default: 0.5 }]),
+    synthLead: makeParams(ADSR, FILTERS, EFFECTS, UNISON, [{ key: 'detune', label: 'Detune', min: 0, max: 100, default: 15 }]),
+    synthArp: makeParams(ADSR, FILTERS, EFFECTS, UNISON, [{ key: 'pulseWidth', label: 'PWM', min: 0.1, max: 0.9, default: 0.5 }]),
+    synthPad: makeParams(
+        [
+            { key: 'attack', label: 'Attack', min: 0.1, max: 2.0, default: 0.25 },
+            { key: 'decay', label: 'Decay', min: 0.01, max: 2.0, default: 0.6 },
+            { key: 'sustain', label: 'Sustain', min: 0, max: 1, default: 0.8 },
+            { key: 'release', label: 'Release', min: 0.01, max: 3.0, default: 1.2 },
+        ],
+        FILTERS,
+        EFFECTS.map(d => (d.key === 'chorus' ? { ...d, default: 0.4 } : d)), // pads default to chorus
+        UNISON, [{ key: 'detune', label: 'Detune', min: 0, max: 100, default: 25 }]),
     fmSynth: makeParams(ADSR, EFFECTS, [
         { key: 'modIndex', label: 'Mod Idx', min: 0, max: 10, default: 2 },
         { key: 'modRatio', label: 'Mod Ratio', min: 0.5, max: 8, default: 2 },
@@ -150,6 +170,10 @@ export const PRESETS = {
     synthLead: [
         { name: 'EDM Supersaw', params: { attack: 0.02, decay: 0.4, sustain: 0.6, release: 0.5, detune: 40, cutoff: 8000, envAmount: 2000 } },
         { name: 'G-Funk Sine', params: { attack: 0.1, decay: 0.2, sustain: 0.9, release: 0.3, detune: 5, cutoff: 1200, drive: 0.2, vibratoDepth: 15 } }
+    ],
+    synthPad: [
+        { name: 'Warm Analog Pad', params: { attack: 0.3, decay: 0.8, sustain: 0.8, release: 1.5, detune: 25, unisonVoices: 5, subLevel: 0.35, cutoff: 1800, envAmount: 800, chorus: 0.4, vibratoDepth: 4, vibratoDelay: 0.4 } },
+        { name: 'Lush Wide Pad', params: { attack: 0.4, decay: 1.0, sustain: 0.85, release: 2.0, detune: 40, unisonVoices: 7, subLevel: 0.25, cutoff: 2500, envAmount: 1200, chorus: 0.6, vibratoDepth: 6, vibratoDelay: 0.5 } },
     ],
     synthPluck: [
         { name: 'Laser Pluck', params: { attack: 0.01, decay: 0.3, sustain: 0.0, release: 0.2, pitchDrop: 24, pitchDecay: 0.05, cutoff: 8000, envAmount: 5000 } },
@@ -275,11 +299,13 @@ export class InstrumentSynthEngine {
         gainNode.gain.exponentialRampToValueAtTime(0.0001, releaseStart + r);
     }
 
+    // Filter envelope, independent from the amp ADSR (TASK-A12): pass
+    // filterAttack / filterDecay to decouple; they default to the amp values.
     applyFilterEnv(ctx, filterNode, params, duration) {
         if (!filterNode) return;
         const t = ctx.currentTime;
-        const a = params.attack || 0.05;
-        const d = params.decay || 0.3;
+        const a = params.filterAttack ?? (params.attack || 0.05);
+        const d = params.filterDecay ?? (params.decay || 0.3);
         const base = params.cutoff || 2000;
         const amt = params.envAmount || 1500;
 
@@ -288,12 +314,18 @@ export class InstrumentSynthEngine {
         filterNode.frequency.exponentialRampToValueAtTime(base, t + a + d);
     }
 
+    // LFO vibrato with onset delay (TASK-A12): depth fades in after
+    // params.vibratoDelay seconds, like a player easing into vibrato.
     createVibrato(ctx, targetParam, params) {
         if (params.vibratoDepth > 0) {
+            const t = ctx.currentTime;
+            const delay = params.vibratoDelay ?? 0.15;
             const lfo = ctx.createOscillator();
             lfo.frequency.value = params.vibratoRate || 5;
             const lfoGain = ctx.createGain();
-            lfoGain.gain.value = params.vibratoDepth;
+            lfoGain.gain.setValueAtTime(0, t);
+            lfoGain.gain.setValueAtTime(0, t + delay);
+            lfoGain.gain.linearRampToValueAtTime(params.vibratoDepth, t + delay + 0.4);
             lfo.connect(lfoGain);
             lfoGain.connect(targetParam);
             lfo.start();
@@ -305,7 +337,8 @@ export class InstrumentSynthEngine {
     async renderToBuffer(type, params, duration = 2.0, noteFrequency = 261.63) { // Default C4
         const sampleRate = 44100;
         const totalDuration = duration + (params.release || 0.0);
-        const ctx = new OfflineAudioContext(1, sampleRate * totalDuration, sampleRate);
+        // stereo: the unison voices spread across the field (TASK-A12)
+        const ctx = new OfflineAudioContext(2, sampleRate * totalDuration, sampleRate);
         const t = ctx.currentTime;
 
         const synthOutput = ctx.createGain();
@@ -321,6 +354,7 @@ export class InstrumentSynthEngine {
                 break;
             case 'synthLead':
             case 'synthArp':
+            case 'synthPad':
                 this.renderSubtractive(ctx, synthOutput, params, duration, noteFrequency);
                 break;
             case 'synthPluck':
@@ -350,10 +384,28 @@ export class InstrumentSynthEngine {
                 break;
         }
 
-        const outNode = this.createEffectsChain(ctx, synthOutput, params);
-        outNode.connect(ctx.destination);
+        // Pads get the dedicated Chorus effect (the inline chorus is skipped
+        // for them so it doesn't double up).
+        const isPad = type === 'synthPad';
+        const fxParams = isPad ? { ...params, chorus: 0 } : params;
+        let outNode = this.createEffectsChain(ctx, synthOutput, fxParams);
+        if (isPad && (params.chorus ?? 0) > 0.01) {
+            const chorus = new Chorus();
+            chorus.setParams({ mix: params.chorus, rate: 0.8, depth: 0.006 });
+            chorus.createNodes(ctx);
+            outNode.connect(chorus.input);
+            outNode = chorus.output;
+        }
+        // Lighter finishing for instruments: EQ + soft clip (TASK-A12)
+        const finishing = new FinishingChain(ctx, 'instrument');
+        outNode.connect(finishing.input);
+        finishing.output.connect(ctx.destination);
 
-        return { buffer: await ctx.startRendering(), ctx };
+        const rendered = await ctx.startRendering();
+        // Same output discipline as the drum path: peak at −0.3 dBFS (this
+        // also absorbs oversampling overshoot from the clipper stage).
+        normalizeBuffer(rendered, -0.3);
+        return { buffer: rendered, ctx };
     }
 
     // --- Specific Synth Algorithms ---
@@ -641,38 +693,68 @@ export class InstrumentSynthEngine {
         noise.stop(ctx.currentTime + 0.5);
     }
 
+    // Proper subtractive voice (TASK-A12): per unison voice 2 oscillators,
+    // plus one sub oscillator; 1–7 unison voices detuned ±5–15 cents with
+    // equal-power stereo spread; filter ADSR independent from amp ADSR;
+    // LFO vibrato with onset delay. unisonVoices = 1 stays mono/centered.
     renderSubtractive(ctx, out, params, duration, freq) {
-        const osc1 = ctx.createOscillator();
-        const osc2 = ctx.createOscillator();
-        const osc3 = ctx.createOscillator();
-
-        osc1.type = params.pulseWidth ? 'square' : 'sawtooth';
-        osc2.type = 'sawtooth';
-        osc3.type = 'sawtooth';
-
-        const detune = params.detune || 0;
-        osc1.frequency.value = freq;
-        osc2.frequency.value = freq * (1 + (detune / 1000));
-        osc3.frequency.value = freq * (1 - (detune / 1000));
+        const stopTime = ctx.currentTime + duration + (params.release || 1);
+        const voices = Math.min(7, Math.max(1, Math.round(params.unisonVoices ?? 5)));
+        // legacy 'detune' knob (0–100) maps onto the ±5–15 cent unison spread
+        const spreadCents = Math.min(15, Math.max(voices > 1 ? 5 : 0, (params.detune ?? 15) * 0.3));
+        const mainType = params.pulseWidth ? 'square' : 'sawtooth';
 
         const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.Q.value = params.resonance || 1;
+        this.applyFilterEnv(ctx, filter, params, duration);
+
+        const voiceMix = ctx.createGain();
+        voiceMix.gain.value = 0.75 / (voices * 2);
+
+        const startOsc = (type, oscFreq, dest) => {
+            const osc = ctx.createOscillator();
+            osc.type = type;
+            osc.frequency.value = oscFreq;
+            this.createVibrato(ctx, osc.frequency, params);
+            osc.connect(dest);
+            osc.start();
+            osc.stop(stopTime);
+            return osc;
+        };
+
+        for (let i = 0; i < voices; i++) {
+            // equal-power stereo spread: voices fan out across the field
+            const spreadPos = voices > 1 ? (i / (voices - 1)) * 2 - 1 : 0;
+            const cents = spreadPos * spreadCents;
+            let dest = voiceMix;
+            if (voices > 1) {
+                const panner = ctx.createStereoPanner();
+                panner.pan.value = spreadPos * 0.8;
+                panner.connect(voiceMix);
+                dest = panner;
+            }
+            const vFreq = freq * Math.pow(2, cents / 1200);
+            startOsc(mainType, vFreq, dest);
+            // second oscillator per voice, a hair sharp for thickness
+            startOsc('sawtooth', vFreq * Math.pow(2, 4 / 1200), dest);
+        }
+
+        // sub oscillator: one per note, centered
+        const subLevel = params.subLevel ?? 0.3;
+        if (subLevel > 0.01) {
+            const subGain = ctx.createGain();
+            subGain.gain.value = subLevel * 0.5;
+            subGain.connect(filter);
+            startOsc('sine', freq / 2, subGain);
+        }
 
         const env = ctx.createGain();
         this.applyADSR(ctx, env, params, duration);
-        this.applyFilterEnv(ctx, filter, params, duration);
 
-        osc1.connect(filter);
-        osc2.connect(filter);
-        osc3.connect(filter);
+        voiceMix.connect(filter);
         filter.connect(env);
         env.connect(out);
-
-        osc1.start(); osc2.start(); osc3.start();
-        osc1.stop(ctx.currentTime + duration + (params.release || 1));
-        osc2.stop(ctx.currentTime + duration + (params.release || 1));
-        osc3.stop(ctx.currentTime + duration + (params.release || 1));
     }
 
     renderFM(ctx, out, params, duration, freq, isEPiano) {
@@ -900,7 +982,11 @@ export class InstrumentSynthEngine {
 
         const t = this.ctx.currentTime;
         const outNode = this.createEffectsChain(this.ctx, this.ctx.createGain(), params);
-        outNode.connect(this.ctx.destination);
+        // Lighter finishing for instruments (TASK-A12), matching the export path
+        const finishing = new FinishingChain(this.ctx, 'instrument');
+        outNode.connect(finishing.input);
+        finishing.output.connect(this.ctx.destination);
+        setTimeout(() => finishing.dispose(), (duration + 4) * 1000);
 
         switch (type) {
             case 'brass':
@@ -913,6 +999,7 @@ export class InstrumentSynthEngine {
                 break;
             case 'synthLead':
             case 'synthArp':
+            case 'synthPad':
                 this.renderSubtractive(this.ctx, outNode, params, duration, noteFrequency);
                 break;
             case 'fmSynth':

@@ -1,7 +1,7 @@
 class LibraryManager {
     constructor() {
         this.dbName = 'FreallyDB';
-        this.version = 2; // Bump version for new store
+        this.version = 3; // v3: rendered sample packs store (TASK-B04)
         this.db = null;
         this.init();
     }
@@ -20,6 +20,9 @@ class LibraryManager {
                 }
                 if (!db.objectStoreNames.contains('folders')) {
                     db.createObjectStore('folders', { keyPath: 'name' });
+                }
+                if (!db.objectStoreNames.contains('packs')) {
+                    db.createObjectStore('packs', { keyPath: 'name' });
                 }
             };
 
@@ -262,6 +265,42 @@ class LibraryManager {
             const request = store.get(name);
 
             request.onsuccess = () => resolve(request.result ? request.result.buffer : null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // --- Rendered Sample Packs (TASK-B04) ---
+    // pack = { name, manifest, files: [{ path, bytes(ArrayBuffer) }] }
+
+    async savePack(pack) {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(['packs'], 'readwrite');
+            const store = tx.objectStore('packs');
+            const request = store.put({ ...pack, timestamp: Date.now() });
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async getPacks() {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(['packs'], 'readonly');
+            const store = tx.objectStore('packs');
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async deletePack(name) {
+        if (!this.db) await this.init();
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(['packs'], 'readwrite');
+            const store = tx.objectStore('packs');
+            const request = store.delete(name);
+            request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });
     }

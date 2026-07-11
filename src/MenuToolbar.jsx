@@ -282,6 +282,7 @@ const MenuToolbar = ({
         { id: 'arrange', label: t('menu.viewArrange'), key: '7' },
         { id: 'drumsynth', label: t('menu.viewDrumSynth'), key: '8' },
         { id: 'instrsynth', label: t('menu.viewInstSynth'), key: '9' },
+        { id: 'packfactory', label: t('menu.viewPackFactory'), key: '0' },
     ];
 
     return (

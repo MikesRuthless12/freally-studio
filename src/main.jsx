@@ -7,9 +7,13 @@ import { I18nProvider } from './i18n/I18nContext.jsx'
 import './index.css'
 import './freally-daw-theme.css'
 import { installElectronFsPolyfill } from './electronFsPolyfill.js'
+import { applySavedSkin } from './ui/SkinEngine.js'
 
 // Patch File System Access API with Electron native dialogs (no-op in browser)
 installElectronFsPolyfill();
+
+// Apply the persisted UI skin before first paint (TASK-C03)
+applySavedSkin();
 
 // Eagerly create AudioContext so it's ready before any playback request.
 // Browsers require a user gesture to resume a suspended context, so we
@@ -78,8 +82,21 @@ function AppRoot() {
     );
 }
 
+// Hidden /uikit route (dev only, TASK-C05): every kit component in every
+// state, for screenshot review. Never bundled into production behavior.
+const isUiKitRoute = import.meta.env.DEV && window.location.pathname === '/uikit';
+const UIKitGallery = isUiKitRoute
+    ? React.lazy(() => import('./components/ui/UIKitGallery.jsx'))
+    : null;
+
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <AppRoot />
+        {isUiKitRoute ? (
+            <React.Suspense fallback={null}>
+                <UIKitGallery />
+            </React.Suspense>
+        ) : (
+            <AppRoot />
+        )}
     </React.StrictMode>,
 )

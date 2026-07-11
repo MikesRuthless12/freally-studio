@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { isElectron } from './electronBridge.js';
 import { ACCENT_THEMES, SOLID_ACCENT_KEYS, GRADIENT_ACCENT_KEYS } from './accentThemes.js';
 import { useTranslation } from './i18n/I18nContext.jsx';
+import {
+    BUILTIN_SKINS, loadSkin, loadSkinByName, saveSkinChoice, getSavedSkinChoice, exportSkin,
+} from './ui/SkinEngine.js';
 
 const SETTINGS_KEY = 'freally_settings';
 
@@ -223,6 +226,9 @@ export function SettingsModal({
     const [hoveredSection, setHoveredSection] = useState(null);
     const [testToneActive, setTestToneActive] = useState(false);
     const [hoveredAccent, setHoveredAccent] = useState(null);
+    // UI skin (TASK-C03)
+    const [activeSkin, setActiveSkin] = useState(() => getSavedSkinChoice().name);
+    const skinFileRef = useRef(null);
     const [audioInputDevices, setAudioInputDevices] = useState([]);
     const [audioOutputDevices, setAudioOutputDevices] = useState([]);
     const [nativeInputDevices, setNativeInputDevices] = useState([]);
@@ -936,6 +942,94 @@ export function SettingsModal({
                             );
                         })}
                     </div>
+                </div>
+            </div>
+
+            {/* UI Skin picker (TASK-C03) — live preview, persisted in freally_settings */}
+            <div style={{ padding: '10px 0', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}` }}>
+                <div style={labelStyle}>UI Skin</div>
+                <div style={descStyle}>Complete token themes, Ableton-style. Applies live.</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                    {Object.entries(BUILTIN_SKINS).map(([id, skin]) => {
+                        const tk = skin.tokens;
+                        const isActive = activeSkin === id;
+                        return (
+                            <div
+                                key={id}
+                                onClick={() => {
+                                    try {
+                                        loadSkinByName(id);
+                                        saveSkinChoice(id);
+                                        setActiveSkin(id);
+                                    } catch (e) { alert(e.message); }
+                                }}
+                                title={skin.name}
+                                style={{
+                                    cursor: 'pointer', borderRadius: '6px', padding: '4px',
+                                    border: isActive ? `2px solid ${ac}` : '2px solid transparent',
+                                }}
+                            >
+                                {/* live preview swatches: surfaces + text + accent */}
+                                <div style={{ display: 'flex', width: '84px', height: '28px', borderRadius: '4px', overflow: 'hidden', border: `1px solid ${tk['--border-hairline']}` }}>
+                                    <div style={{ flex: 1, background: tk['--surface-0'] }} />
+                                    <div style={{ flex: 1, background: tk['--surface-2'] }} />
+                                    <div style={{ flex: 1, background: tk['--text-1'] }} />
+                                    <div style={{ flex: 1, background: tk['--accent'] }} />
+                                </div>
+                                <div style={{ fontSize: '9px', textAlign: 'center', marginTop: '3px', color: isDark ? '#999' : '#666' }}>
+                                    {skin.name}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button
+                        onClick={() => skinFileRef.current?.click()}
+                        style={{ fontSize: '10px', padding: '3px 10px', cursor: 'pointer' }}
+                    >
+                        Import skin (.json)
+                    </button>
+                    <button
+                        onClick={() => {
+                            const choice = getSavedSkinChoice();
+                            const skin = choice.name === 'custom' ? choice.custom : BUILTIN_SKINS[choice.name];
+                            const blob = new Blob([exportSkin(skin)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${(skin.name || 'skin').replace(/\s+/g, '-').toLowerCase()}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        }}
+                        style={{ fontSize: '10px', padding: '3px 10px', cursor: 'pointer' }}
+                    >
+                        Export skin
+                    </button>
+                    {activeSkin === 'custom' && (
+                        <span style={{ fontSize: '10px', color: isDark ? '#888' : '#666', alignSelf: 'center' }}>
+                            custom skin active
+                        </span>
+                    )}
+                    <input
+                        ref={skinFileRef}
+                        type="file"
+                        accept=".json,application/json"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                                const skin = JSON.parse(await file.text());
+                                loadSkin(skin); // throws with useful errors on a bad skin
+                                saveSkinChoice(skin);
+                                setActiveSkin('custom');
+                            } catch (err) {
+                                alert(`Could not import skin: ${err.message}`);
+                            }
+                        }}
+                    />
                 </div>
             </div>
 

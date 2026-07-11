@@ -12,6 +12,11 @@
    ============================================ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
+/* Design tokens (TASK-C02) — the single source of every UI color.
+   Values are the 'Freally Dark' defaults; SkinEngine (TASK-C03) overrides
+   them at :root. Nothing visual changes until views migrate onto them. */
+@import './ui/tokens.css';
+
 /* ============================================
    GLOBAL FOUNDATION
    ============================================ */

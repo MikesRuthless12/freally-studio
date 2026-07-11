@@ -97,6 +97,146 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "Freally Packs",
+            "path": "Factory Library/Freally Packs",
+            "children": [
+                {
+                    "name": "Trap Essentials",
+                    "path": "Factory Library/Freally Packs/Trap Essentials",
+                    "children": [
+                        {
+                            "name": "Kicks",
+                            "path": "Factory Library/Freally Packs/Trap Essentials/Kicks",
+                            "files": [
+                                "kick_Trap_01.wav",
+                                "kick_Trap_02.wav"
+                            ]
+                        },
+                        {
+                            "name": "Snares",
+                            "path": "Factory Library/Freally Packs/Trap Essentials/Snares",
+                            "files": [
+                                "ghostSnare_Trap_05.wav",
+                                "ghostSnare_Trap_06.wav",
+                                "snare_Trap_03.wav",
+                                "snare_Trap_04.wav"
+                            ]
+                        },
+                        {
+                            "name": "Claps",
+                            "path": "Factory Library/Freally Packs/Trap Essentials/Claps",
+                            "files": [
+                                "clap_Trap_07.wav",
+                                "clap_Trap_08.wav"
+                            ]
+                        },
+                        {
+                            "name": "Hats",
+                            "path": "Factory Library/Freally Packs/Trap Essentials/Hats",
+                            "files": [
+                                "closedHat_Trap_09.wav",
+                                "closedHat_Trap_10.wav",
+                                "openHat_Trap_11.wav",
+                                "openHat_Trap_12.wav"
+                            ]
+                        },
+                        {
+                            "name": "808s",
+                            "path": "Factory Library/Freally Packs/Trap Essentials/808s",
+                            "files": [
+                                "808_Trap_A1_15.wav",
+                                "808_Trap_A1_16.wav",
+                                "808_Trap_C2_17.wav",
+                                "808_Trap_C2_18.wav",
+                                "808_Trap_F1_13.wav",
+                                "808_Trap_F1_14.wav"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "House Basics",
+                    "path": "Factory Library/Freally Packs/House Basics",
+                    "children": [
+                        {
+                            "name": "Kicks",
+                            "path": "Factory Library/Freally Packs/House Basics/Kicks",
+                            "files": [
+                                "kick_House_01.wav",
+                                "kick_House_02.wav"
+                            ]
+                        },
+                        {
+                            "name": "Snares",
+                            "path": "Factory Library/Freally Packs/House Basics/Snares",
+                            "files": [
+                                "snare_House_03.wav",
+                                "snare_House_04.wav"
+                            ]
+                        },
+                        {
+                            "name": "Claps",
+                            "path": "Factory Library/Freally Packs/House Basics/Claps",
+                            "files": [
+                                "clap_House_05.wav",
+                                "clap_House_06.wav"
+                            ]
+                        },
+                        {
+                            "name": "Hats",
+                            "path": "Factory Library/Freally Packs/House Basics/Hats",
+                            "files": [
+                                "closedHat_House_07.wav",
+                                "closedHat_House_08.wav",
+                                "openHat_House_09.wav",
+                                "openHat_House_10.wav"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Boom Bap Cuts",
+                    "path": "Factory Library/Freally Packs/Boom Bap Cuts",
+                    "children": [
+                        {
+                            "name": "Kicks",
+                            "path": "Factory Library/Freally Packs/Boom Bap Cuts/Kicks",
+                            "files": [
+                                "kick_Boom-Bap_01.wav",
+                                "kick_Boom-Bap_02.wav"
+                            ]
+                        },
+                        {
+                            "name": "Snares",
+                            "path": "Factory Library/Freally Packs/Boom Bap Cuts/Snares",
+                            "files": [
+                                "ghostSnare_Hip-Hop_09.wav",
+                                "ghostSnare_Hip-Hop_10.wav",
+                                "snare_Boom-Bap_03.wav",
+                                "snare_Boom-Bap_04.wav"
+                            ]
+                        },
+                        {
+                            "name": "Claps",
+                            "path": "Factory Library/Freally Packs/Boom Bap Cuts/Claps",
+                            "files": [
+                                "clap_Boom-Bap_05.wav",
+                                "clap_Boom-Bap_06.wav"
+                            ]
+                        },
+                        {
+                            "name": "Hats",
+                            "path": "Factory Library/Freally Packs/Boom Bap Cuts/Hats",
+                            "files": [
+                                "closedHat_Lo-Fi_07.wav",
+                                "closedHat_Lo-Fi_08.wav"
+                            ]
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

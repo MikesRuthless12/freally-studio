@@ -27,11 +27,14 @@ include_directories(${NODE_ADDON_API_DIR})
 add_definitions(-DNAPI_VERSION=8)
 add_definitions(-DNAPI_DISABLE_CPP_EXCEPTIONS)
 
-# Source files
+# Source files. The WASAPI implementation is Windows-only; napi_bindings.cpp
+# compiles a stub module elsewhere (its WASAPI paths are _WIN32-guarded).
 set(SOURCES
     src/napi_bindings.cpp
-    src/audio_capture.cpp
 )
+if(WIN32)
+    list(APPEND SOURCES src/audio_capture.cpp)
+endif()
 
 # Build as shared library (.node)
 add_library(${PROJECT_NAME} SHARED ${SOURCES} ${CMAKE_JS_SRC})

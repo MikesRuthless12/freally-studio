@@ -1,0 +1,64 @@
+name: ci
+
+# PR-gating CI (TASK-D02). The `native` job compiles BOTH cmake-js addons
+# (VST3 host + audio capture) on all three OSes and uploads the .node
+# binaries. The A7-patched napi_plugin_wrapper.cpp is part of the VST3
+# addon, so a green native job proves the patched binary compiles everywhere.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive # vst3sdk + its nested submodules
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Install native addon dependencies
+        run: |
+          npm --prefix native ci || npm --prefix native install
+          npm --prefix native/audio_capture ci || npm --prefix native/audio_capture install
+
+      - name: Build VST3 host addon
+        run: |
+          rm -rf native/build   # never reuse a stale CMake cache (docs/native-build-setup.md)
+          npm run native:build
+
+      - name: Build audio capture addon
+        run: |
+          rm -rf native/audio_capture/build
+          npm run audio-capture:build
+
+      - name: Upload .node artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-addons-${{ matrix.platform }}
+          path: |
+            native/build/Release/*.node
+            native/audio_capture/build/Release/*.node
+          if-no-files-found: error

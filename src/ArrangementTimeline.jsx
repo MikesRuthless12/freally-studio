@@ -15,6 +15,7 @@ import { interpolateAutomation, addAutomationPoint, removeAutomationPoint, moveA
 import { loopAllPatterns } from './patternUtils';
 import { useTranslation } from './i18n/I18nContext.jsx';
 import { getFileFromItem } from './getFileFromItem.js';
+import { resolveColor, getTokenColor } from './ui/SkinEngine.js';
 
 const SECTION_TYPES = [
     { value: 'intro', label: 'Intro', i18nKey: 'arrange.intro' },
@@ -27,28 +28,29 @@ const SECTION_TYPES = [
     { value: 'custom', label: 'Custom', i18nKey: 'arrange.custom' }
 ];
 
+// Saturated color comes ONLY from the clip palette tokens (design law).
 const SECTION_COLORS = [
-    '#ff6b6b', '#ffa94d', '#ffd43b', '#69db7c',
-    '#4dabf7', '#9775fa', '#f06595', '#20c997',
-    '#ff8787', '#74c0fc', '#b197fc', '#63e6be'
+    'var(--clip-01)', 'var(--clip-02)', 'var(--clip-03)', 'var(--clip-06)',
+    'var(--clip-10)', 'var(--clip-12)', 'var(--clip-16)', 'var(--clip-08)',
+    'var(--clip-15)', 'var(--clip-09)', 'var(--clip-13)', 'var(--clip-07)'
 ];
 
 const DRUM_ELEMENTS = [
-    { id: '808', name: '808', color: '#6c5ce7', i18nKey: 'arrange.drum808' },
-    { id: 'kick', name: 'Kick', color: '#ff6b6b', i18nKey: 'arrange.drumKick' },
-    { id: 'clap', name: 'Clap', color: '#ff9f43', i18nKey: 'arrange.drumClap' },
-    { id: 'snare', name: 'Snare', color: '#ff7675', i18nKey: 'arrange.drumSnare' },
-    { id: 'offSnare', name: 'Off Snare', color: '#fdcb6e', i18nKey: 'arrange.drumOffSnare' },
-    { id: 'closedHat', name: 'Closed Hat', color: '#e17055', i18nKey: 'arrange.drumClosedHat' },
-    { id: 'openHat', name: 'Open Hat', color: '#d63031', i18nKey: 'arrange.drumOpenHat' },
-    { id: 'rim', name: 'Rim', color: '#fab1a0', i18nKey: 'arrange.drumRim' },
-    { id: 'perc', name: 'Perc', color: '#e84393', i18nKey: 'arrange.drumPerc' }
+    { id: '808', name: '808', color: 'var(--clip-12)', i18nKey: 'arrange.drum808' },
+    { id: 'kick', name: 'Kick', color: 'var(--clip-01)', i18nKey: 'arrange.drumKick' },
+    { id: 'clap', name: 'Clap', color: 'var(--clip-02)', i18nKey: 'arrange.drumClap' },
+    { id: 'snare', name: 'Snare', color: 'var(--clip-16)', i18nKey: 'arrange.drumSnare' },
+    { id: 'offSnare', name: 'Off Snare', color: 'var(--clip-03)', i18nKey: 'arrange.drumOffSnare' },
+    { id: 'closedHat', name: 'Closed Hat', color: 'var(--clip-04)', i18nKey: 'arrange.drumClosedHat' },
+    { id: 'openHat', name: 'Open Hat', color: 'var(--clip-15)', i18nKey: 'arrange.drumOpenHat' },
+    { id: 'rim', name: 'Rim', color: 'var(--clip-05)', i18nKey: 'arrange.drumRim' },
+    { id: 'perc', name: 'Perc', color: 'var(--clip-14)', i18nKey: 'arrange.drumPerc' }
 ];
 
 const MELODIC_TRACKS = [
-    { id: 'chords', label: 'Chords', trackKey: 'chords', color: '#3498db', i18nKey: 'arrange.chords' },
-    { id: 'melody', label: 'Melody', trackKey: 'melody', color: '#2ecc71', i18nKey: 'arrange.melody' },
-    { id: 'bass', label: 'Bass', trackKey: 'bass', color: '#9b59b6', i18nKey: 'arrange.bass' }
+    { id: 'chords', label: 'Chords', trackKey: 'chords', color: 'var(--clip-10)', i18nKey: 'arrange.chords' },
+    { id: 'melody', label: 'Melody', trackKey: 'melody', color: 'var(--clip-06)', i18nKey: 'arrange.melody' },
+    { id: 'bass', label: 'Bass', trackKey: 'bass', color: 'var(--clip-13)', i18nKey: 'arrange.bass' }
 ];
 
 const MIN_PX_PER_BAR = 8;  // Zoom out limit: ~3 minutes visible at typical widths
@@ -62,13 +64,15 @@ const ROW_HEIGHT_ZOOMED = 220;
 const DRUM_ROW_HEIGHT = 24;
 
 // D3: Whitelist colors interpolated into raw SVG markup.
-// Returns input only if it's a valid hex (#rgb..#rrggbbaa) or rgb()/rgba(); otherwise '#888888'.
+// Accepts a design token reference (var(--x)), a valid hex color, or an
+// rgb-function color; anything else falls back to the muted text token.
 const SAFE_COLOR_HEX_RE = /^#[0-9a-fA-F]{3,8}$/;
 const SAFE_COLOR_RGB_RE = /^rgba?\([\d.,\s]+\)$/;
+const SAFE_COLOR_VAR_RE = /^var\(--[a-zA-Z0-9-]+\)$/;
 function sanitizeColor(c) {
-    if (typeof c !== 'string') return '#888888';
-    if (SAFE_COLOR_HEX_RE.test(c) || SAFE_COLOR_RGB_RE.test(c)) return c;
-    return '#888888';
+    if (typeof c !== 'string') return 'var(--text-2)';
+    if (SAFE_COLOR_HEX_RE.test(c) || SAFE_COLOR_RGB_RE.test(c) || SAFE_COLOR_VAR_RE.test(c)) return c;
+    return 'var(--text-2)';
 }
 
 function formatTime(seconds) {
@@ -90,10 +94,10 @@ function formatTimePrecise(seconds) {
 // Preview card colors match the track lane colors in MELODIC_TRACKS.
 // Drums color is set dynamically from the accent theme (see previewCards below).
 const PREVIEW_TRACK_COLORS = {
-    drums: '#3498db',   // placeholder — overridden by ac at render time
-    chords: '#3498db',
-    melody: '#2ecc71',
-    bass: '#9b59b6'
+    drums: 'var(--clip-01)',
+    chords: 'var(--clip-10)',
+    melody: 'var(--clip-06)',
+    bass: 'var(--clip-13)'
 };
 
 const DRUM_SHORTCUT_MAP = {
@@ -243,9 +247,10 @@ function PatternPreviewStrip({
                 // Create floating ghost element
                 ghostDiv = document.createElement('div');
                 ghostDiv.style.cssText = `position:fixed;z-index:99999;pointer-events:none;
-                    background:${PREVIEW_TRACK_COLORS[trackType]}44;border:2px solid ${PREVIEW_TRACK_COLORS[trackType]};
-                    border-radius:4px;padding:4px 8px;font-size:10px;font-weight:700;color:#fff;
-                    font-family:sans-serif;white-space:nowrap;`;
+                    background:color-mix(in srgb, ${PREVIEW_TRACK_COLORS[trackType]} 27%, transparent);
+                    border:1px solid ${PREVIEW_TRACK_COLORS[trackType]};
+                    border-radius:2px;padding:4px 8px;font-size:var(--text-size-s);font-weight:700;color:var(--text-1);
+                    white-space:nowrap;`;
                 const label = trackType === 'drums' && drumSubPattern !== 'all'
                     ? `${trackType} (${DRUM_ID_LABELS[drumSubPattern] || drumSubPattern})`
                     : trackType.charAt(0).toUpperCase() + trackType.slice(1);
@@ -362,7 +367,7 @@ function PatternPreviewStrip({
                     const x = (step / pat.length) * 100;
                     const y = ((drumIdx + 0.5) / totalDrums) * 100;
                     dots.push(<circle key={`${drumId}-${step}`} cx={`${x}%`} cy={`${y}%`} r="1.5"
-                        fill={DRUM_ELEMENTS.find(d => d.id === drumId)?.color || '#ff6b6b'} opacity="0.8" />);
+                        fill={DRUM_ELEMENTS.find(d => d.id === drumId)?.color || 'var(--clip-01)'} opacity="0.8" />);
                 }
             });
         });
@@ -401,7 +406,7 @@ function PatternPreviewStrip({
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '4px 8px',
             borderBottom: `1px solid ${borderColor}`,
-            background: isDark ? 'rgba(15,15,22,0.95)' : '#f0f0f4',
+            background: 'var(--surface-1)',
             overflowX: 'auto', overflowY: 'hidden'
         }}>
             {cards.map(card => {
@@ -413,11 +418,11 @@ function PatternPreviewStrip({
                         onMouseDown={(e) => handleCardMouseDown(e, card.key)}
                         style={{
                             width: '120px', minWidth: '120px', height: '50px',
-                            border: `2px solid ${isSelected ? card.color : (isDark ? '#333' : '#ccc')}`,
-                            borderRadius: '6px',
+                            border: `1px solid ${isSelected ? card.color : 'var(--border-hairline)'}`,
+                            borderRadius: '2px',
                             background: isSelected
-                                ? (isDark ? `${card.color}15` : `${card.color}10`)
-                                : (isDark ? 'rgba(20,20,30,0.8)' : '#fff'),
+                                ? `color-mix(in srgb, ${card.color} 8%, transparent)`
+                                : 'var(--surface-2)',
                             cursor: 'grab',
                             position: 'relative',
                             overflow: 'hidden',
@@ -428,9 +433,8 @@ function PatternPreviewStrip({
                         {/* Label */}
                         <div style={{
                             position: 'absolute', top: '2px', left: '4px',
-                            fontSize: '8px', fontWeight: '700', color: card.color,
-                            letterSpacing: '0.3px', zIndex: 2,
-                            textShadow: isDark ? '0 0 4px rgba(0,0,0,0.8)' : 'none'
+                            fontSize: 'var(--text-size-s)', fontWeight: '700', color: card.color,
+                            letterSpacing: '0.3px', zIndex: 2
                         }}>
                             {card.label}
                         </div>
@@ -445,7 +449,7 @@ function PatternPreviewStrip({
                 );
             })}
             {/* Drag hint */}
-            <span style={{ fontSize: '8px', color: isDark ? '#555' : '#999', fontWeight: '600', whiteSpace: 'nowrap', marginLeft: '4px' }}>
+            <span style={{ fontSize: 'var(--text-size-s)', color: 'var(--text-disabled)', fontWeight: '600', whiteSpace: 'nowrap', marginLeft: '4px' }}>
                 Drag to timeline
             </span>
         </div>
@@ -508,8 +512,8 @@ function RecordingWaveform({ recorderRef, width, height, color, isDark, tempo, p
                 return;
             }
 
-            // Background tint for recorded region
-            ctx.fillStyle = isDark ? 'rgba(255,68,68,0.06)' : 'rgba(255,68,68,0.05)';
+            // Background tint for recorded region (canvas reads the computed token)
+            ctx.fillStyle = hexToRgba(getTokenColor('--danger'), 0.06);
             ctx.fillRect(0, 0, recordedWidth, h);
 
             // Draw waveform using pre-computed peaks (incremental, O(peaks.length) not O(samples))
@@ -518,7 +522,7 @@ function RecordingWaveform({ recorderRef, width, height, color, isDark, tempo, p
             if (peaks && peaks.length > 0) {
                 const peaksPerPixel = Math.max(1, peaks.length / Math.max(1, recordedWidth));
                 ctx.beginPath();
-                ctx.strokeStyle = color || '#ff4444';
+                ctx.strokeStyle = resolveColor(color) || getTokenColor('--danger');
                 ctx.lineWidth = 1;
                 const midY = h / 2;
                 for (let px = 0; px < recordedWidth; px++) {
@@ -535,9 +539,9 @@ function RecordingWaveform({ recorderRef, width, height, color, isDark, tempo, p
                 ctx.stroke();
             }
 
-            // Red playhead cursor at recording position
+            // Recording cursor at recording position
             if (recordedWidth > 0 && recordedWidth < w) {
-                ctx.strokeStyle = '#ff2222';
+                ctx.strokeStyle = getTokenColor('--danger');
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(recordedWidth, 0);
@@ -546,9 +550,9 @@ function RecordingWaveform({ recorderRef, width, height, color, isDark, tempo, p
             }
 
             // Recording label
-            ctx.fillStyle = '#ff4444';
+            ctx.fillStyle = getTokenColor('--danger');
             ctx.globalAlpha = 0.8;
-            ctx.font = 'bold 9px monospace';
+            ctx.font = 'bold 11px sans-serif';
             ctx.textAlign = 'left';
             ctx.fillText(`● ${t('arrange.rec')}`, 3, 10);
             ctx.globalAlpha = 1;
@@ -589,7 +593,7 @@ function ClipCanvas({ data, type, drumId, bars, color, width, height, isDark }) 
                 l.pattern.forEach((active, step) => {
                     if (active && step < totalSteps) {
                         const x = (step / totalSteps) * w;
-                        ctx.fillStyle = color;
+                        ctx.fillStyle = resolveColor(color);
                         ctx.globalAlpha = (l.velocity?.[step] || 100) / 127;
                         ctx.fillRect(x, 0, Math.max(1, w / totalSteps * 0.8), h * 0.8);
                     }
@@ -607,7 +611,7 @@ function ClipCanvas({ data, type, drumId, bars, color, width, height, isDark }) 
                 const x = (note.time / totalSteps) * w;
                 const noteW = Math.max(1, (note.duration / totalSteps) * w);
                 const y = h - ((note.note - minNote) / noteRange) * h * 0.75 - h * 0.1;
-                ctx.fillStyle = color;
+                ctx.fillStyle = resolveColor(color);
                 ctx.globalAlpha = 0.5 + note.velocity * 0.5;
                 ctx.fillRect(x, y, noteW, Math.max(1, h * 0.12));
             });
@@ -625,7 +629,7 @@ function ClipCanvas({ data, type, drumId, bars, color, width, height, isDark }) 
 
 // Small rotary knob for per-track volume/pan control.
 // Drag vertically to adjust value; double-click to reset.
-function MiniKnob({ value = 0, min = 0, max = 1, size = 24, color = '#fff', onChange, isDark, label = '', defaultVal, showValue = false }) {
+function MiniKnob({ value = 0, min = 0, max = 1, size = 24, color = 'var(--text-1)', onChange, label = '', defaultVal, showValue = false }) {
     const startY = React.useRef(0);
     const startVal = React.useRef(0);
     const range = max - min;
@@ -686,20 +690,20 @@ function MiniKnob({ value = 0, min = 0, max = 1, size = 24, color = '#fff', onCh
                 <svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0 }}>
                     {/* Background arc track */}
                     <path d={arcPath(-135, 135)} fill="none"
-                        stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
+                        stroke="var(--border-hairline)"
                         strokeWidth={3} strokeLinecap="round" />
-                    {/* Filled arc — gradient color */}
+                    {/* Filled arc */}
                     {Math.abs(fillEnd - fillStart) > 0.5 && (
                         <path d={arcPath(fillStart, fillEnd)} fill="none"
                             stroke={color} strokeWidth={3} strokeLinecap="round" opacity={0.9} />
                     )}
                     {/* Center dot */}
-                    <circle cx={cx} cy={cy} r={1.5} fill={isDark ? '#555' : '#999'} />
+                    <circle cx={cx} cy={cy} r={1.5} fill="var(--text-disabled)" />
                 </svg>
                 {/* Needle */}
                 <div style={{
                     position: 'absolute', width: 2, height: r - 2,
-                    background: isDark ? '#ddd' : '#333',
+                    background: 'var(--text-1)',
                     left: cx - 1, bottom: cy,
                     transformOrigin: 'bottom center',
                     transform: `rotate(${angle}deg)`,
@@ -708,9 +712,9 @@ function MiniKnob({ value = 0, min = 0, max = 1, size = 24, color = '#fff', onCh
             </div>
             {showValue && (
                 <span style={{
-                    fontSize: '8px', color: isDark ? '#888' : '#777',
+                    fontSize: 'var(--text-size-s)', color: 'var(--text-2)',
                     lineHeight: 1, marginTop: 1, whiteSpace: 'nowrap',
-                    fontWeight: '600', fontFamily: 'monospace'
+                    fontWeight: '600', fontVariantNumeric: 'tabular-nums'
                 }}>{displayText}</span>
             )}
         </div>
@@ -874,9 +878,10 @@ export default function ArrangementTimeline({
     loopActive = false,
     onSetLoopActive}) {
     const { t } = useTranslation();
-    const ac = accentColors?.accent || '#ff6b6b';
-    const acSec = accentColors?.secondary || '#ff9f43';
-    const acGrad = accentColors?.gradient || 'linear-gradient(135deg, #ff6b6b, #ff9f43)';
+    // Design law: ONE accent for all chrome — the per-tab accent theme
+    // collapses to the --accent token (saturated color lives on clips only).
+    const ac = 'var(--accent)';
+    const acSec = 'var(--accent-muted)';
 
     const [zoom, setZoom] = useState(DEFAULT_PX_PER_BAR);
     const [showMixer, setShowMixer] = useState(false);
@@ -1223,7 +1228,7 @@ export default function ArrangementTimeline({
                     // Update flash visuals
                     labelElsRef.current.forEach((el, mid) => {
                         if (!el) return;
-                        const color = labelColorMapRef.current.get(mid) || '#fff';
+                        const color = labelColorMapRef.current.get(mid) || 'var(--text-1)';
                         const isDrum = mid.startsWith('drum_') || mid === 'drums';
 
                         if (isDrum) {
@@ -1232,8 +1237,7 @@ export default function ArrangementTimeline({
                             const elapsed = now - hitTime;
                             if (elapsed < FLASH_DURATION) {
                                 const fade = 1 - (elapsed / FLASH_DURATION);
-                                const alpha = Math.round(fade * 60).toString(16).padStart(2, '0');
-                                el.style.background = color + alpha;
+                                el.style.background = `color-mix(in srgb, ${color} ${Math.round(fade * 24)}%, transparent)`;
                             } else if (el.style.background) {
                                 el.style.background = '';
                             }
@@ -1245,7 +1249,7 @@ export default function ArrangementTimeline({
                                 isActive = notes.some(n => step >= n.time && step < n.time + (n.duration || 1));
                             }
                             if (isActive) {
-                                el.style.background = color + '3c'; // ~0.24 opacity
+                                el.style.background = `color-mix(in srgb, ${color} 24%, transparent)`;
                             } else if (el.style.background) {
                                 el.style.background = '';
                             }
@@ -3456,11 +3460,11 @@ export default function ArrangementTimeline({
     const totalTrackHeight = trackRows.reduce((sum, r) => sum + r.height, 0);
 
     // Style helpers
-    const bg = isDark ? '#0c0c11' : '#f7f7fa';
-    const bgAlt = isDark ? '#0f0f16' : '#f2f2f6';
-    const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)';
-    const textMuted = isDark ? '#555' : '#aaa';
-    const textLight = isDark ? '#888' : '#777';
+    const bg = 'var(--surface-0)';
+    const bgAlt = 'var(--surface-1)';
+    const borderColor = 'var(--border-hairline)';
+    const textMuted = 'var(--text-disabled)';
+    const textLight = 'var(--text-2)';
 
     return (
         <div ref={arrangementContainerRef} style={{
@@ -3481,14 +3485,14 @@ export default function ArrangementTimeline({
                 alignItems: 'center',
                 padding: '0 10px',
                 gap: '8px',
-                background: isDark ? 'rgba(18,18,24,0.95)' : '#eeeef2',
+                background: 'var(--surface-2)',
                 borderBottom: `1px solid ${borderColor}`,
                 fontSize: '11px',
                 fontWeight: '700',
                 color: textLight,
                 letterSpacing: '0.3px'
             }}>
-                <span style={{ color: isDark ? ac : '#e74c3c', fontWeight: '800' }}>{t('arrange.arrangement')}</span>
+                <span style={{ color: 'var(--accent)', fontWeight: '800' }}>{t('arrange.arrangement')}</span>
                 <span style={{ opacity: 0.5, fontSize: '10px' }}>
                     {t('arrange.sectionsCount', { count: arrangement.length, max: MAX_SECTIONS, bars: totalBars })}
                 </span>
@@ -3499,7 +3503,7 @@ export default function ArrangementTimeline({
                     <span
                         onClick={onClearSectionLoop}
                         title={t('arrange.clearLoop')}
-                        style={{ color: '#64c8ff', fontSize: '9px', fontWeight: '800', cursor: 'pointer', letterSpacing: '0.5px' }}
+                        style={{ color: 'var(--accent)', fontSize: '9px', fontWeight: '800', cursor: 'pointer', letterSpacing: '0.5px' }}
                     >
                         ⟳ {t('arrange.loopCount', { count: loopSectionIds.size })}
                     </span>
@@ -3536,16 +3540,16 @@ export default function ArrangementTimeline({
                                 title={t('arrange.stopRecording')}
                                 style={{
                                     width: '22px', height: '22px', borderRadius: '4px',
-                                    background: '#ff4444', border: '2px solid #ff6666',
+                                    background: 'var(--danger)', border: '1px solid var(--danger)',
                                     cursor: 'pointer', display: 'flex', alignItems: 'center',
                                     justifyContent: 'center', padding: 0,
-                                    animation: 'none', boxShadow: '0 0 8px rgba(255,68,68,0.6)'
+                                    animation: 'none'
                                 }}
                             >
-                                <span style={{ display: 'block', width: '8px', height: '8px', background: '#fff', borderRadius: '1px' }} />
+                                <span style={{ display: 'block', width: '8px', height: '8px', background: 'var(--text-1)', borderRadius: '1px' }} />
                             </button>
                             <span style={{
-                                fontSize: '10px', fontWeight: '800', color: '#ff4444',
+                                fontSize: '10px', fontWeight: '800', color: 'var(--danger)',
                                 fontFamily: 'monospace', letterSpacing: '1px', minWidth: '48px'
                             }}>
                                 ● {Math.floor(recordingElapsed / 60)}:{String(Math.floor(recordingElapsed % 60)).padStart(2, '0')}
@@ -3555,14 +3559,14 @@ export default function ArrangementTimeline({
                         <>
                             <div style={{
                                 width: '22px', height: '22px', borderRadius: '50%',
-                                background: '#ffa94d', display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', boxShadow: '0 0 8px rgba(255,169,77,0.5)'
+                                background: 'var(--warn)', display: 'flex', alignItems: 'center',
+                                justifyContent: 'center'
                             }}>
-                                <span style={{ fontSize: '12px', fontWeight: '900', color: '#fff' }}>
+                                <span style={{ fontSize: 'var(--text-size-m)', fontWeight: '900', color: 'var(--surface-0)' }}>
                                     {countInBeat?.beat || ''}
                                 </span>
                             </div>
-                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#ffa94d', letterSpacing: '0.5px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--warn)', letterSpacing: '0.5px' }}>
                                 {countInBeat ? t('arrange.countInProgress', { beat: countInBeat.beat, total: countInBeat.total }) : `${t('arrange.countIn')}...`}
                             </span>
                         </>
@@ -3572,16 +3576,16 @@ export default function ArrangementTimeline({
                             title={t('arrange.recordAudio')}
                             style={{
                                 width: '22px', height: '22px', borderRadius: '50%',
-                                background: 'transparent', border: `2px solid ${isDark ? '#ff4444' : '#cc3333'}`,
+                                background: 'transparent', border: `2px solid ${'var(--danger)'}`,
                                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                                 justifyContent: 'center', padding: 0, transition: 'all 0.15s'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,68,68,0.15)'; }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'color-mix(in srgb, var(--danger) 15%, transparent)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
                             <span style={{
                                 display: 'block', width: '10px', height: '10px',
-                                borderRadius: '50%', background: isDark ? '#ff4444' : '#cc3333'
+                                borderRadius: '50%', background: 'var(--danger)'
                             }} />
                         </button>
                     )}
@@ -3589,7 +3593,7 @@ export default function ArrangementTimeline({
 
                 {/* Selection info */}
                 {selectedCells.length > 0 ? (
-                    <span style={{ fontSize: '9px', color: '#69db7c', fontWeight: '700' }}>
+                    <span style={{ fontSize: '9px', color: 'var(--meter-green)', fontWeight: '700' }}>
                         ● {t('arrange.selectedCount', { count: selectedCells.length })}
                     </span>
                 ) : selectedRow ? (
@@ -3601,18 +3605,18 @@ export default function ArrangementTimeline({
                 {/* Actions */}
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '5px', alignItems: 'center' }}>
                     <button onClick={() => { onUndoArrangement(); if (onUndoAudio) onUndoAudio(); }} disabled={!canUndoArrangement} title={t('arrange.undo')} style={{
-                        background: isDark ? 'rgba(255,255,255,0.05)' : '#e8e8ec',
-                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#d5d5d9'}`,
-                        borderRadius: '3px', color: isDark ? '#888' : '#666',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--border-hairline)',
+                        borderRadius: '3px', color: 'var(--text-2)',
                         fontSize: '13px', fontWeight: '800', width: '24px', height: '20px',
                         cursor: canUndoArrangement ? 'pointer' : 'default',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
                         opacity: canUndoArrangement ? 1 : 0.3
                     }}>↶</button>
                     <button onClick={() => { onRedoArrangement(); if (onRedoAudio) onRedoAudio(); }} disabled={!canRedoArrangement} title={t('arrange.redo')} style={{
-                        background: isDark ? 'rgba(255,255,255,0.05)' : '#e8e8ec',
-                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#d5d5d9'}`,
-                        borderRadius: '3px', color: isDark ? '#888' : '#666',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--border-hairline)',
+                        borderRadius: '3px', color: 'var(--text-2)',
                         fontSize: '13px', fontWeight: '800', width: '24px', height: '20px',
                         cursor: canRedoArrangement ? 'pointer' : 'default',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
@@ -3653,7 +3657,7 @@ export default function ArrangementTimeline({
                     )}
                     <span style={{ fontSize: '9px', fontWeight: 600, opacity: 0.7, letterSpacing: '0.3px', whiteSpace: 'nowrap' }}>
                         <span style={{ color: ac }}>{t('arrange.midiTracksCount', { count: midiTracks.length, max: 100 })}</span>
-                        <span style={{ color: isDark ? '#555' : '#aaa', margin: '0 4px' }}>|</span>
+                        <span style={{ color: 'var(--text-disabled)', margin: '0 4px' }}>|</span>
                         <span style={{ color: ac }}>{t('arrange.audioTracksCount', { count: audioTracks.length, max: 100 })}</span>
                     </span>
                     {selectedRow && (
@@ -3714,7 +3718,7 @@ export default function ArrangementTimeline({
                         style={{
                             width: '28px',
                             height: '28px',
-                            color: isDark ? ac : '#333',
+                            color: 'var(--accent)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -3724,7 +3728,7 @@ export default function ArrangementTimeline({
                             background: 'transparent',
                             flexShrink: 0
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = isDark ? hexToRgba(ac, 0.1) : 'rgba(0,0,0,0.05)'}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--selection)'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
                         <span style={{ fontSize: '15px' }}>
@@ -3743,7 +3747,7 @@ export default function ArrangementTimeline({
                     display: 'flex',
                     flexDirection: 'column',
                     borderRight: `1px solid ${borderColor}`,
-                    background: isDark ? '#0a0a0f' : '#f0f0f4',
+                    background: 'var(--surface-0)',
                     overflow: 'hidden'
                 }}>
                     {/* Ruler spacer */}
@@ -3757,7 +3761,7 @@ export default function ArrangementTimeline({
                         display: 'flex', alignItems: 'center', padding: '0 6px',
                         borderBottom: `1px solid ${borderColor}`,
                         fontSize: '7px', fontWeight: '700', color: textMuted, letterSpacing: '0.5px',
-                        background: isDark ? 'rgba(10,10,15,0.9)' : '#e8e8ec'
+                        background: 'var(--surface-1)'
                     }}>
                         {loopRangeBars ? '⟳' : ''}{stopMarkerBar != null ? ' ⏹' : ''}
                     </div>
@@ -3929,7 +3933,7 @@ export default function ArrangementTimeline({
                                                         ? (isDark ? `${row.color}22` : `${row.color}20`)
                                                         : isSelected
                                                             ? (isDark ? `${row.color}22` : `${row.color}28`)
-                                                            : ri % 2 === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.015)'),
+                                                            : ri % 2 === 0 ? 'transparent' : ('color-mix(in srgb, var(--text-1) 2%, transparent)'),
                                                 borderTop: isDragTarget ? `2px solid ${row.color}` : undefined,
                                                 transition: 'background 0.1s, border-left 0.1s, opacity 0.15s',
                                                 opacity: lblDim ? 0.5 : (dragReorderRow?.rowId === row.id ? 0.4 : 1)
@@ -3941,7 +3945,7 @@ export default function ArrangementTimeline({
                                                 onClick={(e) => { e.stopPropagation(); toggleCollapse(row.collapseId); }}
                                                 style={{
                                                     width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: '8px', color: isDark ? '#888' : '#777', cursor: 'pointer', flexShrink: 0,
+                                                    fontSize: '8px', color: 'var(--text-2)', cursor: 'pointer', flexShrink: 0,
                                                     transition: 'transform 0.15s',
                                                     transform: row.isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)'
                                                 }}
@@ -3960,7 +3964,7 @@ export default function ArrangementTimeline({
                                                     width: 6, height: row.height - 6,
                                                     position: 'relative', flexShrink: 0,
                                                     borderRadius: 3, overflow: 'hidden',
-                                                    background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                                                    background: 'var(--surface-3)'
                                                 }}>
                                                     <div
                                                         ref={el => { if (el) meterElsRef.current.set(mid, el); else meterElsRef.current.delete(mid); }}
@@ -4001,7 +4005,7 @@ export default function ArrangementTimeline({
                                                 onClick={(e) => e.stopPropagation()}
                                                 maxLength={30}
                                                 style={{
-                                                    fontSize: '9px', fontWeight: '700', background: isDark ? '#1a1a22' : '#fff',
+                                                    fontSize: '9px', fontWeight: '700', background: 'var(--surface-3)',
                                                     color: row.color, border: `1px solid ${row.color}`,
                                                     borderRadius: '2px', outline: 'none', padding: '0 3px',
                                                     width: '100%', height: '16px', fontFamily: 'inherit'
@@ -4029,7 +4033,7 @@ export default function ArrangementTimeline({
                                                 style={{
                                                     fontSize: row.type === 'drum' ? '9px' : (row.isCollapsed ? '10px' : '12px'),
                                                     fontWeight: isSelected ? '800' : '700',
-                                                    color: isSelected ? row.color : (isDark ? '#ccc' : '#444'),
+                                                    color: isSelected ? row.color : ('var(--text-1)'),
                                                     overflow: 'hidden',
                                                     display: 'flex', alignItems: 'center', gap: '3px',
                                                     whiteSpace: 'nowrap',
@@ -4048,7 +4052,7 @@ export default function ArrangementTimeline({
                                                             fontSize: '8px', fontWeight: '700',
                                                             color: ac, opacity: 0.85,
                                                             padding: '1px 4px', borderRadius: '3px',
-                                                            background: hexToRgba(ac, 0.12),
+                                                            background: 'var(--selection)',
                                                             cursor: 'pointer',
                                                             flexShrink: 0, whiteSpace: 'nowrap'
                                                         }}>
@@ -4111,10 +4115,10 @@ export default function ArrangementTimeline({
                                                             fontWeight: '800',
                                                             cursor: 'pointer',
                                                             background: isMuted
-                                                                ? (isDark ? ac : '#e74c3c')
-                                                                : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                                                            color: isMuted ? '#fff' : (isDark ? '#888' : '#999'),
-                                                            border: isMuted ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                                                                ? ('var(--accent)')
+                                                                : ('var(--surface-2)'),
+                                                            color: isMuted ? 'var(--surface-0)' : 'var(--text-2)',
+                                                            border: isMuted ? 'none' : '1px solid var(--border-hairline)',
                                                             lineHeight: 1
                                                         }}
                                                     >M</div>
@@ -4130,10 +4134,10 @@ export default function ArrangementTimeline({
                                                             fontWeight: '800',
                                                             cursor: 'pointer',
                                                             background: isSoloed
-                                                                ? (isDark ? '#feca57' : '#f39c12')
-                                                                : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                                                            color: isSoloed ? '#000' : (isDark ? '#888' : '#999'),
-                                                            border: isSoloed ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                                                                ? ('var(--warn)')
+                                                                : ('var(--surface-2)'),
+                                                            color: isSoloed ? 'var(--surface-0)' : 'var(--text-2)',
+                                                            border: isSoloed ? 'none' : '1px solid var(--border-hairline)',
                                                             lineHeight: 1
                                                         }}
                                                     >S</div>
@@ -4178,10 +4182,10 @@ export default function ArrangementTimeline({
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                     fontSize: '9px', fontWeight: '800', cursor: 'pointer',
                                                                     background: isAutoVisible
-                                                                        ? (isDark ? '#2ecc71' : '#27ae60')
-                                                                        : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                                                                    color: isAutoVisible ? '#fff' : (isDark ? '#888' : '#999'),
-                                                                    border: isAutoVisible ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                                                                        ? ('var(--accent)')
+                                                                        : ('var(--surface-2)'),
+                                                                    color: isAutoVisible ? 'var(--surface-0)' : 'var(--text-2)',
+                                                                    border: isAutoVisible ? 'none' : '1px solid var(--border-hairline)',
                                                                     lineHeight: 1
                                                                 }}
                                                             >A</div>
@@ -4199,9 +4203,9 @@ export default function ArrangementTimeline({
                                                                     borderRadius: '50%',
                                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                     fontSize: '10px', fontWeight: '800', cursor: 'pointer',
-                                                                    background: isArmed ? '#e74c3c' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                                                                    color: isArmed ? '#fff' : (isDark ? '#888' : '#999'),
-                                                                    border: isArmed ? '2px solid #ff6b6b' : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                                                                    background: isArmed ? 'var(--danger)' : ('var(--surface-2)'),
+                                                                    color: isArmed ? 'var(--surface-0)' : 'var(--text-2)',
+                                                                    border: isArmed ? '1px solid var(--danger)' : '1px solid var(--border-hairline)',
                                                                     lineHeight: 1,
                                                                     animation: isArmed ? 'pulse 1.5s infinite' : 'none',
                                                                 }}
@@ -4239,9 +4243,9 @@ export default function ArrangementTimeline({
                                                                 onClick={(e) => e.stopPropagation()}
                                                                 style={{
                                                                     fontSize: '8px', padding: '1px 2px',
-                                                                    background: isDark ? '#2a2a35' : '#f0f0f5',
-                                                                    color: isDark ? '#ccc' : '#333',
-                                                                    border: `1px solid ${isDark ? '#444' : '#ccc'}`,
+                                                                    background: 'var(--surface-2)',
+                                                                    color: 'var(--text-1)',
+                                                                    border: '1px solid var(--border-hairline)',
                                                                     borderRadius: '3px', outline: 'none',
                                                                     cursor: 'pointer', maxWidth: '80px',
                                                                     flexShrink: 0
@@ -4273,11 +4277,11 @@ export default function ArrangementTimeline({
                                                                 fontWeight: '800', cursor: 'pointer',
                                                                 background: editorIsOpen
                                                                     ? ac
-                                                                    : (isDark ? hexToRgba(ac, 0.15) : hexToRgba(ac, 0.12)),
-                                                                color: editorIsOpen ? '#fff' : ac,
+                                                                    : 'var(--selection)',
+                                                                color: editorIsOpen ? 'var(--surface-0)' : ac,
                                                                 border: editorIsOpen
                                                                     ? `1px solid ${ac}`
-                                                                    : `1px solid ${hexToRgba(ac, 0.3)}`,
+                                                                    : '1px solid var(--accent-muted)',
                                                                 lineHeight: 1,
                                                                 transition: 'background 0.15s, color 0.15s'
                                                             }}
@@ -4310,9 +4314,9 @@ export default function ArrangementTimeline({
                                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 fontSize: row.type === 'drum' ? '7px' : (row.isCollapsed ? '10px' : '12px'),
                                                                 fontWeight: '800', cursor: 'pointer',
-                                                                background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                                                background: 'var(--surface-2)',
                                                                 color: ac,
-                                                                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                                                                border: '1px solid var(--border-hairline)',
                                                                 lineHeight: 1
                                                             }}
                                                         >+</div>
@@ -4339,7 +4343,7 @@ export default function ArrangementTimeline({
                             overflowX: 'hidden', overflowY: 'hidden',
                             position: 'relative',
                             borderBottom: `1px solid ${borderColor}`,
-                            background: isDark ? 'rgba(15,15,20,0.8)' : '#eaeaee'
+                            background: 'var(--surface-1)'
                         }}
                     >
                         <div
@@ -4378,17 +4382,13 @@ export default function ArrangementTimeline({
                                             <div style={{
                                                 position: 'absolute', left: `${x}px`, top: 0,
                                                 width: '1px', height: isEvery4 ? '16px' : '10px',
-                                                background: isDark
-                                                    ? (isEvery4 ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)')
-                                                    : (isEvery4 ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.08)')
+                                                background: isEvery4 ? 'var(--text-disabled)' : 'var(--border-hairline)'
                                             }} />
                                             {showLabel && (
                                                 <span style={{
                                                     position: 'absolute', left: `${x + 3}px`, top: '1px',
                                                     fontSize: '9px', fontWeight: '700',
-                                                    color: isDark
-                                                        ? (isEvery4 ? '#888' : '#555')
-                                                        : (isEvery4 ? '#666' : '#aaa'),
+                                                    color: isEvery4 ? 'var(--text-2)' : 'var(--text-disabled)',
                                                     whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none'
                                                 }}>
                                                     {barNum}.1
@@ -4402,13 +4402,13 @@ export default function ArrangementTimeline({
                                                         <div style={{
                                                             position: 'absolute', left: `${beatX}px`, top: 0,
                                                             width: '1px', height: '6px',
-                                                            background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
+                                                            background: 'var(--surface-2)'
                                                         }} />
                                                         {pixelsPerBar >= 80 && (
                                                             <span style={{
                                                                 position: 'absolute', left: `${beatX + 2}px`, top: '1px',
                                                                 fontSize: '7px', fontWeight: '600',
-                                                                color: isDark ? '#3a3a48' : '#c0c0c8',
+                                                                color: 'var(--text-disabled)',
                                                                 whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none'
                                                             }}>
                                                                 {barNum}.{beat}
@@ -4428,15 +4428,13 @@ export default function ArrangementTimeline({
                                     <div style={{
                                         position: 'absolute', left: `${mark.x}px`, bottom: 0,
                                         width: '1px', height: mark.isMajor ? '14px' : '6px',
-                                        background: isDark
-                                            ? (mark.isMajor ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)')
-                                            : (mark.isMajor ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.06)')
+                                        background: mark.isMajor ? 'var(--text-disabled)' : 'var(--border-hairline)'
                                     }} />
                                     {mark.isMajor && (
                                         <span style={{
                                             position: 'absolute', left: `${mark.x + 3}px`, bottom: '2px',
                                             fontSize: '9px', fontWeight: '600',
-                                            color: isDark ? '#777' : '#666',
+                                            color: 'var(--text-2)',
                                             whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none'
                                         }}>
                                             {mark.label}
@@ -4453,7 +4451,7 @@ export default function ArrangementTimeline({
                         overflowX: 'hidden', overflowY: 'hidden',
                         borderBottom: `1px solid ${borderColor}`,
                         position: 'relative',
-                        background: isDark ? 'rgba(10,10,15,0.9)' : '#e8e8ec',
+                        background: 'var(--surface-1)',
                         cursor: 'crosshair'
                     }}
                     onMouseDown={(e) => {
@@ -4497,9 +4495,9 @@ export default function ArrangementTimeline({
                                 const lw = (loopRangeBars.endBar - loopRangeBars.startBar) * pixelsPerBar;
                                 const activeOpacity = loopActive ? 1.0 : 0.35;
                                 const bandBg = loopActive
-                                    ? (isDark ? 'rgba(100,200,255,0.35)' : 'rgba(60,160,255,0.4)')
-                                    : (isDark ? 'rgba(100,200,255,0.10)' : 'rgba(60,160,255,0.12)');
-                                const handleColor = loopActive ? '#64c8ff' : (isDark ? '#3a6a80' : '#8ab8d0');
+                                    ? ('var(--selection)')
+                                    : ('color-mix(in srgb, var(--accent) 10%, transparent)');
+                                const handleColor = loopActive ? 'var(--accent)' : 'var(--accent-muted)';
                                 return (
                                     <>
                                         {/* Loop band fill — click to toggle active */}
@@ -4549,7 +4547,7 @@ export default function ArrangementTimeline({
                                                 document.addEventListener('mouseup', onUp);
                                             }}
                                         >
-                                            <div style={{ width: '1px', height: '8px', background: 'rgba(255,255,255,0.6)' }} />
+                                            <div style={{ width: '1px', height: '8px', background: 'var(--text-2)' }} />
                                         </div>
                                         {/* Loop end handle — draggable */}
                                         <div
@@ -4582,7 +4580,7 @@ export default function ArrangementTimeline({
                                                 document.addEventListener('mouseup', onUp);
                                             }}
                                         >
-                                            <div style={{ width: '1px', height: '8px', background: 'rgba(255,255,255,0.6)' }} />
+                                            <div style={{ width: '1px', height: '8px', background: 'var(--text-2)' }} />
                                         </div>
                                         {/* Loop label centered */}
                                         {lw > 40 && (
@@ -4598,7 +4596,7 @@ export default function ArrangementTimeline({
                                                 pointerEvents: 'none',
                                                 userSelect: 'none',
                                                 transition: 'color 0.2s',
-                                                textShadow: isDark ? '0 0 4px rgba(0,0,0,0.8)' : '0 0 4px rgba(255,255,255,0.8)'
+                                                textShadow: 'none'
                                             }}>{loopActive ? '⟳ ' : ''}{t('arrange.loop')}</span>
                                         )}
                                     </>
@@ -4636,17 +4634,16 @@ export default function ArrangementTimeline({
                                 >
                                     <div style={{
                                         width: '2px', height: '100%',
-                                        background: '#ff4757'
+                                        background: 'var(--danger)'
                                     }} />
-                                    {/* Red flag/triangle */}
+                                    {/* Stop flag/triangle */}
                                     <div style={{
                                         position: 'absolute', top: '0px', left: '0px',
                                         width: 0, height: 0,
-                                        borderTop: '7px solid #ff4757',
-                                        borderRight: '8px solid #ff4757',
+                                        borderTop: '7px solid var(--danger)',
+                                        borderRight: '8px solid var(--danger)',
                                         borderBottom: '7px solid transparent',
-                                        borderLeft: '0px solid transparent',
-                                        filter: 'drop-shadow(0 0 2px rgba(255,71,87,0.5))'
+                                        borderLeft: '0px solid transparent'
                                     }} />
                                 </div>
                             )}
@@ -4769,8 +4766,8 @@ export default function ArrangementTimeline({
                                 <div style={{
                                     position: 'absolute', left: `${playheadPx}px`, top: 0,
                                     height: `${totalTrackHeight}px`,
-                                    width: '1.5px', background: ac, zIndex: 20,
-                                    pointerEvents: 'none', boxShadow: `0 0 8px ${hexToRgba(ac, 0.4)}`
+                                    width: '1px', background: 'var(--playhead)', zIndex: 20,
+                                    pointerEvents: 'none'
                                 }} />
                             )}
 
@@ -4779,18 +4776,16 @@ export default function ArrangementTimeline({
                                 <div style={{
                                     position: 'absolute', left: `${stopMarkerPx - 1}px`, top: 0,
                                     height: `${totalTrackHeight}px`,
-                                    width: '2px', background: '#ff4757', zIndex: 19,
-                                    pointerEvents: 'none',
-                                    backgroundImage: 'repeating-linear-gradient(180deg, #ff4757 0px, #ff4757 4px, transparent 4px, transparent 8px)'
+                                    width: 0, borderLeft: '2px dashed var(--danger)', zIndex: 19,
+                                    pointerEvents: 'none'
                                 }}>
                                     {/* Stop marker triangle at top */}
                                     <div style={{
-                                        position: 'absolute', top: '-2px', left: '-5px',
+                                        position: 'absolute', top: '-2px', left: '-7px',
                                         width: 0, height: 0,
                                         borderLeft: '6px solid transparent',
                                         borderRight: '6px solid transparent',
-                                        borderTop: '8px solid #ff4757',
-                                        filter: 'drop-shadow(0 1px 3px rgba(255,71,87,0.5))'
+                                        borderTop: '8px solid var(--danger)'
                                     }} />
                                 </div>
                             )}
@@ -4809,8 +4804,8 @@ export default function ArrangementTimeline({
                                             position: 'absolute', left: `${x}px`, top: 0, bottom: 0,
                                             width: '1px',
                                             background: isDark
-                                                ? (isEvery4 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)')
-                                                : (isEvery4 ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.04)'),
+                                                ? (isEvery4 ? 'var(--border-hairline)' : 'color-mix(in srgb, var(--border-hairline) 35%, transparent)')
+                                                : (isEvery4 ? 'var(--border-hairline)' : 'color-mix(in srgb, var(--border-hairline) 35%, transparent)'),
                                             zIndex: 5, pointerEvents: 'none'
                                         }} />
                                     );
@@ -4823,9 +4818,7 @@ export default function ArrangementTimeline({
                                                 <div key={`sub-${b}-${s}`} style={{
                                                     position: 'absolute', left: `${sx}px`, top: 0, bottom: 0,
                                                     width: '1px',
-                                                    background: isDark
-                                                        ? (isBeat ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)')
-                                                        : (isBeat ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.025)'),
+                                                    background: isBeat ? 'color-mix(in srgb, var(--border-hairline) 50%, transparent)' : 'color-mix(in srgb, var(--border-hairline) 22%, transparent)',
                                                     zIndex: 5, pointerEvents: 'none'
                                                 }} />
                                             );
@@ -4849,9 +4842,9 @@ export default function ArrangementTimeline({
                                             display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
                                             paddingTop: '16px',
                                             background: isDzActive
-                                                ? (isDark ? 'rgba(151,117,250,0.08)' : 'rgba(151,117,250,0.06)')
+                                                ? 'color-mix(in srgb, var(--accent) 8%, transparent)'
                                                 : 'transparent',
-                                            borderTop: isDzActive ? `2px dashed ${ac}66` : `1px dashed ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`,
+                                            borderTop: isDzActive ? '1px dashed var(--accent)' : '1px dashed color-mix(in srgb, var(--border-hairline) 40%, transparent)',
                                             transition: 'background 0.15s, border-color 0.15s',
                                         }}
                                         onDragOver={(e) => {
@@ -4885,7 +4878,7 @@ export default function ArrangementTimeline({
                                                         }
                                                         const rects = pts.map((p, i) => {
                                                             const bh = Math.max(0.5, p * 45);
-                                                            return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="#4dabf7" opacity="0.7" rx="0.3"/>`;
+                                                            return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="var(--clip-10)" opacity="0.7" rx="0.3"/>`;
                                                         }).join('');
                                                         dragItem._ghostSvg = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%">${rects}</svg>`;
                                                     } catch (_) {}
@@ -4946,8 +4939,8 @@ export default function ArrangementTimeline({
                                                 <div style={{
                                                     position: 'absolute', left: `${gX}px`, top: 0,
                                                     width: `${gW}px`, height: '60px',
-                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
-                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                    background: 'var(--selection)',
+                                                    border: '1px dashed var(--accent)',
                                                     borderRadius: '3px', zIndex: 7,
                                                     pointerEvents: 'none',
                                                     transition: 'left 0.05s ease-out',
@@ -4991,7 +4984,7 @@ export default function ArrangementTimeline({
                                                 ? (isDark ? `${row.color}22` : `${row.color}28`)
                                                 : ri % 2 === 0
                                                     ? 'transparent'
-                                                    : (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.012)'),
+                                                    : ('color-mix(in srgb, var(--text-1) 2%, transparent)'),
                                             opacity: isRowDimmed ? 0.3 : 1,
                                             transition: 'opacity 0.15s'
                                         }}>
@@ -5000,9 +4993,9 @@ export default function ArrangementTimeline({
                                                 <div key="insertion-cursor" style={{
                                                     position: 'absolute', left: `${audioInsertionBar * pixelsPerBar}px`, top: 0,
                                                     width: '2px', height: '100%',
-                                                    background: '#ffa94d', zIndex: 30,
+                                                    background: 'var(--warn)', zIndex: 30,
                                                     pointerEvents: 'none',
-                                                    boxShadow: '0 0 6px #ffa94d',
+                                                    
                                                     animation: 'blink 1s step-end infinite'
                                                 }}>
                                                     <div style={{
@@ -5010,7 +5003,7 @@ export default function ArrangementTimeline({
                                                         width: 0, height: 0,
                                                         borderLeft: '5px solid transparent',
                                                         borderRight: '5px solid transparent',
-                                                        borderTop: '6px solid #ffa94d'
+                                                        borderTop: '6px solid var(--warn)'
                                                     }} />
                                                 </div>
                                             )}
@@ -5162,7 +5155,7 @@ export default function ArrangementTimeline({
                                                                                 }
                                                                                 pts.push(mx);
                                                                             }
-                                                                            const color = sanitizeColor(row.color || '#4dabf7');
+                                                                            const color = sanitizeColor(row.color || 'var(--clip-10)');
                                                                             const rects = pts.map((p, i) => {
                                                                                 const bh = Math.max(0.5, p * 45);
                                                                                 return `<rect x="${i * (100 / numBars)}" y="${50 - bh}" width="${Math.max(0.8, 100 / numBars - 0.3)}" height="${bh * 2}" fill="${color}" opacity="0.7" rx="0.3"/>`;
@@ -5199,10 +5192,10 @@ export default function ArrangementTimeline({
                                                                 <div key={`sb-${si}`} style={{
                                                                     position: 'absolute', left: `${bx}px`, top: 0,
                                                                     width: '1px', height: '100%',
-                                                                    background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                                                    background: 'var(--surface-2)',
                                                                     pointerEvents: 'none', zIndex: 0,
                                                                     borderLeft: '1px dashed',
-                                                                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+                                                                    borderColor: 'var(--border-hairline)'
                                                                 }} />
                                                             );
                                                         })}
@@ -5412,8 +5405,8 @@ export default function ArrangementTimeline({
                                                                                 position: 'absolute',
                                                                                 left: `${leftPct}%`, top: 0,
                                                                                 width: `${widthPct}%`, height: '100%',
-                                                                                background: isDark ? 'rgba(255,100,100,0.35)' : 'rgba(220,50,50,0.25)',
-                                                                                border: `1.5px solid ${isDark ? 'rgba(255,100,100,0.8)' : 'rgba(220,50,50,0.6)'}`,
+                                                                                background: 'color-mix(in srgb, var(--danger) 30%, transparent)',
+                                                                                border: '1px solid var(--danger)',
                                                                                 pointerEvents: 'none', zIndex: 4, borderRadius: '2px'
                                                                             }} />
                                                                         );
@@ -5436,21 +5429,21 @@ export default function ArrangementTimeline({
                                                                         const fadeInPx = (fadeInVal / fadeDur) * clipW;
                                                                         const fadeOutPx = (fadeOutVal / fadeDur) * clipW;
                                                                         const clipH = row.height - 4;
-                                                                        const orangeColor = isDark ? 'rgba(255,159,67,0.9)' : 'rgba(230,150,40,0.9)';
+                                                                        const orangeColor = 'var(--warn)';
                                                                         const handleStyle = (handleKey) => ({
                                                                             position: 'absolute', top: 0,
                                                                             width: '8px', height: '8px',
-                                                                            background: draggingFadeHandle === handleKey ? '#fff' : orangeColor,
+                                                                            background: draggingFadeHandle === handleKey ? 'var(--text-1)' : orangeColor,
                                                                             borderRadius: '50%', cursor: 'ew-resize', zIndex: 6,
-                                                                            boxShadow: draggingFadeHandle === handleKey ? '0 0 6px rgba(255,255,255,0.8)' : '0 0 4px rgba(255,159,67,0.5)',
+                                                                            
                                                                             transform: 'translate(-50%, 0)'
                                                                         });
                                                                         const midDotStyle = (handleKey) => ({
                                                                             position: 'absolute',
                                                                             width: '6px', height: '6px',
-                                                                            background: draggingFadeHandle === handleKey ? '#fff' : orangeColor,
+                                                                            background: draggingFadeHandle === handleKey ? 'var(--text-1)' : orangeColor,
                                                                             borderRadius: '50%', cursor: 'ns-resize', zIndex: 6,
-                                                                            boxShadow: draggingFadeHandle === handleKey ? '0 0 6px rgba(255,255,255,0.8)' : '0 0 3px rgba(255,159,67,0.4)',
+                                                                            
                                                                             transform: 'translate(-50%, -50%)'
                                                                         });
                                                                         const startFadeDrag = (e, isFadeIn) => {
@@ -5547,7 +5540,7 @@ export default function ArrangementTimeline({
                                                                     recorderRef={recorderRef}
                                                                     width={totalWidth - recordingStartBar * pixelsPerBar}
                                                                     height={row.height - 4}
-                                                                    color="#ff4444"
+                                                                    color="var(--danger)"
                                                                     isDark={isDark}
                                                                     tempo={globalTempo}
                                                                     pixelsPerBar={pixelsPerBar}
@@ -5562,8 +5555,8 @@ export default function ArrangementTimeline({
                                                                 <div style={{
                                                                     position: 'absolute', left: `${gX}px`, top: 0,
                                                                     width: `${gW}px`, height: '100%',
-                                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
-                                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                                    background: 'var(--selection)',
+                                                                    border: '1px dashed var(--accent)',
                                                                     borderRadius: '3px', zIndex: 7,
                                                                     pointerEvents: 'none',
                                                                     transition: 'left 0.05s ease-out',
@@ -5586,8 +5579,8 @@ export default function ArrangementTimeline({
                                                                 <div style={{
                                                                     position: 'absolute', left: `${lrStartPx}px`, top: 0,
                                                                     width: `${lrWidth}px`, height: '100%',
-                                                                    background: 'rgba(255,169,77,0.12)',
-                                                                    border: '1px solid rgba(255,169,77,0.4)',
+                                                                    background: 'color-mix(in srgb, var(--warn) 12%, transparent)',
+                                                                    border: '1px solid color-mix(in srgb, var(--warn) 40%, transparent)',
                                                                     borderRadius: '2px',
                                                                     pointerEvents: 'none', zIndex: 7
                                                                 }}>
@@ -5595,7 +5588,7 @@ export default function ArrangementTimeline({
                                                                     <span style={{
                                                                         position: 'absolute', top: '2px', left: '4px',
                                                                         fontSize: '8px', fontWeight: 700,
-                                                                        color: '#ffa94d', opacity: 0.7,
+                                                                        color: 'var(--warn)', opacity: 0.7,
                                                                         letterSpacing: '0.5px', pointerEvents: 'none'
                                                                     }}>{t('arrange.loop')}</span>
                                                                     {/* Clear button */}
@@ -5605,7 +5598,7 @@ export default function ArrangementTimeline({
                                                                                 position: 'absolute', top: '1px', right: '2px',
                                                                                 width: '12px', height: '12px',
                                                                                 fontSize: '9px', lineHeight: '12px',
-                                                                                textAlign: 'center', color: '#ffa94d',
+                                                                                textAlign: 'center', color: 'var(--warn)',
                                                                                 cursor: 'pointer', pointerEvents: 'all',
                                                                                 borderRadius: '2px', opacity: 0.7
                                                                             }}
@@ -5631,8 +5624,8 @@ export default function ArrangementTimeline({
                                                             const totalBarsCalc = totalBars;
                                                             const toX = (bar) => (bar / totalBarsCalc) * cellW;
                                                             const toY = (val) => laneH - (val * laneH);
-                                                            const autoColor = '#2ecc71';
-                                                            const activeColor = '#ffa94d';
+                                                            const autoColor = 'var(--meter-green)';
+                                                            const activeColor = 'var(--warn)';
                                                             let pathD = '';
                                                             let fillD = '';
                                                             if (points.length > 0) {
@@ -5651,7 +5644,7 @@ export default function ArrangementTimeline({
                                                                         width: cellW, height: laneH,
                                                                         pointerEvents: 'none', zIndex: 5
                                                                     }} viewBox={`0 0 ${cellW} ${laneH}`} preserveAspectRatio="none">
-                                                                        <rect x="0" y="0" width={cellW} height={laneH} fill="rgba(0,0,0,0.35)" />
+                                                                        <rect x="0" y="0" width={cellW} height={laneH} fill="color-mix(in srgb, var(--surface-0) 40%, transparent)" />
                                                                         {fillD && <path d={fillD} fill={`${autoColor}55`} />}
                                                                         {pathD && <path d={pathD} fill="none" stroke={autoColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
                                                                     </svg>
@@ -5738,10 +5731,10 @@ export default function ArrangementTimeline({
                                                                                     width: '10px', height: '10px',
                                                                                     borderRadius: '50%',
                                                                                     background: autoColor,
-                                                                                    border: isAnchor ? '2px solid #fff' : '2px solid #aaa',
+                                                                                    border: isAnchor ? '1px solid var(--text-1)' : '1px solid var(--text-2)',
                                                                                     cursor: 'default',
                                                                                     zIndex: 8,
-                                                                                    boxShadow: '0 0 4px rgba(0,0,0,0.5)',
+                                                                                    
                                                                                     transition: 'background 0.15s, box-shadow 0.15s'
                                                                                 }}
                                                                                 onMouseDown={(e) => {
@@ -5776,7 +5769,7 @@ export default function ArrangementTimeline({
                                                                                     };
                                                                                     const onUp = () => {
                                                                                         dot.style.background = autoColor;
-                                                                                        dot.style.boxShadow = '0 0 4px rgba(0,0,0,0.5)';
+                                                                                        dot.style.boxShadow = '';
                                                                                         document.removeEventListener('mousemove', onMove);
                                                                                         document.removeEventListener('mouseup', onUp);
                                                                                     };
@@ -6043,10 +6036,10 @@ export default function ArrangementTimeline({
                                                                 <div key={`sb-${si}`} style={{
                                                                     position: 'absolute', left: `${bx}px`, top: 0,
                                                                     width: '1px', height: '100%',
-                                                                    background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                                                    background: 'var(--surface-2)',
                                                                     pointerEvents: 'none', zIndex: 0,
                                                                     borderLeft: '1px dashed',
-                                                                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+                                                                    borderColor: 'var(--border-hairline)'
                                                                 }} />
                                                             );
                                                         })}
@@ -6295,7 +6288,7 @@ export default function ArrangementTimeline({
                                             })()}
                                             {/* ── Drum clips (positioned blocks on drums-all row) ── */}
                                             {row.type === 'drums-all' && drumClips.length > 0 && (() => {
-                                                const clipColor = row.color || '#ff6b6b';
+                                                const clipColor = row.color || 'var(--clip-01)';
                                                 const cellH = row.height - 2;
                                                 return (
                                                     <div
@@ -6325,10 +6318,10 @@ export default function ArrangementTimeline({
                                                                 <div key={`dsb-${si}`} style={{
                                                                     position: 'absolute', left: `${bx}px`, top: 0,
                                                                     width: '1px', height: '100%',
-                                                                    background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                                                                    background: 'var(--surface-2)',
                                                                     pointerEvents: 'none', zIndex: 0,
                                                                     borderLeft: '1px dashed',
-                                                                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+                                                                    borderColor: 'var(--border-hairline)'
                                                                 }} />
                                                             );
                                                         })}
@@ -6583,7 +6576,7 @@ export default function ArrangementTimeline({
                                                 const onMove = moveMap[row.trackKey];
                                                 const onSetEditing = editSetMap[row.trackKey];
                                                 const onRemove = removeMap[row.trackKey];
-                                                const clipColor = row.color || '#70a1ff';
+                                                const clipColor = row.color || 'var(--clip-10)';
                                                 const cellH = row.height - 2;
                                                 return (
                                                     <div style={{ position: 'absolute', left: 0, top: '1px', width: `${totalWidth}px`, height: `${cellH}px`, overflow: 'visible', zIndex: 2, cursor: 'default' }}
@@ -6737,7 +6730,7 @@ export default function ArrangementTimeline({
                                                         {arrangement.map((section, si) => {
                                                             if (si === 0) return null;
                                                             const bx = sectionOffsets[si] * pixelsPerBar;
-                                                            return (<div key={`nsb-${si}`} style={{ position: 'absolute', left: `${bx}px`, top: 0, width: '1px', height: '100%', background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', pointerEvents: 'none', zIndex: 0, borderLeft: '1px dashed', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />);
+                                                            return (<div key={`nsb-${si}`} style={{ position: 'absolute', left: `${bx}px`, top: 0, width: '1px', height: '100%', background: 'var(--surface-2)', pointerEvents: 'none', zIndex: 0, borderLeft: '1px dashed', borderColor: 'var(--border-hairline)' }} />);
                                                         })}
                                                         {/* Ghost drop preview for browser drags */}
                                                         {clipDropGhost && clipDropGhost.targetRowId === row.id && (() => {
@@ -6747,8 +6740,8 @@ export default function ArrangementTimeline({
                                                                 <div style={{
                                                                     position: 'absolute', left: `${gX}px`, top: 0,
                                                                     width: `${gW}px`, height: '100%',
-                                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
-                                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                                    background: 'var(--selection)',
+                                                                    border: '1px dashed var(--accent)',
                                                                     borderRadius: '3px', zIndex: 7,
                                                                     pointerEvents: 'none',
                                                                     transition: 'left 0.05s ease-out',
@@ -6942,8 +6935,8 @@ export default function ArrangementTimeline({
                                                                                 position: 'absolute',
                                                                                 left: `${leftPct}%`, top: 0,
                                                                                 width: `${widthPct}%`, height: '100%',
-                                                                                background: isDark ? 'rgba(255,100,100,0.35)' : 'rgba(220,50,50,0.25)',
-                                                                                border: `1px solid ${isDark ? 'rgba(255,100,100,0.7)' : 'rgba(220,50,50,0.5)'}`,
+                                                                                background: 'color-mix(in srgb, var(--danger) 30%, transparent)',
+                                                                                border: '1px solid var(--danger)',
                                                                                 pointerEvents: 'none', zIndex: 6, borderRadius: '2px'
                                                                             }} />
                                                                         );
@@ -6959,8 +6952,8 @@ export default function ArrangementTimeline({
                                                                 <div style={{
                                                                     position: 'absolute', left: `${gX}px`, top: 0,
                                                                     width: `${gW}px`, height: '100%',
-                                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
-                                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                                    background: 'var(--selection)',
+                                                                    border: '1px dashed var(--accent)',
                                                                     borderRadius: '3px', zIndex: 7,
                                                                     pointerEvents: 'none',
                                                                     transition: 'left 0.05s ease-out',
@@ -6982,7 +6975,7 @@ export default function ArrangementTimeline({
                                                 const hasDrumDragInProgress = draggingClipBetweenTracks && draggingClipBetweenTracks.clipType === 'drumLaneClip';
                                                 if (allDrumClips.length === 0 && !hasDrumDragInProgress) return null;
                                                 const clips = filterVisibleClips(allDrumClips);
-                                                const clipColor = row.color || '#ff6b6b';
+                                                const clipColor = row.color || 'var(--clip-01)';
                                                 const cellH = row.height - 2;
                                                 return (
                                                     <div style={{ position: 'absolute', left: 0, top: '1px', width: `${totalWidth}px`, height: `${cellH}px`, overflow: 'visible', zIndex: 2, cursor: 'default' }}
@@ -7040,7 +7033,7 @@ export default function ArrangementTimeline({
                                                         {arrangement.map((section, si) => {
                                                             if (si === 0) return null;
                                                             const bx = sectionOffsets[si] * pixelsPerBar;
-                                                            return <div key={`sb-${si}`} style={{ position: 'absolute', left: `${bx}px`, top: 0, width: '1px', height: '100%', pointerEvents: 'none', zIndex: 0, borderLeft: '1px dashed', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />;
+                                                            return <div key={`sb-${si}`} style={{ position: 'absolute', left: `${bx}px`, top: 0, width: '1px', height: '100%', pointerEvents: 'none', zIndex: 0, borderLeft: '1px dashed', borderColor: 'var(--border-hairline)' }} />;
                                                         })}
                                                         {/* Render each drum lane clip */}
                                                         {clips.map((clip) => {
@@ -7236,8 +7229,8 @@ export default function ArrangementTimeline({
                                                                 <div style={{
                                                                     position: 'absolute', left: `${gX}px`, top: 0,
                                                                     width: `${gW}px`, height: '100%',
-                                                                    background: isDark ? 'rgba(84,160,255,0.25)' : 'rgba(84,160,255,0.2)',
-                                                                    border: '2px dashed rgba(84,160,255,0.7)',
+                                                                    background: 'var(--selection)',
+                                                                    border: '1px dashed var(--accent)',
                                                                     borderRadius: '3px', zIndex: 7,
                                                                     pointerEvents: 'none',
                                                                     transition: 'left 0.05s ease-out',
@@ -7395,7 +7388,7 @@ export default function ArrangementTimeline({
                                                                     : isCellMultiSelected
                                                                         ? `${clipColor}${isDark ? '25' : '30'}`
                                                                         : loopSectionIds.has(section.id) && !hasContent
-                                                                            ? (isDark ? 'rgba(100,200,255,0.06)' : 'rgba(60,160,255,0.08)')
+                                                                            ? ('color-mix(in srgb, var(--accent) 6%, transparent)')
                                                                             : hasContent
                                                                                 ? `${clipColor}${isDark ? '18' : '22'}`
                                                                                 : 'transparent',
@@ -7574,8 +7567,8 @@ export default function ArrangementTimeline({
                                                                                     position: 'absolute',
                                                                                     left: `${leftPct}%`, top: 0,
                                                                                     width: `${widthPct}%`, height: '100%',
-                                                                                    background: isDark ? 'rgba(255,100,100,0.35)' : 'rgba(220,50,50,0.25)',
-                                                                                    border: `1.5px solid ${isDark ? 'rgba(255,100,100,0.8)' : 'rgba(220,50,50,0.6)'}`,
+                                                                                    background: 'color-mix(in srgb, var(--danger) 30%, transparent)',
+                                                                                    border: '1px solid var(--danger)',
                                                                                     pointerEvents: 'none', zIndex: 4, borderRadius: '2px'
                                                                                 }} />
                                                                             );
@@ -7599,21 +7592,21 @@ export default function ArrangementTimeline({
                                                                             const fadeInPx = (fadeInVal / fadeDur) * clipW;
                                                                             const fadeOutPx = (fadeOutVal / fadeDur) * clipW;
                                                                             const clipH = row.height - 4;
-                                                                            const orangeColor = isDark ? 'rgba(255,159,67,0.9)' : 'rgba(230,150,40,0.9)';
+                                                                            const orangeColor = 'var(--warn)';
                                                                             const handleStyle = (handleKey) => ({
                                                                                 position: 'absolute', top: 0,
                                                                                 width: '8px', height: '8px',
-                                                                                background: draggingFadeHandle === handleKey ? '#fff' : orangeColor,
+                                                                                background: draggingFadeHandle === handleKey ? 'var(--text-1)' : orangeColor,
                                                                                 borderRadius: '50%', cursor: 'ew-resize', zIndex: 6,
-                                                                                boxShadow: draggingFadeHandle === handleKey ? '0 0 6px rgba(255,255,255,0.8)' : '0 0 4px rgba(255,159,67,0.5)',
+                                                                                
                                                                                 transform: 'translate(-50%, 0)'
                                                                             });
                                                                             const midDotStyle = (handleKey) => ({
                                                                                 position: 'absolute',
                                                                                 width: '6px', height: '6px',
-                                                                                background: draggingFadeHandle === handleKey ? '#fff' : orangeColor,
+                                                                                background: draggingFadeHandle === handleKey ? 'var(--text-1)' : orangeColor,
                                                                                 borderRadius: '50%', cursor: 'ns-resize', zIndex: 6,
-                                                                                boxShadow: draggingFadeHandle === handleKey ? '0 0 6px rgba(255,255,255,0.8)' : '0 0 3px rgba(255,159,67,0.4)',
+                                                                                
                                                                                 transform: 'translate(-50%, -50%)'
                                                                             });
                                                                             // Fade handle drag (horizontal)
@@ -7717,7 +7710,7 @@ export default function ArrangementTimeline({
                                                                     recorderRef={recorderRef}
                                                                     width={Math.max(1, w - 4)}
                                                                     height={row.height - 4}
-                                                                    color="#ff4444"
+                                                                    color="var(--danger)"
                                                                     isDark={isDark}
                                                                     tempo={globalTempo}
                                                                     pixelsPerBar={pixelsPerBar}
@@ -7778,7 +7771,7 @@ export default function ArrangementTimeline({
                                                                     width: '2px',
                                                                     height: '16px',
                                                                     borderRadius: '1px',
-                                                                    background: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+                                                                    background: 'var(--border-hairline)',
                                                                     opacity: 0
                                                                 }}
                                                                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
@@ -7810,8 +7803,8 @@ export default function ArrangementTimeline({
                                                             );
                                                             const toX = (bar) => ((bar - sectionStartBar) / sectionBars) * cellW;
                                                             const toY = (val) => laneH - (val * laneH);
-                                                            const autoColor = '#2ecc71';
-                                                            const activeColor = '#ffa94d';
+                                                            const autoColor = 'var(--meter-green)';
+                                                            const activeColor = 'var(--warn)';
                                                             let pathD = '';
                                                             if (points.length > 0) {
                                                                 const sortedPts = [...points].sort((a, b) => a.bar - b.bar);
@@ -7851,7 +7844,7 @@ export default function ArrangementTimeline({
                                                                         viewBox={`0 0 ${cellW} ${laneH}`}
                                                                         preserveAspectRatio="none"
                                                                     >
-                                                                        <rect x="0" y="0" width={cellW} height={laneH} fill="rgba(0,0,0,0.35)" />
+                                                                        <rect x="0" y="0" width={cellW} height={laneH} fill="color-mix(in srgb, var(--surface-0) 40%, transparent)" />
                                                                         {fillD && <path d={fillD} fill={`${autoColor}55`} />}
                                                                         {pathD && <path d={pathD} fill="none" stroke={autoColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
                                                                     </svg>
@@ -7937,10 +7930,10 @@ export default function ArrangementTimeline({
                                                                                     width: '10px', height: '10px',
                                                                                     borderRadius: '50%',
                                                                                     background: autoColor,
-                                                                                    border: isAnchor ? '2px solid #fff' : '2px solid #aaa',
+                                                                                    border: isAnchor ? '1px solid var(--text-1)' : '1px solid var(--text-2)',
                                                                                     cursor: 'default',
                                                                                     zIndex: 8,
-                                                                                    boxShadow: '0 0 4px rgba(0,0,0,0.5)',
+                                                                                    
                                                                                     transition: 'background 0.15s, box-shadow 0.15s'
                                                                                 }}
                                                                                 onMouseDown={(e) => {
@@ -7975,7 +7968,7 @@ export default function ArrangementTimeline({
                                                                                     };
                                                                                     const onUp = () => {
                                                                                         dot.style.background = autoColor;
-                                                                                        dot.style.boxShadow = '0 0 4px rgba(0,0,0,0.5)';
+                                                                                        dot.style.boxShadow = '';
                                                                                         document.removeEventListener('mousemove', onMove);
                                                                                         document.removeEventListener('mouseup', onUp);
                                                                                     };
@@ -8033,9 +8026,9 @@ export default function ArrangementTimeline({
                                                                 <div style={{
                                                                     position: 'absolute', left: `${ipX}px`, top: 0,
                                                                     width: '2px', height: '100%',
-                                                                    background: '#ffa94d', zIndex: 8,
+                                                                    background: 'var(--warn)', zIndex: 8,
                                                                     pointerEvents: 'none',
-                                                                    boxShadow: '0 0 6px #ffa94d',
+                                                                    
                                                                     animation: 'blink 1s step-end infinite'
                                                                 }}>
                                                                     <div style={{
@@ -8043,7 +8036,7 @@ export default function ArrangementTimeline({
                                                                         width: 0, height: 0,
                                                                         borderLeft: '5px solid transparent',
                                                                         borderRight: '5px solid transparent',
-                                                                        borderTop: '5px solid #ffa94d'
+                                                                        borderTop: '5px solid var(--warn)'
                                                                     }} />
                                                                 </div>
                                                             );
@@ -8069,17 +8062,17 @@ export default function ArrangementTimeline({
                     height: '18px', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                     cursor: 'pointer', userSelect: 'none',
-                    background: isDark ? '#1a1a24' : '#e8e8f0',
-                    borderTop: `1px solid ${isDark ? `${ac}22` : `${ac}33`}`,
-                    color: ac, fontSize: '10px', fontWeight: '700', letterSpacing: '0.5px',
+                    background: 'var(--surface-2)',
+                    borderTop: '1px solid var(--border-hairline)',
+                    color: 'var(--text-2)', fontSize: 'var(--text-size-s)', fontWeight: '700', letterSpacing: '0.5px',
                     transition: 'background 0.15s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = isDark ? '#222230' : '#dddde8'}
-                onMouseLeave={e => e.currentTarget.style.background = isDark ? '#1a1a24' : '#e8e8f0'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-3)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-2)'}
             >
-                <span style={{ fontSize: '8px' }}>{showDetailPanel ? '\u25BC' : '\u25B2'}</span>
+                <span style={{ fontSize: 'var(--text-size-s)' }}>{showDetailPanel ? '\u25BC' : '\u25B2'}</span>
                 <span>{t('arrange.detail')}</span>
-                <span style={{ fontSize: '8px' }}>{showDetailPanel ? '\u25BC' : '\u25B2'}</span>
+                <span style={{ fontSize: 'var(--text-size-s)' }}>{showDetailPanel ? '\u25BC' : '\u25B2'}</span>
             </div>
 
             {/* ── Detail Panel Draggable Divider (double-click to maximize/restore) ── */}
@@ -8090,17 +8083,15 @@ export default function ArrangementTimeline({
                     style={{
                         height: '6px', flexShrink: 0,
                         cursor: 'ns-resize',
-                        background: isDark
-                            ? `linear-gradient(to bottom, ${ac}33, #222, ${ac}33)`
-                            : `linear-gradient(to bottom, ${ac}44, #ddd, ${ac}44)`,
-                        borderTop: `1px solid ${isDark ? `${ac}44` : `${ac}55`}`,
-                        borderBottom: `1px solid ${isDark ? `${ac}44` : `${ac}55`}`,
+                        background: 'var(--surface-2)',
+                        borderTop: '1px solid var(--border-hairline)',
+                        borderBottom: '1px solid var(--border-hairline)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                 >
                     <div style={{
                         width: '40px', height: '2px', borderRadius: '1px',
-                        background: isDark ? `${ac}88` : `${ac}aa`,
+                        background: 'var(--text-disabled)',
                     }} />
                 </div>
             )}
@@ -8141,17 +8132,17 @@ export default function ArrangementTimeline({
                         height: '18px', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                         cursor: 'pointer', userSelect: 'none',
-                        background: isDark ? '#1a1a24' : '#e8e8f0',
-                        borderTop: `1px solid ${isDark ? '#9775fa22' : '#9775fa33'}`,
-                        color: '#9775fa', fontSize: '10px', fontWeight: '700', letterSpacing: '0.5px',
+                        background: 'var(--surface-2)',
+                        borderTop: '1px solid var(--border-hairline)',
+                        color: 'var(--text-2)', fontSize: 'var(--text-size-s)', fontWeight: '700', letterSpacing: '0.5px',
                         transition: 'background 0.15s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = isDark ? '#222230' : '#dddde8'}
-                    onMouseLeave={e => e.currentTarget.style.background = isDark ? '#1a1a24' : '#e8e8f0'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-3)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-2)'}
                 >
-                    <span style={{ fontSize: '8px' }}>{'\u25BC'}</span>
+                    <span style={{ fontSize: 'var(--text-size-s)' }}>{'\u25BC'}</span>
                     <span>MAIN MIX</span>
-                    <span style={{ fontSize: '8px' }}>{'\u25BC'}</span>
+                    <span style={{ fontSize: 'var(--text-size-s)' }}>{'\u25BC'}</span>
                 </div>
             )}
 
@@ -8163,17 +8154,15 @@ export default function ArrangementTimeline({
                     style={{
                         height: '6px', flexShrink: 0,
                         cursor: 'ns-resize',
-                        background: isDark
-                            ? 'linear-gradient(to bottom, #9775fa33, #222, #9775fa33)'
-                            : 'linear-gradient(to bottom, #9775fa44, #ddd, #9775fa44)',
-                        borderTop: `1px solid ${isDark ? '#9775fa44' : '#9775fa55'}`,
-                        borderBottom: `1px solid ${isDark ? '#9775fa44' : '#9775fa55'}`,
+                        background: 'var(--surface-2)',
+                        borderTop: '1px solid var(--border-hairline)',
+                        borderBottom: '1px solid var(--border-hairline)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                 >
                     <div style={{
                         width: '40px', height: '2px', borderRadius: '1px',
-                        background: isDark ? '#9775fa88' : '#9775faaa',
+                        background: 'var(--text-disabled)',
                     }} />
                 </div>
             )}
@@ -8210,10 +8199,10 @@ export default function ArrangementTimeline({
                         position: 'fixed',
                         left: Math.min(gridContextMenu.x, window.innerWidth - 180),
                         top: Math.min(gridContextMenu.y, window.innerHeight - 340),
-                        background: isDark ? '#1a1a22' : '#fff',
-                        border: `1px solid ${isDark ? '#333' : '#ddd'}`,
+                        background: 'var(--surface-3)',
+                        border: '1px solid var(--border-hairline)',
                         borderRadius: '8px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                        
                         zIndex: 2147483647,
                         padding: '6px 0',
                         minWidth: '160px',
@@ -8222,7 +8211,7 @@ export default function ArrangementTimeline({
                     onMouseLeave={() => setGridContextMenu(null)}
                 >
                     {/* Global Bars */}
-                    <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                         Global Bars
                     </div>
                     {[4, 8, 16, 32, 64].map(b => (
@@ -8230,22 +8219,22 @@ export default function ArrangementTimeline({
                             key={`bars-${b}`}
                             onClick={() => { if (setGlobalBars) setGlobalBars(b); setGridContextMenu(null); }}
                             style={{
-                                padding: '5px 14px', cursor: 'pointer', color: isDark ? '#ddd' : '#333',
+                                padding: '5px 14px', cursor: 'pointer', color: 'var(--text-1)',
                                 display: 'flex', alignItems: 'center', gap: '8px',
-                                background: globalBarsFromParent === b ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'
+                                background: globalBarsFromParent === b ? ('var(--selection)') : 'transparent'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = globalBarsFromParent === b ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--selection)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = globalBarsFromParent === b ? ('var(--selection)') : 'transparent'}
                         >
-                            <span style={{ width: '14px', textAlign: 'center', color: accentColors?.accent || '#ff6b6b' }}>
+                            <span style={{ width: '14px', textAlign: 'center', color: 'var(--accent)' }}>
                                 {globalBarsFromParent === b ? '✓' : ''}
                             </span>
                             {b} Bars
                         </div>
                     ))}
                     {/* Grid Resolution */}
-                    <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '4px 0' }} />
-                    <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                    <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '4px 0' }} />
+                    <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                         Grid
                     </div>
                     {[
@@ -8262,14 +8251,14 @@ export default function ArrangementTimeline({
                                 setGridContextMenu(null);
                             }}
                             style={{
-                                padding: '5px 14px', cursor: 'pointer', color: isDark ? '#ddd' : '#333',
+                                padding: '5px 14px', cursor: 'pointer', color: 'var(--text-1)',
                                 display: 'flex', alignItems: 'center', gap: '8px',
-                                background: globalResolution === opt.res ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'
+                                background: globalResolution === opt.res ? ('var(--selection)') : 'transparent'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = globalResolution === opt.res ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)') : 'transparent'}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--selection)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = globalResolution === opt.res ? ('var(--selection)') : 'transparent'}
                         >
-                            <span style={{ width: '14px', textAlign: 'center', color: accentColors?.accent || '#ff6b6b' }}>
+                            <span style={{ width: '14px', textAlign: 'center', color: 'var(--accent)' }}>
                                 {globalResolution === opt.res ? '✓' : ''}
                             </span>
                             {opt.label}
@@ -8284,10 +8273,10 @@ export default function ArrangementTimeline({
                         position: 'fixed',
                         left: Math.min(audioClipContextMenu.x, window.innerWidth - 200),
                         top: Math.min(audioClipContextMenu.y, window.innerHeight - 400),
-                        background: isDark ? '#1a1a22' : '#fff',
-                        border: `1px solid ${isDark ? '#333' : '#ddd'}`,
+                        background: 'var(--surface-3)',
+                        border: '1px solid var(--border-hairline)',
                         borderRadius: '8px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                        
                         zIndex: 9999, padding: '4px 0', minWidth: '190px', fontSize: '12px'
                     }}
                     onClick={(e) => e.stopPropagation()}
@@ -8296,7 +8285,7 @@ export default function ArrangementTimeline({
                         padding: '4px 12px 6px', fontSize: '9px', fontWeight: 800,
                         color: audioClipContextMenu.clipColor,
                         letterSpacing: '0.5px',
-                        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#eee'}`,
+                        borderBottom: '1px solid var(--border-hairline)',
                         marginBottom: '3px', textTransform: 'uppercase'
                     }}>
                         {audioClipContextMenu.clip?.name || t('arrange.audioClip')}
@@ -8373,8 +8362,8 @@ export default function ArrangementTimeline({
                         });
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
-                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
+                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                                     {t('arrange.stretchToSection')}
                                 </div>
                                 {items.map((item, i) => (
@@ -8400,8 +8389,8 @@ export default function ArrangementTimeline({
                         const secPerBar = 4 * 60 / globalTempo;
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
-                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
+                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                                     Stretch to...
                                 </div>
                                 {[4, 8, 16, 32, 64].map(b => {
@@ -8422,7 +8411,7 @@ export default function ArrangementTimeline({
                             </>
                         );
                     })()}
-                    <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
+                    <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
                     <CtxItem label={t('arrange.separateStemsAudio')} isDark={isDark} onClick={() => {
                         setStemSepModal({ mode: 'audio', clip: audioClipContextMenu.clip, trackId: audioClipContextMenu.trackId, sectionId: audioClipContextMenu.sectionId });
                         setAudioClipContextMenu(null);
@@ -8464,8 +8453,8 @@ export default function ArrangementTimeline({
                         };
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
-                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
+                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                                     Loop to...
                                 </div>
                                 {[4, 8, 16, 32, 64].map(b => (
@@ -8504,8 +8493,8 @@ export default function ArrangementTimeline({
                         };
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
-                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
+                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                                     Loop to...
                                 </div>
                                 {[4, 8, 16, 32, 64].map(b => (
@@ -8555,8 +8544,8 @@ export default function ArrangementTimeline({
                         };
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
-                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
+                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                                     Loop to...
                                 </div>
                                 {[4, 8, 16, 32, 64].map(b => (
@@ -8599,8 +8588,8 @@ export default function ArrangementTimeline({
                         };
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
-                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: isDark ? '#888' : '#999', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
+                                <div style={{ padding: '3px 12px', fontSize: '9px', fontWeight: 700, color: 'var(--text-2)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                                     Loop to...
                                 </div>
                                 {[4, 8, 16, 32, 64].map(b => (
@@ -8609,7 +8598,7 @@ export default function ArrangementTimeline({
                             </>
                         );
                     })()}
-                    <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
+                    <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
                     <CtxItem label={t('arrange.deleteClip')} isDark={isDark} danger onClick={() => {
                         if (audioClipContextMenu.isMidiClip && onRemoveMidiClip) {
                             onRemoveMidiClip(audioClipContextMenu.trackId, audioClipContextMenu.clip.id);
@@ -8693,8 +8682,8 @@ export default function ArrangementTimeline({
                     <div style={{
                         position: 'fixed', left: `${leftPx}px`, top: `${topPx}px`,
                         width: `${widthPx}px`, height: `${heightPx}px`,
-                        border: `1.5px dashed ${isDark ? 'rgba(77,171,247,0.7)' : 'rgba(50,120,200,0.6)'}`,
-                        background: isDark ? 'rgba(77,171,247,0.08)' : 'rgba(50,120,200,0.06)',
+                        border: '1px dashed var(--accent)',
+                        background: 'color-mix(in srgb, var(--accent) 8%, transparent)',
                         borderRadius: '2px',
                         zIndex: 50, pointerEvents: 'none'
                     }} />
@@ -8755,15 +8744,15 @@ export default function ArrangementTimeline({
                         position: 'fixed',
                         left: Math.min(rowContextMenu.x, window.innerWidth - 200),
                         top: Math.min(rowContextMenu.y, window.innerHeight - 300),
-                        background: isDark ? '#1a1a22' : '#fff',
-                        border: `1px solid ${isDark ? '#333' : '#ddd'}`,
+                        background: 'var(--surface-3)',
+                        border: '1px solid var(--border-hairline)',
                         borderRadius: '8px',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                        
                         zIndex: 9999, padding: '4px 0', minWidth: '170px', fontSize: '12px'
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div style={{ padding: '4px 12px 6px', fontSize: '9px', fontWeight: '800', color: rowContextMenu.row.color, letterSpacing: '0.5px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#eee'}`, marginBottom: '3px' }}>
+                    <div style={{ padding: '4px 12px 6px', fontSize: '9px', fontWeight: '800', color: rowContextMenu.row.color, letterSpacing: '0.5px', borderBottom: '1px solid var(--border-hairline)', marginBottom: '3px' }}>
                         {rowContextMenu.row.label.toUpperCase()} — {rowContextMenu.section.name}
                     </div>
                     <CtxItem label={t('arrange.copy')} isDark={isDark} onClick={() => {
@@ -8775,12 +8764,12 @@ export default function ArrangementTimeline({
                     <CtxItem label={t('arrange.cloneToNext')} isDark={isDark}
                         disabled={arrangement.length >= MAX_SECTIONS && arrangement.findIndex(s => s.id === rowContextMenu.section.id) >= arrangement.length - 1}
                         onClick={() => { handleCloneRow(rowContextMenu.section.id, rowContextMenu.row.id); setRowContextMenu(null); }} />
-                    <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
+                    <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
                     <CtxItem label={t('arrange.generate', { label: rowContextMenu.row.label })} isDark={isDark}
                         onClick={() => { onGenerateSection(rowContextMenu.row.id); setRowContextMenu(null); }} />
                     {rowContextMenu.row.type === 'midi' && onBounceMidiTrack && (
                         <>
-                            <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
+                            <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
                             <CtxItem label={t('arrange.bounceToAudio')} isDark={isDark}
                                 onClick={() => { onBounceMidiTrack(rowContextMenu.row.trackId, rowContextMenu.section, 'audio'); setRowContextMenu(null); }} />
                             <CtxItem label={t('arrange.bounceToVocal')} isDark={isDark}
@@ -8794,7 +8783,7 @@ export default function ArrangementTimeline({
                         if (orderIdx < 0) return null;
                         return (
                             <>
-                                <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
+                                <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
                                 <CtxItem label={t('arrange.moveUp')} isDark={isDark} disabled={orderIdx === 0}
                                     onClick={() => { onReorderTrack(orderId, -1); setRowContextMenu(null); }} />
                                 <CtxItem label={t('arrange.moveDown')} isDark={isDark} disabled={orderIdx === order.length - 1}
@@ -8802,7 +8791,7 @@ export default function ArrangementTimeline({
                             </>
                         );
                     })()}
-                    <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : '#eee', margin: '3px 0' }} />
+                    <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '3px 0' }} />
                     <CtxItem label={t('arrange.clear')} isDark={isDark} danger
                         onClick={() => { handleClearRow(rowContextMenu.section.id, rowContextMenu.row.id); setRowContextMenu(null); }} />
                     {rowContextMenu.row.type === 'midi' && onRemoveMidiTrack && (
@@ -8856,16 +8845,16 @@ export default function ArrangementTimeline({
                     position: 'fixed',
                     left: `${trackTooltip.x}px`,
                     top: `${trackTooltip.y}px`,
-                    background: isDark ? '#222' : '#333',
-                    color: '#fff',
-                    fontSize: '10px',
+                    background: 'var(--surface-3)',
+                    color: 'var(--text-1)',
+                    fontSize: 'var(--text-size-s)',
                     fontWeight: '600',
                     padding: '3px 8px',
-                    borderRadius: '4px',
+                    borderRadius: '2px',
+                    border: '1px solid var(--border-hairline)',
                     zIndex: 20000,
                     pointerEvents: 'none',
                     whiteSpace: 'nowrap',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                     maxWidth: '300px',
                     wordBreak: 'break-word'
                 }}>
@@ -8884,10 +8873,10 @@ export default function ArrangementTimeline({
                             ? { bottom: `${window.innerHeight - vst3PickerRow.y}px` }
                             : { top: `${vst3PickerRow.y}px` }
                         ),
-                        background: isDark ? '#1a1a24' : '#fff',
-                        border: `1px solid ${isDark ? '#333' : '#ddd'}`,
+                        background: 'var(--surface-3)',
+                        border: '1px solid var(--border-hairline)',
                         borderRadius: '6px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        
                         zIndex: 10000,
                         padding: '4px 0',
                         maxHeight: '300px',
@@ -8914,7 +8903,7 @@ export default function ArrangementTimeline({
                             <>
                                 {showInstruments && (
                                     <>
-                                        <div style={{ padding: '3px 10px 1px', fontSize: '7px', fontWeight: '700', color: isDark ? '#888' : '#999', textTransform: 'uppercase' }}>
+                                        <div style={{ padding: '3px 10px 1px', fontSize: '7px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase' }}>
                                             {t('arrange.instruments')}
                                         </div>
                                         {instruments.map((p, i) => (
@@ -8929,21 +8918,21 @@ export default function ArrangementTimeline({
                                                 title={p.name}
                                                 style={{
                                                     padding: '4px 10px', fontSize: '10px', cursor: 'pointer',
-                                                    color: isDark ? '#ccc' : '#333',
+                                                    color: 'var(--text-1)',
                                                     background: 'transparent',
                                                 }}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--selection)'}
                                                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <div style={{ fontWeight: '600' }}>{p.name}</div>
-                                                {p.vendor && <div style={{ fontSize: '8px', color: isDark ? '#666' : '#aaa' }}>{p.vendor}</div>}
+                                                {p.vendor && <div style={{ fontSize: '8px', color: 'var(--text-2)' }}>{p.vendor}</div>}
                                             </div>
                                         ))}
                                     </>
                                 )}
                                 {effects.length > 0 && (
                                     <>
-                                        <div style={{ padding: '3px 10px 1px', fontSize: '7px', fontWeight: '700', color: isDark ? '#888' : '#999', textTransform: 'uppercase', borderTop: showInstruments ? `1px solid ${isDark ? '#333' : '#eee'}` : 'none', marginTop: showInstruments ? '2px' : 0, paddingTop: showInstruments ? '4px' : '3px' }}>
+                                        <div style={{ padding: '3px 10px 1px', fontSize: '7px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase', borderTop: showInstruments ? '1px solid var(--border-hairline)' : 'none', marginTop: showInstruments ? '2px' : 0, paddingTop: showInstruments ? '4px' : '3px' }}>
                                             {t('arrange.effects')}
                                         </div>
                                         {effects.map((p, i) => (
@@ -8958,14 +8947,14 @@ export default function ArrangementTimeline({
                                                 title={p.name}
                                                 style={{
                                                     padding: '4px 10px', fontSize: '10px', cursor: 'pointer',
-                                                    color: isDark ? '#ccc' : '#333',
+                                                    color: 'var(--text-1)',
                                                     background: 'transparent',
                                                 }}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--selection)'}
                                                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <div style={{ fontWeight: '600' }}>{p.name}</div>
-                                                {p.vendor && <div style={{ fontSize: '8px', color: isDark ? '#666' : '#aaa' }}>{p.vendor}</div>}
+                                                {p.vendor && <div style={{ fontSize: '8px', color: 'var(--text-2)' }}>{p.vendor}</div>}
                                             </div>
                                         ))}
                                     </>
@@ -9064,15 +9053,15 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
         }
     }, [isMidi, sampler, midiTrack, onUpdateMidiTrackInstrument, handleMelodicPatternChange, section.bars]);
 
-    const bg = isDark ? '#0c0c11' : '#f7f7fa';
-    const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
+    const bg = 'var(--surface-0)';
+    const borderColor = 'var(--border-hairline)';
     const noteCount = isDrum ? '' : (Array.isArray(data) ? t('arrange.notes', { count: data.length }) : t('arrange.zeroNotes'));
     const resOptions = [4, 8, 16, 32];
     const btnSm = (active) => ({
         padding: '2px 6px', borderRadius: '3px', fontSize: '8px', fontWeight: '700', cursor: 'pointer',
-        border: `1px solid ${active ? (row.color || '#888') : (isDark ? '#333' : '#ccc')}`,
-        background: active ? `${row.color || '#888'}22` : 'transparent',
-        color: active ? (row.color || '#888') : (isDark ? '#777' : '#999'),
+        border: `1px solid ${active ? (row.color || 'var(--text-2)') : 'var(--border-hairline)'}`,
+        background: active ? `color-mix(in srgb, ${row.color || 'var(--text-2)'} 13%, transparent)` : 'transparent',
+        color: active ? (row.color || 'var(--text-2)') : 'var(--text-2)',
     });
 
     return (
@@ -9102,26 +9091,26 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
             {/* Header */}
             <div style={{
                 display: 'flex', alignItems: 'center', padding: '6px 12px', gap: '8px', flexWrap: 'wrap',
-                background: isDark ? 'rgba(18,18,24,0.95)' : '#eeeef2',
+                background: 'var(--surface-2)',
                 borderBottom: `1px solid ${borderColor}`
             }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: row.color }} />
                 <span style={{ fontSize: '12px', fontWeight: '800', color: row.color }}>{row.label.toUpperCase()}</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: isDark ? '#888' : '#777' }}>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-2)' }}>
                     — {section.name} · {section.bars} {t('arrange.bars')}
                 </span>
-                {noteCount && <span style={{ fontSize: '9px', color: isDark ? '#555' : '#aaa' }}>{noteCount}</span>}
+                {noteCount && <span style={{ fontSize: '9px', color: 'var(--text-disabled)' }}>{noteCount}</span>}
 
                 {/* Instrument name for MIDI tracks */}
                 {isMidi && (
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: '4px',
                         padding: '2px 8px', borderRadius: '4px',
-                        background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                        background: 'var(--surface-1)',
+                        border: '1px solid var(--border-hairline)',
                     }}>
                         <span style={{ fontSize: '7px', fontWeight: '800', color: row.color, letterSpacing: '0.5px' }}>{t('arrange.inst')}</span>
-                        <span style={{ fontSize: '9px', fontWeight: '600', color: midiTrack?.instrumentName ? (isDark ? '#bbb' : '#444') : (isDark ? '#555' : '#aaa') }}>
+                        <span style={{ fontSize: '9px', fontWeight: '600', color: midiTrack?.instrumentName ? ('var(--text-1)') : ('var(--text-disabled)') }}>
                             {midiTrack?.instrumentName || t('arrange.dropSample')}
                         </span>
                     </div>
@@ -9130,7 +9119,7 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
                 {/* Resolution controls */}
                 {!isDrum && (
                     <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '7px', fontWeight: '700', color: isDark ? '#555' : '#999', marginRight: '2px' }}>{t('arrange.res')}</span>
+                        <span style={{ fontSize: '7px', fontWeight: '700', color: 'var(--text-disabled)', marginRight: '2px' }}>{t('arrange.res')}</span>
                         {resOptions.map(r => (
                             <button key={r} onClick={() => setLocalResolution(r)} style={btnSm(localResolution === r)}>
                                 1/{r}
@@ -9143,19 +9132,19 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
                 {muteId && (
                     <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
                         <button onClick={() => { if (updateGlobalSolo) updateGlobalSolo(muteId, !isSoloed, false); }} style={{
-                            ...btnSm(isSoloed), background: isSoloed ? '#ffa50233' : undefined,
-                            border: `1px solid ${isSoloed ? '#ffa502' : (isDark ? '#333' : '#ccc')}`,
-                            color: isSoloed ? '#ffa502' : undefined,
+                            ...btnSm(isSoloed), background: isSoloed ? 'color-mix(in srgb, var(--warn) 20%, transparent)' : undefined,
+                            border: `1px solid ${isSoloed ? 'var(--warn)' : 'var(--border-hairline)'}`,
+                            color: isSoloed ? 'var(--warn)' : undefined,
                         }} title={isSoloed ? t('arrange.unsolo') : t('common.soloCtrl')}>S</button>
                         <button onClick={() => { if (setGlobalMutes) setGlobalMutes(prev => { const next = new Set(prev); if (next.has(muteId)) next.delete(muteId); else next.add(muteId); return next; }); }} style={{
-                            ...btnSm(isMuted), background: isMuted ? '#ff475733' : undefined,
-                            border: `1px solid ${isMuted ? '#ff4757' : (isDark ? '#333' : '#ccc')}`,
-                            color: isMuted ? '#ff4757' : undefined,
+                            ...btnSm(isMuted), background: isMuted ? 'color-mix(in srgb, var(--danger) 20%, transparent)' : undefined,
+                            border: `1px solid ${isMuted ? 'var(--danger)' : 'var(--border-hairline)'}`,
+                            color: isMuted ? 'var(--danger)' : undefined,
                         }} title={isMuted ? t('arrange.unmute') : t('common.mute')}>M</button>
                         <button onClick={() => setLocked(prev => !prev)} style={{
-                            ...btnSm(locked), background: locked ? '#ffa50233' : undefined,
-                            border: `1px solid ${locked ? '#ffa502' : (isDark ? '#333' : '#ccc')}`,
-                            color: locked ? '#ffa502' : undefined,
+                            ...btnSm(locked), background: locked ? 'color-mix(in srgb, var(--warn) 20%, transparent)' : undefined,
+                            border: `1px solid ${locked ? 'var(--warn)' : 'var(--border-hairline)'}`,
+                            color: locked ? 'var(--warn)' : undefined,
                         }} title={locked ? t('common.unlock') : t('common.lock')}>{locked ? '\uD83D\uDD12' : '\uD83D\uDD13'}</button>
                         {isMidi && (
                             <button onClick={async () => {
@@ -9187,9 +9176,9 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
                         </button>
                     )}
                     <button onClick={onClose} style={{
-                        background: isDark ? 'rgba(255,255,255,0.05)' : '#e8e8ec',
-                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#d5d5d9'}`,
-                        borderRadius: '4px', color: isDark ? '#888' : '#666', fontSize: '9px', fontWeight: '800',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--border-hairline)',
+                        borderRadius: '4px', color: 'var(--text-2)', fontSize: '9px', fontWeight: '800',
                         padding: '3px 10px', cursor: 'pointer', letterSpacing: '0.3px'
                     }}>
                         {t('arrange.escBack')}
@@ -9198,7 +9187,7 @@ function ClipPianoRoll({ section, row, isDark, onClose, onGenerateRow, onUpdateS
             </div>
 
             {/* Editor body */}
-            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0, background: isDark ? '#000' : '#fff' }}>
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0, background: 'var(--surface-0)' }}>
                 {isDrum ? (
                     <DrumClipEditor
                         section={section}
@@ -9679,9 +9668,16 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, w, h);
 
+        // Canvas reads computed token values (TASK-C04 allowlisted pattern)
+        const tokText2 = getTokenColor('--text-2');
+        const tokTextDisabled = getTokenColor('--text-disabled');
+        const tokHairline = getTokenColor('--border-hairline');
+        const tokPlayhead = getTokenColor('--playhead');
+        const laneColor = resolveColor(color);
+
         if (laneKeys.length === 0) {
-            ctx.fillStyle = isDark ? '#333' : '#ccc';
-            ctx.font = '14px sans-serif';
+            ctx.fillStyle = tokTextDisabled;
+            ctx.font = '13px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('No drum data — click Generate', w / 2, h / 2);
             return;
@@ -9695,7 +9691,7 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
         const stepW = gridW / totalSteps;
 
         // Background
-        ctx.fillStyle = isDark ? '#0a0a0f' : '#f8f8fa';
+        ctx.fillStyle = getTokenColor('--surface-0');
         ctx.fillRect(0, 0, w, h);
 
         // Lane backgrounds and labels
@@ -9703,16 +9699,16 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
             const y = li * laneH;
             // Alternate lane bg
             if (li % 2 === 0) {
-                ctx.fillStyle = isDark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.02)';
+                ctx.fillStyle = hexToRgba(getTokenColor('--text-1'), 0.02);
                 ctx.fillRect(0, y, w, laneH);
             }
             // Lane label — show note name instead of lane ID
-            ctx.fillStyle = isDark ? '#888' : '#777';
-            ctx.font = '9px monospace';
+            ctx.fillStyle = tokText2;
+            ctx.font = '11px sans-serif';
             ctx.textAlign = 'left';
             ctx.fillText(getLaneNoteName(lk), 4, y + laneH / 2 + 3);
             // Lane divider
-            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+            ctx.strokeStyle = hexToRgba(tokHairline, 0.6);
             ctx.lineWidth = 0.5;
             ctx.beginPath();
             ctx.moveTo(LABEL_W, y + laneH);
@@ -9726,10 +9722,10 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
             const isBar = s % 32 === 0;
             const isBeat = s % 8 === 0;
             ctx.strokeStyle = isBar
-                ? (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)')
+                ? tokHairline
                 : isBeat
-                    ? (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)')
-                    : (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)');
+                    ? hexToRgba(tokHairline, 0.55)
+                    : hexToRgba(tokHairline, 0.3);
             ctx.lineWidth = isBar ? 1 : 0.5;
             ctx.beginPath();
             ctx.moveTo(x, 0);
@@ -9740,10 +9736,8 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
                 const barNum = Math.floor(s / 32) + 1;
                 const beatNum = Math.floor((s % 32) / 8) + 1;
                 const isDownbeat = beatNum === 1;
-                ctx.fillStyle = isDownbeat
-                    ? (isDark ? '#777' : '#888')
-                    : (isDark ? '#444' : '#bbb');
-                ctx.font = isDownbeat ? 'bold 8px monospace' : '7px monospace';
+                ctx.fillStyle = isDownbeat ? tokText2 : tokTextDisabled;
+                ctx.font = isDownbeat ? 'bold 11px sans-serif' : '11px sans-serif';
                 ctx.textAlign = 'left';
                 ctx.fillText(`${barNum}.${beatNum}`, x + 2, 10);
             }
@@ -9763,11 +9757,11 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
                 const noteW = Math.max(2, dur * stepW - 1);
 
                 const isSelected = selectedSteps.has(`${lk}:${s}`);
-                ctx.fillStyle = isSelected ? '#fff' : color;
+                ctx.fillStyle = isSelected ? tokPlayhead : laneColor;
                 ctx.globalAlpha = isSelected ? 0.9 : (0.3 + vel * 0.7);
                 ctx.fillRect(x, y + 2, noteW, laneH - 4);
                 // Border
-                ctx.strokeStyle = isSelected ? '#fff' : color;
+                ctx.strokeStyle = isSelected ? tokPlayhead : laneColor;
                 ctx.globalAlpha = 0.9;
                 ctx.lineWidth = isSelected ? 1.5 : 0.5;
                 ctx.strokeRect(x, y + 2, noteW, laneH - 4);
@@ -9778,7 +9772,7 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
         // Draw insertion point cursor
         if (insertionPoint) {
             const ipX = LABEL_W + insertionPoint.step * stepW;
-            ctx.strokeStyle = '#fff';
+            ctx.strokeStyle = tokPlayhead;
             ctx.lineWidth = 1.5;
             ctx.globalAlpha = 0.8;
             ctx.setLineDash([3, 2]);
@@ -9791,7 +9785,7 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
         }
 
         // Velocity area divider
-        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+        ctx.strokeStyle = tokHairline;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, gridH);
@@ -9799,8 +9793,8 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
         ctx.stroke();
 
         // Velocity label
-        ctx.fillStyle = isDark ? '#444' : '#bbb';
-        ctx.font = '8px monospace';
+        ctx.fillStyle = tokTextDisabled;
+        ctx.font = '11px sans-serif';
         ctx.fillText(t('arrange.vel'), 4, gridH + 12);
 
         // Velocity bars
@@ -9817,7 +9811,7 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
             if (hasNote) {
                 const x = LABEL_W + s * stepW;
                 const barH = Math.max(2, (maxVel / 100) * (VEL_H - 4));
-                ctx.fillStyle = color;
+                ctx.fillStyle = laneColor;
                 ctx.globalAlpha = 0.5 + (maxVel / 100) * 0.5;
                 ctx.fillRect(x, h - barH - 2, Math.max(1, stepW - 1), barH);
             }
@@ -9826,11 +9820,11 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
         if (boxSelectRect) {
             ctx.save();
             // Fill
-            ctx.fillStyle = color;
+            ctx.fillStyle = laneColor;
             ctx.globalAlpha = 0.08;
             ctx.fillRect(boxSelectRect.x, boxSelectRect.y, boxSelectRect.w, boxSelectRect.h);
             // Border — dashed
-            ctx.strokeStyle = color;
+            ctx.strokeStyle = laneColor;
             ctx.globalAlpha = 0.6;
             ctx.lineWidth = 1.5;
             ctx.setLineDash([4, 3]);
@@ -9838,7 +9832,7 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
             ctx.setLineDash([]);
             // Corner accents — small solid squares at corners
             const cSize = 4;
-            ctx.fillStyle = color;
+            ctx.fillStyle = laneColor;
             ctx.globalAlpha = 0.8;
             const corners = [
                 [boxSelectRect.x, boxSelectRect.y],
@@ -9859,32 +9853,32 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
             {/* Toolbar: Grid resolution + Zoom slider */}
             <div style={{
                 height: '24px', display: 'flex', alignItems: 'center', gap: '3px', padding: '0 8px',
-                background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)',
-                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`
+                background: 'var(--surface-1)',
+                borderBottom: '1px solid var(--border-hairline)'
             }}>
-                <span style={{ fontSize: '8px', color: isDark ? '#555' : '#aaa', fontWeight: '700', marginRight: '4px' }}>{t('arrange.grid')}</span>
+                <span style={{ fontSize: '8px', color: 'var(--text-disabled)', fontWeight: '700', marginRight: '4px' }}>{t('arrange.grid')}</span>
                 {RES_OPTIONS.map(r => (
                     <button key={r} onClick={() => setGridRes(r)} style={{
-                        background: gridRes === r ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)') : 'transparent',
-                        border: `1px solid ${gridRes === r ? (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)') : 'transparent'}`,
-                        borderRadius: '3px', color: gridRes === r ? (isDark ? '#ddd' : '#333') : (isDark ? '#666' : '#999'),
+                        background: gridRes === r ? ('var(--surface-3)') : 'transparent',
+                        border: `1px solid ${gridRes === r ? ('var(--border-hairline)') : 'transparent'}`,
+                        borderRadius: '3px', color: gridRes === r ? ('var(--text-1)') : ('var(--text-2)'),
                         fontSize: '8px', fontWeight: '700', padding: '1px 5px', cursor: 'pointer'
                     }}>1/{r}</button>
                 ))}
-                <div style={{ width: '1px', height: '12px', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', margin: '0 6px' }} />
-                <span style={{ fontSize: '8px', color: isDark ? '#555' : '#aaa', fontWeight: '700' }}>{t('arrange.zoom')}</span>
+                <div style={{ width: '1px', height: '12px', background: 'var(--border-hairline)', margin: '0 6px' }} />
+                <span style={{ fontSize: '8px', color: 'var(--text-disabled)', fontWeight: '700' }}>{t('arrange.zoom')}</span>
                 <input
                     type="range" min="0.5" max="4" step="0.1" value={drumZoom}
                     onChange={(e) => setDrumZoom(parseFloat(e.target.value))}
                     style={{ width: '80px', height: '3px', accentColor: color, cursor: 'pointer' }}
                     title={`Zoom: ${Math.round(drumZoom * 100)}%`}
                 />
-                <span style={{ fontSize: '8px', color: isDark ? '#666' : '#999', fontWeight: '600', minWidth: '28px' }}>
+                <span style={{ fontSize: '8px', color: 'var(--text-2)', fontWeight: '600', minWidth: '28px' }}>
                     {Math.round(drumZoom * 100)}%
                 </span>
                 <button onClick={() => setDrumZoom(1.0)} style={{
-                    background: 'transparent', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                    borderRadius: '3px', color: isDark ? '#666' : '#999', fontSize: '7px', fontWeight: '700',
+                    background: 'transparent', border: '1px solid var(--border-hairline)',
+                    borderRadius: '3px', color: 'var(--text-2)', fontSize: '7px', fontWeight: '700',
                     padding: '1px 5px', cursor: 'pointer', letterSpacing: '0.5px'
                 }}>{t('arrange.fit')}</button>
             </div>
@@ -9908,9 +9902,9 @@ function DrumClipEditor({ section, drumId, color, isDark, onUpdateSection, globa
 function ZoomBtn({ label, title, onClick, isDark }) {
     return (
         <button onClick={onClick} title={title} style={{
-            background: isDark ? 'rgba(255,255,255,0.05)' : '#e8e8ec',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#d5d5d9'}`,
-            borderRadius: '3px', color: isDark ? '#888' : '#666',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border-hairline)',
+            borderRadius: '3px', color: 'var(--text-2)',
             fontSize: '12px', fontWeight: '800', width: '20px', height: '18px',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
         }}>
@@ -9919,12 +9913,12 @@ function ZoomBtn({ label, title, onClick, isDark }) {
     );
 }
 
-function ActionBtn({ label, color, isDark, onClick, disabled }) {
+function ActionBtn({ label, color, onClick, disabled }) {
     return (
         <button disabled={disabled} onClick={disabled ? undefined : onClick} style={{
-            background: isDark ? `${color}15` : `${color}20`,
-            border: `1px solid ${isDark ? `${color}30` : `${color}40`}`,
-            borderRadius: '4px', color, fontSize: '9px', fontWeight: '800',
+            background: `color-mix(in srgb, ${color} 10%, transparent)`,
+            border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
+            borderRadius: '2px', color, fontSize: 'var(--text-size-s)', fontWeight: '800',
             padding: '2px 8px', cursor: disabled ? 'default' : 'pointer',
             letterSpacing: '0.3px', opacity: disabled ? 0.4 : 1,
             pointerEvents: disabled ? 'none' : 'auto'
@@ -9934,43 +9928,42 @@ function ActionBtn({ label, color, isDark, onClick, disabled }) {
     );
 }
 
-function CtxItem({ label, isDark, onClick, active, danger, disabled, ac: acProp }) {
-    const ac = acProp || '#ff6b6b';
+function CtxItem({ label, onClick, active, danger, disabled }) {
     const [h, setH] = useState(false);
     return (
         <div onClick={disabled ? undefined : onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
             style={{
                 padding: '5px 12px', cursor: disabled ? 'default' : 'pointer',
-                color: disabled ? (isDark ? '#444' : '#ccc') : danger ? '#ff4757' : (isDark ? '#ccc' : '#333'),
-                background: h && !disabled ? (isDark ? hexToRgba(ac, 0.1) : '#f5f5f5') : 'transparent',
-                fontWeight: active ? '700' : '500', fontSize: '11px',
+                color: disabled ? 'var(--text-disabled)' : danger ? 'var(--danger)' : 'var(--text-1)',
+                background: h && !disabled ? 'var(--selection)' : 'transparent',
+                fontWeight: active ? '700' : '500', fontSize: 'var(--text-size-s)',
                 display: 'flex', alignItems: 'center', gap: '6px', opacity: disabled ? 0.4 : 1
             }}>
-            {active && <span style={{ color: ac, fontSize: '8px' }}>●</span>}
+            {active && <span style={{ color: 'var(--accent)', fontSize: 'var(--text-size-s)' }}>●</span>}
             {label}
         </div>
     );
 }
 
-function CtxSubmenu({ label, isDark, children }) {
+function CtxSubmenu({ label, children }) {
     const [open, setOpen] = useState(false);
     return (
         <div onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} style={{ position: 'relative' }}>
             <div style={{
-                padding: '5px 12px', cursor: 'pointer', fontSize: '11px',
-                color: isDark ? '#ccc' : '#333',
-                background: open ? (isDark ? 'rgba(255,255,255,0.05)' : '#f5f5f5') : 'transparent',
+                padding: '5px 12px', cursor: 'pointer', fontSize: 'var(--text-size-s)',
+                color: 'var(--text-1)',
+                background: open ? 'var(--selection)' : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between'
             }}>
                 {label}
-                <span style={{ fontSize: '8px', opacity: 0.4 }}>▶</span>
+                <span style={{ fontSize: 'var(--text-size-s)', opacity: 0.4 }}>▶</span>
             </div>
             {open && (
                 <div style={{
                     position: 'absolute', left: '100%', top: 0,
-                    background: isDark ? '#1a1a22' : '#fff',
-                    border: `1px solid ${isDark ? '#333' : '#ddd'}`,
-                    borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    background: 'var(--surface-3)',
+                    border: '1px solid var(--border-hairline)',
+                    borderRadius: '2px',
                     zIndex: 10000, padding: '4px 0', minWidth: '130px'
                 }}>
                     {children}

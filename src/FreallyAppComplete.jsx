@@ -7914,9 +7914,6 @@ const FreallyAppComplete = () => {
 
                 {/* Menu Toolbar — File, Edit, View, Generate, Help */}
                 <MenuToolbar
-                    isDark={isDark}
-                    ac={ac}
-                    hexToRgba={hexToRgba}
                     onNewProject={handleNewProject}
                     onSaveProject={handleSaveProject}
                     onExportAudio={handleExportClick}

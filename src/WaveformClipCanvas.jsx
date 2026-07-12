@@ -1,4 +1,6 @@
 import React, { useRef, useEffect } from 'react';
+import { resolveColor, getTokenColor } from './ui/SkinEngine.js';
+import { hexToRgba } from './accentThemes';
 
 /**
  * WaveformClipCanvas — renders a mini waveform thumbnail for audio clips in the arrangement timeline.
@@ -11,7 +13,7 @@ import React, { useRef, useEffect } from 'react';
  *   reversed: boolean
  *   fadeInCurve / fadeOutCurve: -1 (concave) to 1 (convex), 0 = linear
  */
-export default function WaveformClipCanvas({ audioBuffer, width, height, color, trimStart = 0, trimEnd = 0, reversed = false, fadeIn = 0, fadeOut = 0, fadeInCurve = 0, fadeOutCurve = 0, isDark = true, gain = 1.0 }) {
+export default function WaveformClipCanvas({ audioBuffer, width, height, color, trimStart = 0, trimEnd = 0, reversed = false, fadeIn = 0, fadeOut = 0, fadeInCurve = 0, fadeOutCurve = 0, gain = 1.0 }) {
     const canvasRef = useRef(null);
 
     useEffect(() => {
@@ -52,9 +54,10 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
             peaks[px] = max;
         }
 
-        // Draw waveform (mirrored)
+        // Draw waveform (mirrored). color may be a var(--clip-NN) token —
+        // canvas needs the computed value (TASK-C04 allowlisted pattern).
         const mid = h / 2;
-        ctx.fillStyle = color;
+        ctx.fillStyle = resolveColor(color);
         ctx.globalAlpha = 0.7;
 
         for (let px = 0; px < w; px++) {
@@ -65,18 +68,20 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
 
         ctx.globalAlpha = 1;
 
-        // Fade overlays (matching WaveformEditor warm orange tint)
+        // Fade overlays tinted from the --warn token (canvas reads the
+        // computed value; token colors are hex in all built-in skins)
+        const warn = getTokenColor('--warn');
         const duration = audioBuffer.duration;
         if (fadeIn > 0 && duration > 0) {
             const fadePx = Math.min(w, (fadeIn / duration) * w);
             const grad = ctx.createLinearGradient(0, 0, fadePx, 0);
-            grad.addColorStop(0, isDark ? 'rgba(255,159,67,0.35)' : 'rgba(230,150,40,0.2)');
-            grad.addColorStop(1, 'transparent');
+            grad.addColorStop(0, hexToRgba(warn, 0.35));
+            grad.addColorStop(1, hexToRgba(warn, 0));
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, fadePx, h);
             // Fade curve: quadratic bezier from bottom-left to top-right
             // Control point shifts based on fadeInCurve (-1=concave, 0=linear, 1=convex)
-            ctx.strokeStyle = isDark ? 'rgba(255,159,67,0.8)' : 'rgba(230,150,40,0.6)';
+            ctx.strokeStyle = hexToRgba(warn, 0.8);
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(0, h);
@@ -89,12 +94,12 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
             const fadePx = Math.min(w, (fadeOut / duration) * w);
             const fadeStart = w - fadePx;
             const grad = ctx.createLinearGradient(fadeStart, 0, w, 0);
-            grad.addColorStop(0, 'transparent');
-            grad.addColorStop(1, isDark ? 'rgba(255,159,67,0.35)' : 'rgba(230,150,40,0.2)');
+            grad.addColorStop(0, hexToRgba(warn, 0));
+            grad.addColorStop(1, hexToRgba(warn, 0.35));
             ctx.fillStyle = grad;
             ctx.fillRect(fadeStart, 0, fadePx, h);
             // Fade curve: quadratic bezier from top-left to bottom-right
-            ctx.strokeStyle = isDark ? 'rgba(255,159,67,0.8)' : 'rgba(230,150,40,0.6)';
+            ctx.strokeStyle = hexToRgba(warn, 0.8);
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(fadeStart, 0);
@@ -103,7 +108,7 @@ export default function WaveformClipCanvas({ audioBuffer, width, height, color, 
             ctx.quadraticCurveTo(cpX, cpY, w, h);
             ctx.stroke();
         }
-    }, [audioBuffer, width, height, color, trimStart, trimEnd, reversed, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, isDark, gain]);
+    }, [audioBuffer, width, height, color, trimStart, trimEnd, reversed, fadeIn, fadeOut, fadeInCurve, fadeOutCurve, gain]);
 
     return (
         <canvas

@@ -82,7 +82,41 @@ export function loadSkin(skin, root = typeof document !== 'undefined' ? document
             root.style.setProperty(key, String(skin.tokens[key]).trim());
         }
     }
+    tokenColorCache.clear();
     return skin;
+}
+
+// ── Token resolution for canvas code ─────────────────────────────
+// Canvas 2D contexts can't use var(); they read the computed token value
+// instead (the allowlisted pattern from TASK-C04). Cached per skin —
+// loadSkin() clears the cache.
+
+const tokenColorCache = new Map();
+const VAR_RE = /^var\(\s*(--[a-zA-Z0-9-]+)\s*\)$/;
+
+/**
+ * Computed color for a token name ('--accent'). Falls back to the default
+ * skin's value where there is no DOM (node tests) or the token is unset.
+ */
+export function getTokenColor(token) {
+    if (tokenColorCache.has(token)) return tokenColorCache.get(token);
+    let value = '';
+    if (typeof document !== 'undefined' && typeof getComputedStyle !== 'undefined') {
+        value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+    }
+    if (!value) value = BUILTIN_SKINS[DEFAULT_SKIN].tokens[token] || '';
+    tokenColorCache.set(token, value);
+    return value;
+}
+
+/**
+ * Resolve a color that may be either a 'var(--token)' reference or a
+ * literal color string, to a concrete color canvas contexts accept.
+ */
+export function resolveColor(color) {
+    if (typeof color !== 'string') return color;
+    const m = color.match(VAR_RE);
+    return m ? getTokenColor(m[1]) : color;
 }
 
 /** Load a built-in skin by id ('freally-dark' | 'mid-dark' | 'light' | 'darker'). */

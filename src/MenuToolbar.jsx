@@ -41,9 +41,6 @@ export function addRecentProject(name, filePath) {
  * File > Recent Projects shows up to 10 recent .wlz files with clear option.
  */
 const MenuToolbar = ({
-    isDark,
-    ac,
-    hexToRgba,
     // File actions
     onNewProject,
     onSaveProject,
@@ -178,24 +175,17 @@ const MenuToolbar = ({
         setRecentProjects([]);
     }, []);
 
-    // ---- Styles ----
-    const barBg = isDark ? 'rgba(18, 18, 24, 0.95)' : 'rgba(248, 248, 252, 0.98)';
-    const barBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)';
-    const menuBg = isDark ? '#1a1a28' : '#fff';
-    const menuBorder = isDark ? '#333' : '#ddd';
-    const hoverBg = isDark ? hexToRgba(ac, 0.15) : hexToRgba(ac, 0.1);
-    const textColor = isDark ? '#ccc' : '#333';
-    const textMuted = isDark ? '#666' : '#999';
-    const disabledColor = isDark ? '#444' : '#bbb';
-    const separatorColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
+    // ---- Styles (design law: flat, token-colored, hairline borders) ----
+    const hoverBg = 'var(--selection)';
+    const textMuted = 'var(--text-2)';
 
     const menuBtnStyle = (menuId) => ({
         padding: '3px 10px',
         background: openMenu === menuId ? hoverBg : 'transparent',
         border: 'none',
-        borderRadius: '3px',
-        color: openMenu === menuId ? ac : textColor,
-        fontSize: '12px',
+        borderRadius: '2px',
+        color: openMenu === menuId ? 'var(--accent)' : 'var(--text-1)',
+        fontSize: 'var(--text-size-m)',
         cursor: 'pointer',
         fontWeight: openMenu === menuId ? 600 : 400,
         transition: 'all 0.12s',
@@ -208,10 +198,9 @@ const MenuToolbar = ({
         top: '100%',
         left: 0,
         minWidth: '240px',
-        background: menuBg,
-        border: `1px solid ${menuBorder}`,
-        borderRadius: '6px',
-        boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.6)' : '0 8px 24px rgba(0,0,0,0.15)',
+        background: 'var(--surface-3)',
+        border: '1px solid var(--border-hairline)',
+        borderRadius: '2px',
         padding: '4px 0',
         zIndex: 10000,
         marginTop: '2px',
@@ -222,8 +211,8 @@ const MenuToolbar = ({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '6px 16px',
-        fontSize: '12px',
-        color: disabled ? disabledColor : textColor,
+        fontSize: 'var(--text-size-m)',
+        color: disabled ? 'var(--text-disabled)' : 'var(--text-1)',
         cursor: disabled ? 'default' : 'pointer',
         background: 'transparent',
         border: 'none',
@@ -235,14 +224,13 @@ const MenuToolbar = ({
     });
 
     const shortcutStyle = {
-        fontSize: '11px',
+        fontSize: 'var(--text-size-s)',
         color: textMuted,
         marginLeft: 'auto',
-        fontFamily: 'monospace',
         opacity: 0.8,
     };
 
-    const separatorEl = <div style={{ height: '1px', background: separatorColor, margin: '4px 8px' }} />;
+    const separatorEl = <div style={{ height: '1px', background: 'var(--border-hairline)', margin: '4px 8px' }} />;
 
     const handleItemHover = (e) => { e.currentTarget.style.background = hoverBg; };
     const handleItemLeave = (e) => { e.currentTarget.style.background = 'transparent'; };
@@ -294,8 +282,8 @@ const MenuToolbar = ({
                 gap: '2px',
                 padding: '0 12px',
                 height: '28px',
-                background: barBg,
-                borderBottom: `1px solid ${barBorder}`,
+                background: 'var(--surface-2)',
+                borderBottom: '1px solid var(--border-hairline)',
                 flexShrink: 0,
                 WebkitAppRegion: 'no-drag',
                 zIndex: 200,
@@ -328,7 +316,7 @@ const MenuToolbar = ({
                                 onMouseLeave={handleItemLeave}
                             >
                                 <span>{t('menu.recentProjects')}</span>
-                                <span style={{ fontSize: '10px', color: textMuted }}>&#9656;</span>
+                                <span style={{ fontSize: 'var(--text-size-s)', color: textMuted }}>{'▸'}</span>
                             </button>
                             {recentSub && (
                                 <div style={{
@@ -348,7 +336,7 @@ const MenuToolbar = ({
                                     </button>
                                     {recentProjects.length > 0 && separatorEl}
                                     {recentProjects.length === 0 && (
-                                        <div style={{ padding: '6px 16px', fontSize: '11px', color: textMuted, fontStyle: 'italic' }}>
+                                        <div style={{ padding: '6px 16px', fontSize: 'var(--text-size-s)', color: textMuted, fontStyle: 'italic' }}>
                                             {t('menu.noRecentProjects')}
                                         </div>
                                     )}
@@ -364,7 +352,7 @@ const MenuToolbar = ({
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
                                                 {p.name || p.path.split(/[\\/]/).pop()}
                                             </span>
-                                            <span style={{ fontSize: '10px', color: textMuted }}>
+                                            <span style={{ fontSize: 'var(--text-size-s)', color: textMuted }}>
                                                 {new Date(p.timestamp).toLocaleDateString()}
                                             </span>
                                         </button>

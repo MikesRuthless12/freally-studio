@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from './i18n/I18nContext.jsx';
+import { Button } from './components/ui';
 
-const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
+const ArrangementViewEnhanced = ({ audioEngine }) => {
     const { t } = useTranslation();
     const defaultTracks = useMemo(() => [
-        { id: 1, name: t('arrange.drums'), clips: [], color: '#ff6b6b', height: 80 },
-        { id: 2, name: t('arrange.bass'), clips: [], color: '#4ecdc4', height: 80 },
-        { id: 3, name: t('arrange.melody'), clips: [], color: '#45b7d1', height: 80 },
-        { id: 4, name: t('arrange.chords'), clips: [], color: '#f9ca24', height: 80 }
+        { id: 1, name: t('arrange.drums'), clips: [], color: 'var(--clip-01)', height: 80 },
+        { id: 2, name: t('arrange.bass'), clips: [], color: 'var(--clip-09)', height: 80 },
+        { id: 3, name: t('arrange.melody'), clips: [], color: 'var(--clip-10)', height: 80 },
+        { id: 4, name: t('arrange.chords'), clips: [], color: 'var(--clip-03)', height: 80 }
     ], [t]);
     const [tracks, setTracks] = useState(defaultTracks);
 
@@ -237,31 +238,32 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                 key={track.id}
                 style={{
                     height: `${track.height}px`,
-                    borderBottom: `1px solid ${theme.panelBorder}`,
+                    borderBottom: '1px solid var(--border-hairline)',
                     display: 'flex',
                     position: 'relative'
                 }}
             >
-                {/* Track Header */}
+                {/* Track Header — flat, on --surface-1; track color as a chip strip only */}
                 <div style={{
                     width: '150px',
-                    backgroundColor: theme.panel,
-                    borderRight: `1px solid ${theme.panelBorder}`,
+                    backgroundColor: 'var(--surface-1)',
+                    borderRight: '1px solid var(--border-hairline)',
+                    borderLeft: `3px solid ${track.color}`,
                     padding: '8px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px'
                 }}>
                     <div style={{
-                        fontSize: '12px',
+                        fontSize: 'var(--text-size-m)',
                         fontWeight: 'bold',
-                        color: track.color
+                        color: 'var(--text-1)'
                     }}>
                         {track.name}
                     </div>
                     <div style={{
-                        fontSize: '9px',
-                        color: theme.textMuted
+                        fontSize: 'var(--text-size-s)',
+                        color: 'var(--text-2)'
                     }}>
                         {t('arrange.clips', { count: track.clips.length })}
                     </div>
@@ -271,7 +273,7 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                 <div style={{
                     flex: 1,
                     position: 'relative',
-                    backgroundColor: theme.bg
+                    backgroundColor: 'var(--surface-0)'
                 }}>
                     {/* Grid lines */}
                     {Array.from({ length: 32 }).map((_, i) => (
@@ -283,7 +285,7 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                 top: 0,
                                 bottom: 0,
                                 width: '1px',
-                                backgroundColor: i % 4 === 0 ? theme.panelBorder : theme.cellInactive,
+                                backgroundColor: 'var(--border-hairline)',
                                 opacity: i % 4 === 0 ? 0.5 : 0.2
                             }}
                         />
@@ -302,21 +304,18 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                 width: `${clip.duration * zoom}px`,
                                 height: `${track.height - 8}px`,
                                 backgroundColor: track.color,
-                                borderRadius: '4px',
-                                border: selectedClip === clip.id ? `2px solid #fff` : 'none',
+                                borderRadius: '2px',
+                                border: selectedClip === clip.id ? '1px solid var(--playhead)' : 'none',
                                 cursor: 'pointer',
-                                overflow: 'hidden',
-                                boxShadow: selectedClip === clip.id ? `0 0 15px ${track.color}` : 'none',
-                                transition: 'box-shadow 0.2s'
+                                overflow: 'hidden'
                             }}
                         >
-                            {/* Clip name */}
+                            {/* Clip name — dark text on the light clip hue */}
                             <div style={{
                                 padding: '4px 6px',
-                                fontSize: '10px',
+                                fontSize: 'var(--text-size-s)',
                                 fontWeight: 'bold',
-                                color: '#fff',
-                                backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                color: 'var(--surface-0)',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
@@ -338,7 +337,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                         style={{
                                             width: '2px',
                                             height: `${Math.random() * 80 + 20}%`,
-                                            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                                            backgroundColor: 'var(--surface-0)',
+                                            opacity: 0.45,
                                             borderRadius: '1px'
                                         }}
                                     />
@@ -356,97 +356,47 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            backgroundColor: theme.bg
+            backgroundColor: 'var(--surface-0)'
         }}>
-            {/* Transport Controls */}
+            {/* Transport Controls — kit buttons, flat chrome */}
             <div style={{
-                padding: '12px 16px',
-                backgroundColor: theme.panel,
-                borderBottom: `1px solid ${theme.panelBorder}`,
+                padding: 'var(--space-2) var(--space-4)',
+                backgroundColor: 'var(--surface-1)',
+                borderBottom: '1px solid var(--border-hairline)',
                 display: 'flex',
-                gap: '12px',
+                gap: 'var(--space-2)',
                 alignItems: 'center'
             }}>
-                <button
-                    onClick={playFromStart}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: theme.cellInactive,
-                        color: theme.text,
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    }}
-                    title={t('arrange.playFromStart')}
-                >
-                    ⏮
-                </button>
-
-                <button
+                <Button onClick={playFromStart} title={t('arrange.playFromStart')}>⏮</Button>
+                <Button
+                    variant="primary"
                     onClick={togglePlayback}
-                    style={{
-                        padding: '8px 24px',
-                        backgroundColor: isPlaying ? theme.danger : theme.accent,
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '20px',
-                        fontWeight: 'bold',
-                        boxShadow: isPlaying ? `0 0 15px ${theme.danger}` : `0 0 15px ${theme.accent}`
-                    }}
                     title={t('arrange.playPause')}
+                    style={{ minWidth: '56px' }}
                 >
                     {isPlaying ? '⏸' : '▶'}
-                </button>
-
-                <button
-                    onClick={stopPlayback}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: theme.cellInactive,
-                        color: theme.text,
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                    }}
-                    title={t('arrange.stop')}
-                >
-                    ⏹
-                </button>
+                </Button>
+                <Button onClick={stopPlayback} title={t('arrange.stop')}>⏹</Button>
 
                 <div style={{
                     width: '1px',
-                    height: '30px',
-                    backgroundColor: theme.panelBorder
+                    height: '20px',
+                    backgroundColor: 'var(--border-hairline)'
                 }} />
 
-                <button
+                <Button
+                    active={loopEnabled}
                     onClick={() => setLoopEnabled(!loopEnabled)}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: loopEnabled ? theme.accent : theme.cellInactive,
-                        color: loopEnabled ? '#fff' : theme.text,
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        boxShadow: loopEnabled ? `0 0 15px ${theme.accent}` : 'none',
-                        transition: 'all 0.2s'
-                    }}
                     title={t('arrange.toggleLoop')}
                 >
-                    🔁 {t('arrange.loopLabel')}
-                </button>
+                    {t('arrange.loopLabel')}
+                </Button>
 
                 <div style={{
-                    fontSize: '11px',
-                    color: theme.textMuted,
+                    fontSize: 'var(--text-size-s)',
+                    color: 'var(--text-2)',
                     display: 'flex',
-                    gap: '8px'
+                    gap: 'var(--space-2)'
                 }}>
                     <span>{t('arrange.loopLabel')}: {loopStart.toFixed(2)}s - {loopEnd.toFixed(2)}s</span>
                 </div>
@@ -454,10 +404,10 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                 <div style={{ flex: 1 }} />
 
                 <div style={{
-                    fontSize: '14px',
+                    fontSize: 'var(--text-size-l)',
                     fontWeight: 'bold',
-                    color: theme.accent,
-                    fontFamily: 'monospace'
+                    color: 'var(--text-1)',
+                    fontVariantNumeric: 'tabular-nums'
                 }}>
                     {playheadPosition.toFixed(2)}s
                 </div>
@@ -465,9 +415,9 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: 'var(--space-2)'
                 }}>
-                    <span style={{ fontSize: '11px', color: theme.textMuted }}>Zoom:</span>
+                    <span style={{ fontSize: 'var(--text-size-s)', color: 'var(--text-2)' }}>Zoom:</span>
                     <input
                         type="range"
                         min="20"
@@ -485,8 +435,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                 onClick={handleTimelineClick}
                 style={{
                     height: '40px',
-                    backgroundColor: theme.panel,
-                    borderBottom: `1px solid ${theme.panelBorder}`,
+                    backgroundColor: 'var(--surface-1)',
+                    borderBottom: '1px solid var(--border-hairline)',
                     position: 'relative',
                     cursor: 'pointer',
                     marginLeft: '150px'
@@ -500,8 +450,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                             position: 'absolute',
                             left: `${i * zoom}px`,
                             top: '8px',
-                            fontSize: '10px',
-                            color: theme.textMuted
+                            fontSize: 'var(--text-size-s)',
+                            color: 'var(--text-2)'
                         }}
                     >
                         {i}s
@@ -519,8 +469,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                 width: `${(loopEnd - loopStart) * zoom}px`,
                                 top: 0,
                                 bottom: 0,
-                                backgroundColor: `${theme.accent}30`,
-                                border: `2px solid ${theme.accent}`,
+                                backgroundColor: 'var(--selection)',
+                                border: '1px solid var(--accent)',
                                 cursor: 'move',
                                 pointerEvents: 'auto'
                             }}
@@ -535,15 +485,14 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                 top: 0,
                                 width: '10px',
                                 height: '100%',
-                                backgroundColor: theme.accent,
+                                backgroundColor: 'var(--accent)',
                                 cursor: 'ew-resize',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#fff',
-                                fontSize: '12px',
-                                fontWeight: 'bold',
-                                boxShadow: `0 0 10px ${theme.accent}`
+                                color: 'var(--surface-0)',
+                                fontSize: 'var(--text-size-m)',
+                                fontWeight: 'bold'
                             }}
                         >
                             [
@@ -558,15 +507,14 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                 top: 0,
                                 width: '10px',
                                 height: '100%',
-                                backgroundColor: theme.accent,
+                                backgroundColor: 'var(--accent)',
                                 cursor: 'ew-resize',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#fff',
-                                fontSize: '12px',
-                                fontWeight: 'bold',
-                                boxShadow: `0 0 10px ${theme.accent}`
+                                color: 'var(--surface-0)',
+                                fontSize: 'var(--text-size-m)',
+                                fontWeight: 'bold'
                             }}
                         >
                             ]
@@ -581,9 +529,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                         left: `${playheadPosition * zoom}px`,
                         top: 0,
                         bottom: 0,
-                        width: '2px',
-                        backgroundColor: '#fff',
-                        boxShadow: '0 0 10px #fff',
+                        width: '1px',
+                        backgroundColor: 'var(--playhead)',
                         pointerEvents: 'none',
                         zIndex: 100
                     }}
@@ -593,7 +540,7 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                         height: '0',
                         borderLeft: '6px solid transparent',
                         borderRight: '6px solid transparent',
-                        borderTop: '8px solid #fff',
+                        borderTop: '8px solid var(--playhead)',
                         marginLeft: '-5px'
                     }} />
                 </div>
@@ -614,8 +561,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                         left: `${150 + playheadPosition * zoom}px`,
                         top: 0,
                         bottom: 0,
-                        width: '2px',
-                        backgroundColor: '#fff',
+                        width: '1px',
+                        backgroundColor: 'var(--playhead)',
                         opacity: 0.5,
                         pointerEvents: 'none',
                         zIndex: 50
@@ -631,8 +578,8 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                             width: `${(loopEnd - loopStart) * zoom}px`,
                             top: 0,
                             bottom: 0,
-                            backgroundColor: `${theme.accent}10`,
-                            border: `1px solid ${theme.accent}40`,
+                            backgroundColor: 'var(--selection)',
+                            border: '1px solid var(--accent-muted)',
                             pointerEvents: 'none',
                             zIndex: 1
                         }}
@@ -659,10 +606,9 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                             position: 'fixed',
                             left: showClipMenu.x,
                             top: showClipMenu.y,
-                            backgroundColor: theme.panel,
-                            border: `1px solid ${theme.panelBorder}`,
-                            borderRadius: '6px',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                            backgroundColor: 'var(--surface-3)',
+                            border: '1px solid var(--border-hairline)',
+                            borderRadius: '2px',
                             zIndex: 1000,
                             minWidth: '180px'
                         }}
@@ -681,18 +627,16 @@ const ArrangementViewEnhanced = ({ theme, audioEngine }) => {
                                 style={{
                                     padding: '10px 16px',
                                     cursor: 'pointer',
-                                    fontSize: '12px',
-                                    color: theme.text,
-                                    borderBottom: idx < 5 ? `1px solid ${theme.panelBorder}` : 'none',
+                                    fontSize: 'var(--text-size-m)',
+                                    color: 'var(--text-1)',
+                                    borderBottom: idx < 5 ? '1px solid var(--border-hairline)' : 'none',
                                     transition: 'background-color 0.2s'
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = theme.accent;
-                                    e.currentTarget.style.color = '#fff';
+                                    e.currentTarget.style.backgroundColor = 'var(--selection)';
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.color = theme.text;
                                 }}
                             >
                                 {item.label}

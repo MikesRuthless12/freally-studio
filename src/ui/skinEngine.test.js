@@ -7,6 +7,7 @@ import {
     REQUIRED_TOKENS, BUILTIN_SKINS, DEFAULT_SKIN,
     validateSkin, loadSkin, loadSkinByName,
     saveSkinChoice, getSavedSkinChoice, applySavedSkin, exportSkin,
+    getTokenColor, resolveColor,
 } from './SkinEngine.js';
 
 function fakeRoot() {
@@ -123,5 +124,24 @@ describe('SkinEngine — persistence (freally_settings)', () => {
         const parsed = JSON.parse(exportSkin(skin));
         expect(validateSkin(parsed).ok).toBe(true);
         expect(parsed.name).toBe('Mid Dark');
+    });
+});
+
+describe('SkinEngine — token resolution for canvas (getTokenColor/resolveColor)', () => {
+    it('getTokenColor falls back to the default skin values without a DOM', () => {
+        expect(getTokenColor('--accent')).toBe(BUILTIN_SKINS[DEFAULT_SKIN].tokens['--accent']);
+        expect(getTokenColor('--clip-01')).toBe(BUILTIN_SKINS[DEFAULT_SKIN].tokens['--clip-01']);
+    });
+
+    it('resolveColor resolves var() references and passes literals through', () => {
+        expect(resolveColor('var(--danger)')).toBe(BUILTIN_SKINS[DEFAULT_SKIN].tokens['--danger']);
+        expect(resolveColor('var( --text-1 )')).toBe(BUILTIN_SKINS[DEFAULT_SKIN].tokens['--text-1']);
+        expect(resolveColor('#123456')).toBe('#123456');
+        expect(resolveColor('rgba(1,2,3,0.5)')).toBe('rgba(1,2,3,0.5)');
+        expect(resolveColor(null)).toBe(null);
+    });
+
+    it('an unknown token resolves to empty string, not a crash', () => {
+        expect(getTokenColor('--not-a-token')).toBe('');
     });
 });

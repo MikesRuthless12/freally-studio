@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import basicSsl from '@vitejs/plugin-basic-ssl'
+import { fileURLToPath } from 'node:url'
 
 const isElectronBuild = process.env.ELECTRON_BUILD === 'true'
 const disableSsl = process.env.DISABLE_SSL === 'true'
@@ -13,6 +14,18 @@ export default defineConfig(({ mode }) => {
 
     return {
         base: forElectron ? './' : '/',
+        resolve: {
+            alias: {
+                // "More Freally apps": the view-only Freally Central panel,
+                // vendored from the freally-central submodule.
+                '@freally/central-panel': fileURLToPath(
+                    new URL('./vendor/freally-central/ui/src/panel', import.meta.url)
+                )
+            },
+            // The vendored panel is React 19 source but MUST bind to this app's
+            // single React 18 copy (two Reacts => "invalid hook call").
+            dedupe: ['react', 'react-dom', '@tauri-apps/api']
+        },
         plugins: [
             // Rewrite /mobile-app/ to /mobile-app/index.html so Vite's SPA
             // fallback doesn't serve the main app instead of the mobile PWA.

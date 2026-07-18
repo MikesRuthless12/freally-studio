@@ -1993,5 +1993,7 @@
   "slicer.keyAlreadyUsed": "按键“{{key}}”已分配给另一个切片。",
   "arrange.rangeDeleteHint": "Ctrl+拖动以选择，按 Delete 移除",
   "waveformEditor.gain": "增益",
-  "waveformEditor.pitch": "音高"
+  "waveformEditor.pitch": "音高",
+  "menu.moreFreallyApps": "\u66f4\u591a Freally \u5e94\u7528",
+  "moreApps.title": "\u66f4\u591a Freally \u5e94\u7528"
 }

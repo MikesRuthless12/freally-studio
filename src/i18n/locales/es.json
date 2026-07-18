@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "La tecla \"{{key}}\" ya está asignada a otro corte.",
   "arrange.rangeDeleteHint": "Ctrl+arrastrar para seleccionar, Supr para quitar",
   "waveformEditor.gain": "GANANCIA",
-  "waveformEditor.pitch": "TONO"
+  "waveformEditor.pitch": "TONO",
+  "menu.moreFreallyApps": "M\u00e1s apps de Freally",
+  "moreApps.title": "M\u00e1s apps de Freally"
 }

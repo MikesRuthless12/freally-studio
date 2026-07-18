@@ -1991,5 +1991,7 @@
   "slicer.assignKeyPrompt": "Tetapkan tombol keyboard untuk titik slice ini.\nSudah dipakai: {{usedKeys}}",
   "slicer.keyAlreadyUsed": "Tombol \"{{key}}\" sudah ditetapkan ke slice lain.",
   "arrange.rangeDeleteHint": "Ctrl+seret untuk memilih, Delete untuk menghapus",
-  "waveformEditor.gain": "GAIN"
+  "waveformEditor.gain": "GAIN",
+  "menu.moreFreallyApps": "Aplikasi Freally lainnya",
+  "moreApps.title": "Aplikasi Freally lainnya"
 }

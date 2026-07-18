@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "Phím \"{{key}}\" đã được gán cho lát cắt khác.",
   "arrange.rangeDeleteHint": "Ctrl+kéo để chọn, Delete để xóa",
   "waveformEditor.gain": "GAIN",
-  "waveformEditor.pitch": "CAO ĐỘ"
+  "waveformEditor.pitch": "CAO ĐỘ",
+  "menu.moreFreallyApps": "\u1ee8ng d\u1ee5ng Freally kh\u00e1c",
+  "moreApps.title": "\u1ee8ng d\u1ee5ng Freally kh\u00e1c"
 }

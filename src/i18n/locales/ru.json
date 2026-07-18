@@ -1993,5 +1993,7 @@
   "slicer.keyAlreadyUsed": "Клавиша «{{key}}» уже назначена другому слайсу.",
   "arrange.rangeDeleteHint": "Ctrl+перетаскивание для выбора, Delete для удаления",
   "waveformEditor.gain": "УСИЛЕНИЕ",
-  "waveformEditor.pitch": "ВЫСОТА"
+  "waveformEditor.pitch": "ВЫСОТА",
+  "menu.moreFreallyApps": "\u0414\u0440\u0443\u0433\u0438\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f Freally",
+  "moreApps.title": "\u0414\u0440\u0443\u0433\u0438\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f Freally"
 }

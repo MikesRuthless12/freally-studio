@@ -55,6 +55,7 @@ import { MOBILE_MSG } from './mobilelink/MobileLinkProtocol';
 import SuggestionPanel from './SuggestionPanel';
 import { OnboardingTour, shouldShowTour, resetTour } from './OnboardingTour';
 import { SettingsModal, loadSettings, applyTooltipSetting } from './SettingsModal';
+import { CentralPanelModal } from './central/CentralPanelModal';
 import { useTranslation } from './i18n/I18nContext.jsx';
 import { formatMixFilename, formatStemFilename, formatArrangementFilename, formatStemsZipFilename } from './filenameUtils';
 import { ACCENT_THEMES, SOLID_ACCENT_KEYS, GRADIENT_ACCENT_KEYS, DEFAULT_ACCENT_THEME, getAccentTheme, hexToRgba } from './accentThemes';
@@ -1932,6 +1933,7 @@ const FreallyAppComplete = () => {
     const [showExportModal, setShowExportModal] = useState(false);
     const [showShortcutsPanel, setShowShortcutsPanel] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showCentralPanel, setShowCentralPanel] = useState(false);
     const [appSettings, setAppSettings] = useState(() => loadSettings());
     const appSettingsRef = useRef(appSettings);
     appSettingsRef.current = appSettings;
@@ -7938,6 +7940,7 @@ const FreallyAppComplete = () => {
                     hasPatterns={!!(patterns.chords?.length || patterns.melody?.length || patterns.bass?.length || Object.keys(patterns.drums || {}).length)}
                     onShowShortcuts={() => setShowShortcutsPanel(true)}
                     onShowTour={() => { resetTour(); setTimeout(() => setShowTour(true), 300); }}
+                    onOpenCentralPanel={() => setShowCentralPanel(true)}
                 />
 
                 {/* Row 2: Global Settings — Genre, Mood, Key, Scale, Bars, Grid Res, BPM, MIDI */}
@@ -9137,6 +9140,10 @@ const FreallyAppComplete = () => {
                 accentTheme={accentTheme}
                 onThemeToggle={toggleTheme}
                 onAccentChange={(key) => setAccentTheme(key)}
+            />
+            <CentralPanelModal
+                isOpen={showCentralPanel}
+                onClose={() => setShowCentralPanel(false)}
             />
             {
                 !collab.isCollapsed && (

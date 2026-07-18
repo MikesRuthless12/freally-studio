@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "Klawisz \"{{key}}\" jest już przypisany do innego plastra.",
   "arrange.rangeDeleteHint": "Ctrl+przeciągnij, aby zaznaczyć, Delete, aby usunąć",
   "waveformEditor.gain": "WZMOCNIENIE",
-  "waveformEditor.pitch": "WYSOKOŚĆ"
+  "waveformEditor.pitch": "WYSOKOŚĆ",
+  "menu.moreFreallyApps": "Wi\u0119cej aplikacji Freally",
+  "moreApps.title": "Wi\u0119cej aplikacji Freally"
 }

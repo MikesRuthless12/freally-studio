@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "Taste „{{key}}“ ist bereits einem anderen Slice zugewiesen.",
   "arrange.rangeDeleteHint": "Strg+Ziehen zum Auswählen, Entf zum Entfernen",
   "waveformEditor.gain": "GAIN",
-  "waveformEditor.pitch": "PITCH"
+  "waveformEditor.pitch": "PITCH",
+  "menu.moreFreallyApps": "Weitere Freally-Apps",
+  "moreApps.title": "Weitere Freally-Apps"
 }

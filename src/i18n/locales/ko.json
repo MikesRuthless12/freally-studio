@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "키 \"{{key}}\"은(는) 이미 다른 슬라이스에 할당되어 있습니다.",
   "arrange.rangeDeleteHint": "Ctrl+드래그로 선택, Delete로 제거",
   "waveformEditor.gain": "게인",
-  "waveformEditor.pitch": "피치"
+  "waveformEditor.pitch": "피치",
+  "menu.moreFreallyApps": "\ub354 \ub9ce\uc740 Freally \uc571",
+  "moreApps.title": "\ub354 \ub9ce\uc740 Freally \uc571"
 }

@@ -1991,5 +1991,7 @@
   "slicer.assignKeyPrompt": "Assegna un tasto della tastiera a questo punto di taglio.\nGià usati: {{usedKeys}}",
   "slicer.keyAlreadyUsed": "Il tasto \"{{key}}\" è già assegnato a un'altra fetta.",
   "arrange.rangeDeleteHint": "Ctrl+trascina per selezionare, Canc per rimuovere",
-  "waveformEditor.gain": "GAIN"
+  "waveformEditor.gain": "GAIN",
+  "menu.moreFreallyApps": "Altre app Freally",
+  "moreApps.title": "Altre app Freally"
 }

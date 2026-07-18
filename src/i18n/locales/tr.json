@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "\"{{key}}\" tuşu başka bir dilime zaten atanmış.",
   "arrange.rangeDeleteHint": "Seçmek için Ctrl+sürükle, kaldırmak için Delete",
   "waveformEditor.gain": "KAZANÇ",
-  "waveformEditor.pitch": "PERDE"
+  "waveformEditor.pitch": "PERDE",
+  "menu.moreFreallyApps": "Di\u011fer Freally uygulamalar\u0131",
+  "moreApps.title": "Di\u011fer Freally uygulamalar\u0131"
 }

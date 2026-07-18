@@ -31,6 +31,8 @@
     "dist:linux": "npm run native:build && npm run build:electron && electron-builder --linux"
   },
   "dependencies": {
+    "@fluent/bundle": "^0.19.1",
+    "@tauri-apps/api": "^2.11.1",
     "@twemoji/api": "^17.0.2",
     "emoji-picker-react": "^4.18.0",
     "jszip": "^3.10.1",

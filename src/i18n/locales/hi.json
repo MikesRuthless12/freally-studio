@@ -1993,5 +1993,7 @@
   "slicer.keyAlreadyUsed": "कुंजी \"{{key}}\" पहले से किसी अन्य स्लाइस को असाइन है।",
   "arrange.rangeDeleteHint": "चुनने के लिए Ctrl+खींचें, हटाने के लिए Delete",
   "waveformEditor.gain": "GAIN",
-  "waveformEditor.pitch": "पिच"
+  "waveformEditor.pitch": "पिच",
+  "menu.moreFreallyApps": "\u0914\u0930 Freally \u0910\u092a\u094d\u0938",
+  "moreApps.title": "\u0914\u0930 Freally \u0910\u092a\u094d\u0938"
 }

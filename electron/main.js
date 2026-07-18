@@ -70,7 +70,7 @@ function requireMainFrame(event) {
 }
 
 // Content-Security-Policy applied to all packaged-app responses (A3).
-const CSP_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.peerjs.com https://*.peerjs.com https://0.peerjs.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com data: blob:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; worker-src 'self' blob:; child-src 'self' blob:;";
+const CSP_VALUE = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' wss://*.peerjs.com https://*.peerjs.com https://0.peerjs.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://api.github.com https://mikesruthless12.github.io data: blob:; img-src 'self' data: blob: https:; media-src 'self' blob: data:; worker-src 'self' blob:; child-src 'self' blob:;";
 
 // Suppress EPIPE errors on stdout/stderr (harmless — occurs when pipe closes during shutdown)
 process.stdout?.on('error', (err) => { if (err.code === 'EPIPE') return; throw err; });

@@ -1996,5 +1996,7 @@
   "slicer.keyAlreadyUsed": "Key \"{{key}}\" is already assigned to another slice.",
   "arrange.rangeDeleteHint": "Ctrl+drag to select, Delete to remove",
   "waveformEditor.gain": "GAIN",
-  "waveformEditor.pitch": "PITCH"
+  "waveformEditor.pitch": "PITCH",
+  "menu.moreFreallyApps": "More Freally apps",
+  "moreApps.title": "More Freally apps"
 }

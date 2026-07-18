@@ -1993,5 +1993,7 @@
   "slicer.keyAlreadyUsed": "キー「{{key}}」は別のスライスに割り当て済みです。",
   "arrange.rangeDeleteHint": "Ctrl+ドラッグで選択、Deleteで削除",
   "waveformEditor.gain": "ゲイン",
-  "waveformEditor.pitch": "ピッチ"
+  "waveformEditor.pitch": "ピッチ",
+  "menu.moreFreallyApps": "\u305d\u306e\u4ed6\u306e Freally \u30a2\u30d7\u30ea",
+  "moreApps.title": "\u305d\u306e\u4ed6\u306e Freally \u30a2\u30d7\u30ea"
 }

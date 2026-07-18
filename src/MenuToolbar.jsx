@@ -71,6 +71,7 @@ const MenuToolbar = ({
     // Help actions
     onShowShortcuts,
     onShowTour,
+    onOpenCentralPanel,
 }) => {
     const { t } = useTranslation();
     const [openMenu, setOpenMenu] = useState(null);
@@ -471,6 +472,11 @@ const MenuToolbar = ({
                         <MenuItem label={t('menu.aboutFreally')} onClick={() => {
                             closeAll();
                             alert('Freally Studio\nBrowser-based DAW\nhttps://freally.com');
+                        }} />
+                        {separatorEl}
+                        <MenuItem label={t('menu.moreFreallyApps')} onClick={() => {
+                            closeAll();
+                            onOpenCentralPanel && onOpenCentralPanel();
                         }} />
                     </div>
                 )}

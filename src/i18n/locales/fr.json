@@ -1994,5 +1994,7 @@
   "slicer.keyAlreadyUsed": "La touche « {{key}} » est déjà attribuée à une autre tranche.",
   "arrange.rangeDeleteHint": "Ctrl+glisser pour sélectionner, Suppr pour retirer",
   "waveformEditor.gain": "GAIN",
-  "waveformEditor.pitch": "HAUTEUR"
+  "waveformEditor.pitch": "HAUTEUR",
+  "menu.moreFreallyApps": "Plus d'apps Freally",
+  "moreApps.title": "Plus d'apps Freally"
 }

@@ -1,3 +1,6 @@
 [submodule "native/third_party/vst3sdk"]
 	path = native/third_party/vst3sdk
 	url = https://github.com/steinbergmedia/vst3sdk.git
+[submodule "vendor/freally-central"]
+	path = vendor/freally-central
+	url = https://github.com/MikesRuthless12/freally-central

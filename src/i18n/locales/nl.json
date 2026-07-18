@@ -1993,5 +1993,7 @@
   "slicer.keyAlreadyUsed": "Toets \"{{key}}\" is al toegewezen aan een andere slice.",
   "arrange.rangeDeleteHint": "Ctrl+sleep om te selecteren, Delete om te verwijderen",
   "waveformEditor.gain": "GAIN",
-  "waveformEditor.pitch": "TOONHOOGTE"
+  "waveformEditor.pitch": "TOONHOOGTE",
+  "menu.moreFreallyApps": "Meer Freally-apps",
+  "moreApps.title": "Meer Freally-apps"
 }

@@ -302,3 +302,31 @@ footer a:hover {
   .doc-toc a{border-left:none;border-bottom:2px solid transparent;border-radius:6px;padding:.3rem .55rem;font-size:.85rem;}
   .doc-toc a:hover,.doc-toc a.active{border-left-color:transparent;border-bottom-color:var(--accent);}
 }
+
+/* Disabled download control — shown when an app is not in a stable release yet. */
+.dl-disabled {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dl-disabled .dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  font-weight: 600;
+  opacity: 0.5;
+  cursor: not-allowed;
+  user-select: none;
+}
+.dl-disabled .dl-note {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+/* Enlarged hero logo so the app icon is visible and readable (>= 284px). */
+.hero .logo { width: 288px; max-width: 72vw; height: auto; }
